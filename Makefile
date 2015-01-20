@@ -18,4 +18,4 @@ utils/%: src/utils/%.c
 
 clean:
 #	rm -f recon $(objects) $(miscutils) $(datautils) $(supportutils) $(transformutils)
-	rm -f $(objects)
+	rm -f recon $(objects)
