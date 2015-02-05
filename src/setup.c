@@ -7,7 +7,7 @@ int parse_support(char*) ;
 void create_plans(char*) ;
 
 int setup() {
-	char var_name[500] ;
+	char var_name[500], input_fname[500] ;
 	char intens_fname[500], hkl_fname[500], support_fname[500], wisdom_fname[500] ;
 	
 	FILE *fp = fopen("src/config.conf", "r") ;
@@ -21,6 +21,7 @@ int setup() {
 	fgets(var_name, 500, fp) ; fscanf(fp, "%s\n", intens_fname) ;
 	fgets(var_name, 500, fp) ; fscanf(fp, "%s\n", hkl_fname) ;
 	fgets(var_name, 500, fp) ; fscanf(fp, "%s\n", support_fname) ;
+	fgets(var_name, 500, fp) ; fscanf(fp, "%s\n", input_fname) ;
 	fgets(var_name, 500, fp) ; fscanf(fp, "%s\n", wisdom_fname) ;
 	fclose(fp) ;
 	

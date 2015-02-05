@@ -1,0 +1,23 @@
+# System size
+427
+
+# Non-zero-padded sizes
+143 143 143
+
+# Left zero padding
+142 142 142
+
+# Continuous intensity file
+data/ps2contintens_427.raw
+
+# hkl intensity file
+data/ps2hklintens_427.raw
+
+# Support file
+data/ps2_427.supp
+
+# Starting model
+data/recon.r
+
+# FFTW wisdom file
+data/wisdom_427_4
