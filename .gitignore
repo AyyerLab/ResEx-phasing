@@ -3,3 +3,6 @@ recon
 /utils
 /data
 src/config.conf
+*.log
+*.dat
+*.png
