@@ -145,7 +145,7 @@ void proj_cont(float *in, float *out) {
 	fftwf_execute(inverse_cont) ;
 	
 	for (i = 0 ; i < vol ; ++i)
-		out[i] = cabs(rdensity[i]) * norm_factor ;
+		out[i] = cabsf(rdensity[i]) * norm_factor ;
 }
 
 // Support projection
