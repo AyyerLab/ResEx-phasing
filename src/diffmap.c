@@ -79,7 +79,7 @@ void symmetrize_intens(fftwf_complex *in, float *out, int flag) {
 // (rhkl,fhkl,exp_hkl,hkl_mag)
 void proj_bragg(float *in, float *out) {
 	long h, k, l, i ;
-	float norm_factor = 1. / sqrt(hklvol) ;
+	float norm_factor = 1.f / (float)hklvol ;
 	
 	memset(exp_hkl, 0, hklvol*sizeof(float)) ;
 	memset(out, 0, vol*sizeof(float)) ;
@@ -95,16 +95,15 @@ void proj_bragg(float *in, float *out) {
 	fftwf_execute(forward_hkl) ;
 	
 	// Symmetrize hkl structure factors
-	symmetrize_intens(fhkl, exp_hkl, 0) ;
+//	symmetrize_intens(fhkl, exp_hkl, 0) ;
 	
 	// Replace with measured modulus
 	for (i = 0 ; i < hklvol ; ++i) {
 		if (hkl_mag[i] > 0.)
-			fhkl[i] *= hkl_mag[i] / sqrt(exp_hkl[i]) ;
+//			fhkl[i] *= hkl_mag[i] / sqrt(exp_hkl[i]) ;
+			fhkl[i] *= hkl_mag[i] / cabsf(fhkl[i]) ;
 		else if (hkl_mag[i] == 0.)
 			fhkl[i] = 0. ;
-		else
-			fhkl[i] *= norm_factor ;
 	}
 	
 	// Inverse Fourier transform
@@ -122,7 +121,7 @@ void proj_bragg(float *in, float *out) {
 // (vol,rdensity,fdensity,exp_intens,obs_mag)
 void proj_cont(float *in, float *out) {
 	long i ;
-	float norm_factor = 1. / sqrt(vol) ;
+	float norm_factor = 1.f / (float)vol ;
 	memset(exp_intens, 0, vol*sizeof(float)) ;
 	
 	// Fourier transform to get structure factors
@@ -131,16 +130,15 @@ void proj_cont(float *in, float *out) {
 	fftwf_execute(forward_cont) ;
 	
 	// Symmetrize to get intensities to compare
-	symmetrize_intens(fdensity, exp_intens, 1) ;
+//	symmetrize_intens(fdensity, exp_intens, 1) ;
 	
 	// Scale using measured modulus at high resolution
 	for (i = 0 ; i < vol ; ++i) {
 		if (obs_mag[i] > 0.)
-			fdensity[i] *= obs_mag[i] / sqrt(exp_intens[i]) ;
+//			fdensity[i] *= obs_mag[i] / sqrt(exp_intens[i]) ;
+			fdensity[i] *= obs_mag[i] / cabsf(fdensity[i]) ;
 		else if (obs_mag[i] == 0.)
 			fdensity[i] = 0. ;
-		else
-			fdensity[i] *= norm_factor ;
 	}
 	
 	// Inverse Fourier transform
