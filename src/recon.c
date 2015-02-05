@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
 		error = diffmap(iterate) ;
 		
 		if (iter >= start_ave)
-			average_model(p1[0], average) ;
+			average_model(p1[2], average) ;
 		
 		gettimeofday(&t2, NULL) ;
 		fp = fopen("PHASING.log", "a") ;
