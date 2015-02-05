@@ -34,6 +34,7 @@ image_exists = 0
 
 # Determine extension and resulting data types
 def parse_extension(ext_string):
+	global typestr, size, typesize, rangemax
 	if ext_string == '.raw':
 		typestr = 'f4'
 		typesize = 4
@@ -45,7 +46,8 @@ def parse_extension(ext_string):
 		size = 427
 		rangemax = 0.002
 	elif ext_string == '.supp':
-		typestr = 'u1'
+		print "Support file"
+		typestr = 'uint8'
 		typesize = 1
 		size = 427
 		rangemax = 1
@@ -69,7 +71,7 @@ old_fname = fname.get()
 old_sizestr = sizestr.get()
 old_rangestr = rangestr.get()
 
-vol = np.zeros((size*size*size), dtype=typestr)
+vol = np.zeros((size,size,size), dtype=typestr)
 
 # Parse file to generate three arrays and plot them
 def parse_vol():
