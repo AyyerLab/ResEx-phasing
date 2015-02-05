@@ -106,7 +106,7 @@ int parse_hkl(char *fname) {
 	}
 	
 	intens = malloc(vol * sizeof(float)) ;
-	fread(intens, sizeof(float), vol, fp) ;
+	fread(intens, sizeof(float), hklvol, fp) ;
 	fclose(fp) ;
 	
 	for (i = 0 ; i < hs ; ++i)
@@ -172,6 +172,6 @@ void create_plans(char *fname) {
 		inverse_cont = fftwf_plan_dft_3d(size, size, size, fdensity, rdensity, FFTW_BACKWARD, FFTW_MEASURE) ;
 	}
 	
-	fftwf_plan_dft_3d(hsize, ksize, lsize, rhkl, fhkl, FFTW_FORWARD, FFTW_MEASURE) ;
-	fftwf_plan_dft_3d(hsize, ksize, lsize, fhkl, rhkl, FFTW_BACKWARD, FFTW_MEASURE) ;
+	forward_hkl = fftwf_plan_dft_3d(hsize, ksize, lsize, rhkl, fhkl, FFTW_FORWARD, FFTW_MEASURE) ;
+	inverse_hkl = fftwf_plan_dft_3d(hsize, ksize, lsize, fhkl, rhkl, FFTW_BACKWARD, FFTW_MEASURE) ;
 }
