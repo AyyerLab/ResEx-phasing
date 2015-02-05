@@ -13,8 +13,8 @@
 
 long size, vol, hklvol, num_supp ;
 long hsize, ksize, lsize, hoffset, koffset, loffset ;
-float *obs_mag, *exp_intens, *p1[3], *p2[3], *r1[3] ;
-float *hkl_mag, *exp_hkl ;
+float *obs_mag, *exp_intens, *hkl_mag, *exp_hkl ;
+float *iterate[3], *p1[3], *p2[3], *r1[3] ;
 long *support ;
 fftwf_complex *fdensity, *rdensity ;
 fftwf_complex *fhkl, *rhkl ;

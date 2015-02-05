@@ -5,6 +5,7 @@ int parse_intens(char*) ;
 int parse_hkl(char*) ;
 int parse_support(char*) ;
 void create_plans(char*) ;
+void gen_input(char*) ;
 
 int setup() {
 	char var_name[500], input_fname[500] ;
@@ -36,6 +37,7 @@ int setup() {
 		return 1 ;
 	if (parse_support(support_fname))
 		return 1 ;
+	gen_input(input_fname) ;
 	create_plans(wisdom_fname) ;
 	
 	return 0 ;
@@ -50,6 +52,7 @@ int allocate_memory() {
 	exp_hkl = malloc(hklvol * sizeof(float)) ;
 	
 	for (i = 0 ; i < 3 ; ++i) {
+		iterate[i] = malloc(vol * sizeof(float)) ;
 		p1[i] = malloc(vol * sizeof(float)) ;
 		p2[i] = malloc(vol * sizeof(float)) ;
 		r1[i] = malloc(vol * sizeof(float)) ;
@@ -174,4 +177,21 @@ void create_plans(char *fname) {
 	
 	forward_hkl = fftwf_plan_dft_3d(hsize, ksize, lsize, rhkl, fhkl, FFTW_FORWARD, FFTW_MEASURE) ;
 	inverse_hkl = fftwf_plan_dft_3d(hsize, ksize, lsize, fhkl, rhkl, FFTW_BACKWARD, FFTW_MEASURE) ;
+}
+
+void gen_input(char *fname) {
+	FILE *fp = fopen(fname, "rb") ;
+	if (fp == NULL) {
+		fprintf(stderr, "Random start\n") ;
+		init_model(iterate) ;
+	}
+	else {
+		fprintf(stderr, "Using %s\n", fname) ;
+		int t ;
+		for (t = 0 ; t < 3 ; ++t) {
+			fread(iterate[t], sizeof(float), vol, fp) ;
+			rewind(fp) ;
+		}
+		fclose(fp) ;
+	}
 }
