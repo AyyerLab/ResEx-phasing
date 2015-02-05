@@ -1,0 +1,20 @@
+# System size
+101
+
+# Non-zero-padded sizes
+21 21 21
+
+# Left zero padding
+40 40 40
+
+# Continuous intensity file
+data/contintens.raw
+
+# hkl intensity file
+data/hklintens.raw
+
+# Support file
+data/supp.supp
+
+# FFTW wisdom file
+data/wisdom_101_4

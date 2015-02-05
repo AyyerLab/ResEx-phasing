@@ -93,24 +93,37 @@ void proj_bragg(float *in, float *out) {
 	
 	// Fourier transform to get structure factors
 	fftwf_execute(forward_hkl) ;
+	if (iter == 500) {
+		for (h = 0 ; h < hsize ; ++h)
+		for (k = 0 ; k < ksize ; ++k)
+		for (l = 0 ; l < lsize ; ++l)
+			out[(h+hoffset)*size*size + (k+koffset)*size + (l+loffset)]
+			 = cabsf(fhkl[h*ksize*lsize + k*lsize + l]) ;
+		
+		FILE *fp = fopen("data/fhkl.raw", "wb") ;
+		fwrite(out, sizeof(float), vol, fp) ;
+		fclose(fp) ;
+	}
 	
 	// Symmetrize hkl structure factors
-	symmetrize_intens(fhkl, exp_hkl, 0) ;
+//	symmetrize_intens(fhkl, exp_hkl, 0) ;
 	
 	// Replace with measured modulus
 	for (i = 0 ; i < hklvol ; ++i) {
 		if (hkl_mag[i] > 0.)
-			fhkl[i] *= hkl_mag[i] / sqrt(exp_hkl[i]) ;
+//			fhkl[i] *= hkl_mag[i] / sqrt(exp_hkl[i]) ;
+			fhkl[i] *= hkl_mag[i] / cabsf(fhkl[i]) ;
 		else if (hkl_mag[i] == 0.)
 			fhkl[i] = 0. ;
-		else
-			fhkl[i] *= norm_factor ;
+//		else
+//			fhkl[i] *= norm_factor ;
 	}
 	
 	// Inverse Fourier transform
 	fftwf_execute(inverse_hkl) ;
 	
 	// Zero pad and rescale axes
+	norm_factor = 1.f / (float)hklvol ;
 	for (h = 0 ; h < hsize ; ++h)
 	for (k = 0 ; k < ksize ; ++k)
 	for (l = 0 ; l < lsize ; ++l)
@@ -130,24 +143,35 @@ void proj_cont(float *in, float *out) {
 		rdensity[i] = in[i] ;
 	fftwf_execute(forward_cont) ;
 	
+	if (iter == 500) {
+		for (i = 0 ; i < vol ; ++i)
+			out[i] = cabs(rdensity[i]) ;
+		
+		FILE *fp = fopen("data/fcont.raw", "wb") ;
+		fwrite(out, sizeof(float), vol, fp) ;
+		fclose(fp) ;
+	}
+	
 	// Symmetrize to get intensities to compare
-	symmetrize_intens(fdensity, exp_intens, 1) ;
+//	symmetrize_intens(fdensity, exp_intens, 1) ;
 	
 	// Scale using measured modulus at high resolution
 	for (i = 0 ; i < vol ; ++i) {
 		if (obs_mag[i] > 0.)
-			fdensity[i] *= obs_mag[i] / sqrt(exp_intens[i]) ;
+//			fdensity[i] *= obs_mag[i] / sqrt(exp_intens[i]) ;
+			fdensity[i] *= obs_mag[i] / cabsf(fdensity[i]) ;
 		else if (obs_mag[i] == 0.)
 			fdensity[i] = 0. ;
-		else
-			fdensity[i] *= norm_factor ;
+//		else
+//			fdensity[i] *= norm_factor ;
 	}
 	
 	// Inverse Fourier transform
 	fftwf_execute(inverse_cont) ;
 	
+	norm_factor = 1.f / (float)vol ;
 	for (i = 0 ; i < vol ; ++i)
-		out[i] = cabs(rdensity[i]) * norm_factor ;
+		out[i] = cabsf(rdensity[i]) * norm_factor ;
 }
 
 // Support projection
@@ -163,11 +187,19 @@ void proj_supp(float *in, float *out) {
 			out[pixel] = in[pixel] ;
 	}
 }
-
+/*
 // Divide constraint
 void proj1(float **in, float **out) {
-	proj_bragg(in[0], out[0]) ;
-	proj_cont(in[1], out[1]) ;
+	long i ;
+	
+	proj_cont(in[0], out[0]) ;
+	for (i = 0 ; i < vol ; ++i)
+		in[1][i] = out[0][i] ;
+	
+	proj_bragg(in[1], out[1]) ;
+	for (i = 0 ; i < vol ; ++i)
+		out[0][i] = out[1][i] ;
+	
 	proj_supp(in[2], out[2]) ;
 }
 
@@ -178,7 +210,10 @@ void proj2(float **in, float **out) {
 	float ave ;
 	
 	for (i = 0 ; i < vol ; ++i) {
-		ave = (in[0][i] + in[1][i] + in[2][i]) / 3. ;
+		if (iter < 1000)
+			ave = 0.5 * (in[1][i] + in[2][i]) ;
+		else
+			ave = (in[0][i] + in[1][i] + in[2][i]) / 3. ;
 		
 		out[0][i] = ave ;
 		out[1][i] = ave ;
@@ -208,4 +243,36 @@ double diffmap(float **x) {
 	}
 	
 	return sqrt(change / (3 * vol)) ;
+}
+*/
+
+// Data constraint (Bragg + Continuous)
+void proj1(float *in, float *out) {
+	long i ;
+	
+	proj_cont(in, out) ;
+	for (i = 0 ; i < vol ; ++i)
+		in[i] = out[i] ;
+	
+	proj_bragg(in, out) ;
+}
+
+double diffmap(float *x) {
+	long i ;
+	float diff, change = 0. ;
+	
+	proj1(x, p1) ;
+	
+	for (i = 0 ; i < vol ; ++i)
+		r1[i] = 2. * p1[i] - x[i] ;
+	
+	proj_supp(r1, p2) ;
+	
+	for (i = 0 ; i < vol ; ++i) {
+		diff = p2[i] - p1[i] ;
+		x[i] += diff ;
+		change += diff*diff ;
+	}
+	
+	return sqrt(change / vol) ;
 }

@@ -5,9 +5,10 @@ int parse_intens(char*) ;
 int parse_hkl(char*) ;
 int parse_support(char*) ;
 void create_plans(char*) ;
+void gen_input(char*) ;
 
 int setup() {
-	char var_name[500] ;
+	char var_name[500], input_fname[500] ;
 	char intens_fname[500], hkl_fname[500], support_fname[500], wisdom_fname[500] ;
 	
 	FILE *fp = fopen("src/config.conf", "r") ;
@@ -21,11 +22,14 @@ int setup() {
 	fgets(var_name, 500, fp) ; fscanf(fp, "%s\n", intens_fname) ;
 	fgets(var_name, 500, fp) ; fscanf(fp, "%s\n", hkl_fname) ;
 	fgets(var_name, 500, fp) ; fscanf(fp, "%s\n", support_fname) ;
+	fgets(var_name, 500, fp) ; fscanf(fp, "%s\n", input_fname) ;
 	fgets(var_name, 500, fp) ; fscanf(fp, "%s\n", wisdom_fname) ;
 	fclose(fp) ;
 	
 	vol = size*size*size ;
 	hklvol = hsize*ksize*lsize ;
+	fftwf_init_threads() ;
+	fftwf_plan_with_nthreads(4) ;
 	
 	if (allocate_memory())
 		return 1 ;
@@ -35,24 +39,22 @@ int setup() {
 		return 1 ;
 	if (parse_support(support_fname))
 		return 1 ;
+	gen_input(input_fname) ;
 	create_plans(wisdom_fname) ;
 	
 	return 0 ;
 }	
 
 int allocate_memory() {
-	int i ;
-	
+	iterate = malloc(vol * sizeof(float)) ;
 	obs_mag = malloc(vol * sizeof(float)) ;
 	exp_intens = malloc(vol * sizeof(float)) ;
 	hkl_mag = malloc(hklvol * sizeof(float)) ;
 	exp_hkl = malloc(hklvol * sizeof(float)) ;
 	
-	for (i = 0 ; i < 3 ; ++i) {
-		p1[i] = malloc(vol * sizeof(float)) ;
-		p2[i] = malloc(vol * sizeof(float)) ;
-		r1[i] = malloc(vol * sizeof(float)) ;
-	}
+	p1 = malloc(vol * sizeof(float)) ;
+	p2 = malloc(vol * sizeof(float)) ;
+	r1 = malloc(vol * sizeof(float)) ;
 	
 	rdensity = fftwf_malloc(vol * sizeof(fftwf_complex)) ;
 	fdensity = fftwf_malloc(vol * sizeof(fftwf_complex)) ;
@@ -104,8 +106,8 @@ int parse_hkl(char *fname) {
 		return 1 ;
 	}
 	
-	intens = malloc(vol * sizeof(float)) ;
-	fread(intens, sizeof(float), vol, fp) ;
+	intens = malloc(hklvol * sizeof(float)) ;
+	fread(intens, sizeof(float), hklvol, fp) ;
 	fclose(fp) ;
 	
 	for (i = 0 ; i < hs ; ++i)
@@ -171,6 +173,19 @@ void create_plans(char *fname) {
 		inverse_cont = fftwf_plan_dft_3d(size, size, size, fdensity, rdensity, FFTW_BACKWARD, FFTW_MEASURE) ;
 	}
 	
-	fftwf_plan_dft_3d(hsize, ksize, lsize, rhkl, fhkl, FFTW_FORWARD, FFTW_MEASURE) ;
-	fftwf_plan_dft_3d(hsize, ksize, lsize, fhkl, rhkl, FFTW_BACKWARD, FFTW_MEASURE) ;
+	forward_hkl = fftwf_plan_dft_3d(hsize, ksize, lsize, rhkl, fhkl, FFTW_FORWARD, FFTW_MEASURE) ;
+	inverse_hkl = fftwf_plan_dft_3d(hsize, ksize, lsize, fhkl, rhkl, FFTW_BACKWARD, FFTW_MEASURE) ;
+}
+
+void gen_input(char *fname) {
+	FILE *fp = fopen(fname, "rb") ;
+	if (fp == NULL) {
+		fprintf(stderr, "Random start\n") ;
+		init_model(iterate) ;
+	}
+	else {
+		fprintf(stderr, "Starting from %s\n", fname) ;
+		fread(iterate, sizeof(float), vol, fp) ;
+		fclose(fp) ;
+	}
 }

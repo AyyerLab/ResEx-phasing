@@ -1,9 +1,9 @@
 #include "brcont.h"
 
 int main(int argc, char *argv[]) {
-	int i, iter, num_iter, start_ave ;
+	int i, num_iter, start_ave ;
 	double error ;
-	float *iterate[3], *average ;
+	float *average ;
 	struct timeval t1, t2 ;
 	FILE *fp ;
 	
@@ -24,25 +24,21 @@ int main(int argc, char *argv[]) {
 	
 	omp_set_num_threads(32) ;
 	
-	iterate[0] = malloc(vol * sizeof(float)) ;
-	iterate[1] = malloc(vol * sizeof(float)) ;
-	iterate[2] = malloc(vol * sizeof(float)) ;
 	average = calloc(vol, sizeof(float)) ;
-	
-	init_model(iterate) ;
 	
 	fp = fopen("PHASING.log", "w") ;
 	fprintf(fp, "iter\ttime  \terror\n") ;
 	fprintf(fp, "-------------------------\n") ;
 	fclose(fp) ;
 	
-	for (iter = 0 ; iter < num_iter ; ++iter) {
+	for (iter = 1 ; iter <= num_iter ; ++iter) {
 		gettimeofday(&t1, NULL) ;
 		
 		error = diffmap(iterate) ;
 		
-		if (iter >= start_ave)
-			average_model(p1[0], average) ;
+		if (iter >= start_ave) {
+			average_model(p1, average) ;
+		}
 		
 		gettimeofday(&t2, NULL) ;
 		fp = fopen("PHASING.log", "a") ;

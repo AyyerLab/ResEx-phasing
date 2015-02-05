@@ -1,7 +1,7 @@
 #include "brcont.h"
 
-void init_model(float **model) {
-	long t, i ;
+void init_model(float *model) {
+	long i ;
 	struct timeval t1 ;
 	const gsl_rng_type *T ;
 	gsl_rng *r ;
@@ -12,12 +12,10 @@ void init_model(float **model) {
 	r = gsl_rng_alloc(T) ;
 	gsl_rng_set(r, t1.tv_sec + t1.tv_usec) ;
 	
-	for (t = 0 ; t < 3 ; ++t) {
-		memset(model[t], 0, vol*sizeof(float)) ;
-		
-		for (i = 0 ; i < num_supp ; ++i)
-			model[t][support[i]] = gsl_rng_uniform(r) ;
-	}
+	memset(model, 0, vol*sizeof(float)) ;
+	
+	for (i = 0 ; i < num_supp ; ++i)
+		model[support[i]] = gsl_rng_uniform(r) ;
 	
 	gsl_rng_free(r) ;
 }
