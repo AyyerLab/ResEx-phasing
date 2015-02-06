@@ -13,6 +13,7 @@
 // Bragg projection 
 // (hklvol,vol,hsize,ksize,lsize,hoffset,koffset,loffset)
 // (rhkl,fhkl,exp_hkl,hkl_mag)
+// Can set out = in
 void proj_bragg(float *in, float *out) {
 	long h, k, l, i ;
 	float norm_factor = 1.f / (float) hklvol ;
@@ -56,6 +57,7 @@ void proj_bragg(float *in, float *out) {
 
 // Projection over continuous data 
 // (vol,rdensity,fdensity,exp_intens,obs_mag)
+// Can set out = in
 void proj_cont(float *in, float *out) {
 	long i ;
 	float norm_factor = 1.f / (float) vol ;
@@ -88,6 +90,7 @@ void proj_cont(float *in, float *out) {
 
 // Support projection
 // (vol,num_supp,support)
+// Cannot set out = in
 void proj_supp(float *in, float *out) {
 	long i, pixel ;
 	
@@ -101,6 +104,7 @@ void proj_supp(float *in, float *out) {
 }
 
 // Data constraint (Bragg + Continuous)
+// Can set out = in
 void proj1(float *in, float *out) {
 	long i ;
 	
