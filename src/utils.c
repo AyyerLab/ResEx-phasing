@@ -30,15 +30,18 @@ void average_model(float *current, float *sum) {
 void gen_prtf(float *model) {
 	long x, y, z, bin, num_bins = 50 ;
 	long dx, dy, dz, center1 = size / 2 + 1 ;
-	float scale_factor = sqrt(vol) ;
+	long ch = hsize/2+1, ck = ksize/2+1, cl = lsize/2+1, maxc ;
 	float *contrast = calloc(num_bins, sizeof(float)) ;
 	long *bin_count = calloc(num_bins, sizeof(long)) ;
 	FILE *fp ;
 	
+	// Continuous part
 	for (x = 0 ; x < vol ; ++x)
 		rdensity[x] = model[x] ;
 	
 	fftwf_execute(forward_cont) ;
+	
+	symmetrize_intens(fdensity, exp_intens, 1) ;
 	
 	for (x = 0 ; x < size ; ++x)
 	for (y = 0 ; y < size ; ++y)
@@ -50,11 +53,50 @@ void gen_prtf(float *model) {
 		bin = sqrt(dx*dx + dy*dy + dz*dz) / center1 * num_bins + 0.5 ;
 		
 		if (bin < num_bins && obs_mag[x*size*size + y*size + z] > 0.) {
-			contrast[bin] += cabs(fdensity[x*size*size + y*size + z]) / 
-				(scale_factor * obs_mag[x*size*size + y*size + z]) ;
+//			contrast[bin] += cabs(fdensity[x*size*size + y*size + z]) / 
+			contrast[bin] += sqrt(exp_intens[x*size*size + y*size + z]) / 
+			                 obs_mag[x*size*size + y*size + z] ;
 			bin_count[bin]++ ;
 		}
 	}
+	
+	// Bragg part
+	maxc = ch > ck ? ch : ck ;
+	maxc = maxc > cl ? maxc : cl ;
+	
+	fprintf(stderr, "maxc = %ld\n", maxc) ;
+	
+	for (x = 0 ; x < hsize ; ++x)
+	for (y = 0 ; y < ksize ; ++y)
+	for (z = 0 ; z < lsize ; ++z)
+		rhkl[x*ksize*lsize + y*lsize + z] 
+		 = model[(x+hoffset)*size*size + (y+koffset)*size + (z+loffset)] ;
+	
+	fftwf_execute(forward_hkl) ;
+	
+	symmetrize_intens(fhkl, exp_hkl, 0) ;
+	
+	long mbin = 0 ;
+	for (x = 0 ; x < hsize ; ++x)
+	for (y = 0 ; y < ksize ; ++y)
+	for (z = 0 ; z < lsize ; ++z) {
+		dx = (x + ch) % hsize  - ch ;
+		dy = (y + ck) % ksize  - ck ;
+		dz = (z + cl) % lsize  - cl ;
+		
+		bin = sqrt(dx*dx + dy*dy + dz*dz) / maxc * num_bins + 0.5 ;
+		if (bin > mbin)
+			mbin = bin ;
+		
+		if (bin < num_bins && hkl_mag[x*size*size + y*size + z] > 0.) {
+//			contrast[bin] += cabs(fdensity[x*size*size + y*size + z]) / 
+			contrast[bin] += sqrt(exp_hkl[x*ksize*lsize + y*lsize + z]) / 
+			                 hkl_mag[x*ksize*lsize + y*lsize + z] ;
+			bin_count[bin]++ ;
+		}
+	}
+	
+	fprintf(stderr, "mbin = %ld\n", mbin) ;
 	
 	fp = fopen("prtf.dat", "w") ;
 	for (bin = 0 ; bin < num_bins ; ++bin)

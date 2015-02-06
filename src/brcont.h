@@ -22,6 +22,7 @@ fftwf_complex *fhkl, *rhkl ;
 fftwf_plan forward_cont, inverse_cont, forward_hkl, inverse_hkl ;
 
 // diffmap.c
+void symmetrize_intens(fftwf_complex*, float*, int) ;
 double diffmap(float*) ;
 
 // setup.c
