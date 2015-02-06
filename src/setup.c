@@ -1,11 +1,11 @@
 #include "brcont.h"
 
-int allocate_memory() ;
+int allocate_memory(int) ;
 int parse_intens(char*) ;
 int parse_hkl(char*) ;
 int parse_support(char*) ;
 void create_plans(char*) ;
-void gen_input(char*) ;
+int gen_input(char*, int) ;
 
 int setup() {
 	char var_name[500], input_fname[500] ;
@@ -31,7 +31,7 @@ int setup() {
 	fftwf_init_threads() ;
 	fftwf_plan_with_nthreads(4) ;
 	
-	if (allocate_memory())
+	if (allocate_memory(1))
 		return 1 ;
 	if (parse_intens(intens_fname))
 		return 1 ;
@@ -39,22 +39,57 @@ int setup() {
 		return 1 ;
 	if (parse_support(support_fname))
 		return 1 ;
-	gen_input(input_fname) ;
+	gen_input(input_fname, 1) ;
 	create_plans(wisdom_fname) ;
 	
 	return 0 ;
 }	
 
-int allocate_memory() {
+int setup_gen() {
+	char var_name[500], input_fname[500] ;
+	char intens_fname[500], hkl_fname[500], support_fname[500], wisdom_fname[500] ;
+	
+	FILE *fp = fopen("src/config.conf", "r") ;
+	if (fp == NULL) {
+		fprintf(stderr, "Config file not found\n") ;
+		return 1 ;
+	}
+	fgets(var_name, 500, fp) ; fscanf(fp, "%ld\n", &size) ;
+	fgets(var_name, 500, fp) ; fscanf(fp, "%ld %ld %ld\n", &hsize, &ksize, &lsize) ;
+	fgets(var_name, 500, fp) ; fscanf(fp, "%ld %ld %ld\n", &hoffset, &koffset, &loffset) ;
+	fgets(var_name, 500, fp) ; fscanf(fp, "%s\n", intens_fname) ;
+	fgets(var_name, 500, fp) ; fscanf(fp, "%s\n", hkl_fname) ;
+	fgets(var_name, 500, fp) ; fscanf(fp, "%s\n", support_fname) ;
+	fgets(var_name, 500, fp) ; fscanf(fp, "%s\n", input_fname) ;
+	fgets(var_name, 500, fp) ; fscanf(fp, "%s\n", wisdom_fname) ;
+	fclose(fp) ;
+	
+	vol = size*size*size ;
+	hklvol = hsize*ksize*lsize ;
+	fftwf_init_threads() ;
+	fftwf_plan_with_nthreads(4) ;
+	
+	if (allocate_memory(0))
+		return 1 ;
+	if (gen_input(input_fname, 0))
+		return 1 ;
+	create_plans(wisdom_fname) ;
+	
+	return 0 ;
+}
+
+int allocate_memory(int flag) {
 	iterate = malloc(vol * sizeof(float)) ;
-	obs_mag = malloc(vol * sizeof(float)) ;
 	exp_intens = malloc(vol * sizeof(float)) ;
-	hkl_mag = malloc(hklvol * sizeof(float)) ;
 	exp_hkl = malloc(hklvol * sizeof(float)) ;
 	
-	p1 = malloc(vol * sizeof(float)) ;
-	p2 = malloc(vol * sizeof(float)) ;
-	r1 = malloc(vol * sizeof(float)) ;
+	if (flag == 1) {
+		obs_mag = malloc(vol * sizeof(float)) ;
+		hkl_mag = malloc(hklvol * sizeof(float)) ;
+		p1 = malloc(vol * sizeof(float)) ;
+		p2 = malloc(vol * sizeof(float)) ;
+		r1 = malloc(vol * sizeof(float)) ;
+	}
 	
 	rdensity = fftwf_malloc(vol * sizeof(fftwf_complex)) ;
 	fdensity = fftwf_malloc(vol * sizeof(fftwf_complex)) ;
@@ -177,15 +212,23 @@ void create_plans(char *fname) {
 	inverse_hkl = fftwf_plan_dft_3d(hsize, ksize, lsize, fhkl, rhkl, FFTW_BACKWARD, FFTW_MEASURE) ;
 }
 
-void gen_input(char *fname) {
+int gen_input(char *fname, int flag) {
 	FILE *fp = fopen(fname, "rb") ;
 	if (fp == NULL) {
-		fprintf(stderr, "Random start\n") ;
-		init_model(iterate) ;
+		if (flag == 0) {
+			fprintf(stderr, "Random start\n") ;
+			init_model(iterate) ;
+		}
+		else {
+			fprintf(stderr, "Cannot find input %s\n", fname) ;
+			return 1 ;
+		}
 	}
 	else {
 		fprintf(stderr, "Starting from %s\n", fname) ;
 		fread(iterate, sizeof(float), vol, fp) ;
 		fclose(fp) ;
 	}
+	
+	return 0 ;
 }

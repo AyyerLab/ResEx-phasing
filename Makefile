@@ -1,21 +1,19 @@
 CC=gcc
 LDFLAGS=-lgsl -lgslcblas -lfftw3f_threads -lfftw3f -lm
 CFLAGS=-fopenmp -O3 -Wall
-UTILSCFLAGS=-lfftw3f -lm -O3 -Wall
 
-objects = bin/recon.o bin/diffmap.o bin/setup.o bin/utils.o
+objects = bin/diffmap.o bin/setup.o bin/utils.o
 
-all: recon $(objects)
+all: gen_data recon bin/gen_data.o bin/recon.o $(objects)
 
 bin/%.o: src/%.c src/brcont.h
 	gcc -c $< -o $@ $(CFLAGS)
 
-recon: $(objects)
+recon: bin/recon.o $(objects)
 	$(LINK.c) $^ -o $@
 
-utils/%: src/utils/%.c
-	gcc $< -o $@ $(UTILSCFLAGS)
+gen_data: bin/gen_data.o $(objects)
+	$(LINK.c) $^ -o $@
 
 clean:
-#	rm -f recon $(objects) $(miscutils) $(datautils) $(supportutils) $(transformutils)
-	rm -f recon $(objects)
+	rm -f recon gen_data bin/gen_data.o bin/recon.o $(objects)

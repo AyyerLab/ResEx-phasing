@@ -1,4 +1,4 @@
-#pragma once
+//#pragma once
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,6 +27,7 @@ double diffmap(float*) ;
 
 // setup.c
 int setup() ;
+int setup_gen() ;
 
 // utils.c
 void init_model(float*) ;
