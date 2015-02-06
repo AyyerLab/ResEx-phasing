@@ -29,6 +29,9 @@ int setup() {
 	vol = size*size*size ;
 	hklvol = hsize*ksize*lsize ;
 	
+	fftwf_init_threads() ;
+	fftwf_plan_with_nthreads(4) ;
+	
 	if (allocate_memory())
 		return 1 ;
 	if (parse_intens(intens_fname))
@@ -39,6 +42,8 @@ int setup() {
 		return 1 ;
 	gen_input(input_fname) ;
 	create_plans(wisdom_fname) ;
+	
+	obs_mag[0] = hkl_mag[0] ;
 	
 	return 0 ;
 }	
@@ -108,7 +113,7 @@ int parse_hkl(char *fname) {
 		return 1 ;
 	}
 	
-	intens = malloc(vol * sizeof(float)) ;
+	intens = malloc(hklvol * sizeof(float)) ;
 	fread(intens, sizeof(float), hklvol, fp) ;
 	fclose(fp) ;
 	
