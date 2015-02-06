@@ -82,7 +82,6 @@ void proj_bragg(float *in, float *out) {
 	float norm_factor = 1.f / (float) hklvol ;
 	
 	memset(exp_hkl, 0, hklvol*sizeof(float)) ;
-	memset(out, 0, vol*sizeof(float)) ;
 	
 	// Extract central region and rescale axes
 	for (h = 0 ; h < hsize ; ++h)
@@ -95,13 +94,13 @@ void proj_bragg(float *in, float *out) {
 	fftwf_execute(forward_hkl) ;
 	
 	// Symmetrize hkl structure factors
-//	symmetrize_intens(fhkl, exp_hkl, 0) ;
+	symmetrize_intens(fhkl, exp_hkl, 0) ;
 	
 	// Replace with measured modulus
 	for (i = 0 ; i < hklvol ; ++i) {
 		if (hkl_mag[i] > 0.)
-//			fhkl[i] *= hkl_mag[i] / sqrt(exp_hkl[i]) ;
-			fhkl[i] *= hkl_mag[i] / cabsf(fhkl[i]) ;
+			fhkl[i] *= hkl_mag[i] / sqrt(exp_hkl[i]) ;
+//			fhkl[i] *= hkl_mag[i] / cabsf(fhkl[i]) ;
 		else if (hkl_mag[i] == 0.)
 			fhkl[i] = 0. ;
 	}
@@ -110,6 +109,8 @@ void proj_bragg(float *in, float *out) {
 	fftwf_execute(inverse_hkl) ;
 	
 	// Zero pad and rescale axes
+	memset(out, 0, vol*sizeof(float)) ;
+	
 	for (h = 0 ; h < hsize ; ++h)
 	for (k = 0 ; k < ksize ; ++k)
 	for (l = 0 ; l < lsize ; ++l)
@@ -131,13 +132,13 @@ void proj_cont(float *in, float *out) {
 	fftwf_execute(forward_cont) ;
 	
 	// Symmetrize to get intensities to compare
-//	symmetrize_intens(fdensity, exp_intens, 1) ;
+	symmetrize_intens(fdensity, exp_intens, 1) ;
 	
 	// Scale using measured modulus at high resolution
 	for (i = 0 ; i < vol ; ++i) {
 		if (obs_mag[i] > 0.)
-//			fdensity[i] *= obs_mag[i] / sqrt(exp_intens[i]) ;
-			fdensity[i] *= obs_mag[i] / cabsf(fdensity[i]) ;
+			fdensity[i] *= obs_mag[i] / sqrt(exp_intens[i]) ;
+//			fdensity[i] *= obs_mag[i] / cabsf(fdensity[i]) ;
 		else if (obs_mag[i] == 0.)
 			fdensity[i] = 0. ;
 	}
