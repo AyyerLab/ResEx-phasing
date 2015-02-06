@@ -114,7 +114,7 @@ void proj_bragg(float *in, float *out) {
 	for (k = 0 ; k < ksize ; ++k)
 	for (l = 0 ; l < lsize ; ++l)
 		out[(h+hoffset)*size*size + (k+koffset)*size + (l+loffset)]
-		 = cabsf(rhkl[h*ksize*lsize + k*lsize + l]) * norm_factor ;
+		 = crealf(rhkl[h*ksize*lsize + k*lsize + l]) * norm_factor ;
 }
 
 // Projection over continuous data 
@@ -145,7 +145,7 @@ void proj_cont(float *in, float *out) {
 	fftwf_execute(inverse_cont) ;
 	
 	for (i = 0 ; i < vol ; ++i)
-		out[i] = cabsf(rdensity[i]) * norm_factor ;
+		out[i] = crealf(rdensity[i]) * norm_factor ;
 }
 
 // Support projection
@@ -157,7 +157,7 @@ void proj_supp(float *in, float *out) {
 	
 	for (i = 0 ; i < num_supp ; ++i) {
 		pixel = support[i] ;
-		if (in[pixel] > 0.)
+//		if (in[pixel] > 0.)
 			out[pixel] = in[pixel] ;
 	}
 }
@@ -167,6 +167,23 @@ void proj1(float **in, float **out) {
 	proj_bragg(in[0], out[0]) ;
 	proj_cont(in[1], out[1]) ;
 	proj_supp(in[2], out[2]) ;
+	
+/*	int x ;
+	float t0 = 0.f, t1 = 0.f, t2 = 0.f ;
+	float it0 = 0.f, it1 = 0.f, it2 = 0.f ;
+	
+	for (x = 0 ; x < vol ; ++x) {
+		t0 += out[0][x] ;
+		t1 += out[1][x] ;
+		t2 += out[2][x] ;
+		it0 += in[0][x] ;
+		it1 += in[1][x] ;
+		it2 += in[2][x] ;
+	}
+	
+	fprintf(stderr, "itotals = %.3e %.3e %.3e\n", it0, it1, it2) ;
+	fprintf(stderr, "totals = %.3e %.3e %.3e\n", t0, t1, t2) ;
+*/
 }
 
 // Concur constraint 
