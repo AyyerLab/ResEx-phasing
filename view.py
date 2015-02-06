@@ -11,6 +11,12 @@ if len(sys.argv) < 2:
 	print("Need filename")
 	sys.exit()
 
+flag = 0
+if len(sys.argv) > 2:
+	flag = int(sys.argv[2])
+
+print flag
+
 # Start TkInter and set defaults
 root = Tk.Tk()
 fig = plt.figure(figsize=(15,5))
@@ -98,14 +104,19 @@ def parse_vol():
 	old_sizestr = sizestr.get()
 
 def plot_vol_slices(layernum):
-	global image_exists
+	global image_exists, flag
 	imagename.set(os.path.splitext(os.path.basename(fname.get()))[0] + '.png')
 	rangemax = float(rangestr.get())
 	
-	a = vol[layernum,142:285,142:285]
-	b = vol[142:285,layernum,142:285]
-	c = vol[142:285,142:285,layernum]
-	
+	if flag is 0:
+		a = vol[layernum,142:285,142:285]
+		b = vol[142:285,layernum,142:285]
+		c = vol[142:285,142:285,layernum]
+	elif flag is 1:
+		a = vol[layernum,:,:]	
+		b = vol[:,layernum,:]	
+		c = vol[:,:,layernum]
+		
 	s1 = fig.add_subplot(131)
 	s1.matshow(a, vmin=0, vmax=rangemax, cmap='hot')
 	plt.title("h = 0, YZ plane", y = 1.01)
