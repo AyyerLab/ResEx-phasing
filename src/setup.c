@@ -6,9 +6,10 @@ int parse_hkl(char*) ;
 int parse_support(char*) ;
 void create_plans(char*) ;
 int gen_input(char*, int) ;
+int parse_quat(char*) ;
 
 int setup() {
-	char var_name[500], input_fname[500] ;
+	char var_name[500], input_fname[500], quat_fname[500] ;
 	char intens_fname[500], hkl_fname[500], support_fname[500], wisdom_fname[500] ;
 	
 	FILE *fp = fopen("src/config.conf", "r") ;
@@ -23,6 +24,7 @@ int setup() {
 	fgets(var_name, 500, fp) ; fscanf(fp, "%s\n", hkl_fname) ;
 	fgets(var_name, 500, fp) ; fscanf(fp, "%s\n", support_fname) ;
 	fgets(var_name, 500, fp) ; fscanf(fp, "%s\n", input_fname) ;
+	fgets(var_name, 500, fp) ; fscanf(fp, "%s\n", quat_fname) ;
 	fgets(var_name, 500, fp) ; fscanf(fp, "%s\n", wisdom_fname) ;
 	fclose(fp) ;
 	
@@ -39,14 +41,16 @@ int setup() {
 		return 1 ;
 	if (parse_support(support_fname))
 		return 1 ;
-	gen_input(input_fname, 1) ;
+	if (parse_quat(quat_fname))
+		return 1 ;
+	gen_input(input_fname, 0) ;
 	create_plans(wisdom_fname) ;
 	
 	return 0 ;
 }	
 
 int setup_gen() {
-	char var_name[500], input_fname[500] ;
+	char var_name[500], input_fname[500], quat_fname[500] ;
 	char intens_fname[500], hkl_fname[500], support_fname[500], wisdom_fname[500] ;
 	
 	FILE *fp = fopen("src/config.conf", "r") ;
@@ -61,6 +65,7 @@ int setup_gen() {
 	fgets(var_name, 500, fp) ; fscanf(fp, "%s\n", hkl_fname) ;
 	fgets(var_name, 500, fp) ; fscanf(fp, "%s\n", support_fname) ;
 	fgets(var_name, 500, fp) ; fscanf(fp, "%s\n", input_fname) ;
+	fgets(var_name, 500, fp) ; fscanf(fp, "%s\n", quat_fname) ;
 	fgets(var_name, 500, fp) ; fscanf(fp, "%s\n", wisdom_fname) ;
 	fclose(fp) ;
 	
@@ -71,7 +76,9 @@ int setup_gen() {
 	
 	if (allocate_memory(0))
 		return 1 ;
-	if (gen_input(input_fname, 0))
+	if (gen_input(input_fname, 1))
+		return 1 ;
+	if (parse_quat(quat_fname))
 		return 1 ;
 	create_plans(wisdom_fname) ;
 	
@@ -229,6 +236,32 @@ int gen_input(char *fname, int flag) {
 		fread(iterate, sizeof(float), vol, fp) ;
 		fclose(fp) ;
 	}
+	
+	return 0 ;
+}
+
+int parse_quat(char *fname) {
+	long r, t ;
+	double tot_weight = 0. ;
+	
+	
+	FILE *fp = fopen(fname, "rb") ;
+	if (fp == NULL) {
+		fprintf(stderr, "%s not found.\n", fname) ;
+		return 1 ;
+	}
+	fscanf(fp, "%d", &num_rot) ;
+	quat = malloc(num_rot * 5 * sizeof(double)) ;
+	for (r = 0 ; r < num_rot ; ++r) {
+		for (t = 0 ; t < 5 ; ++t)
+			fscanf(fp, "%lf ", &quat[r*5 + t]) ;
+		tot_weight += quat[r*5 + 4] ;
+	}
+	
+	for (r = 0 ; r < num_rot ; ++r)
+		quat[r*5 + 4] /= tot_weight ;
+	
+	fclose(fp) ;
 	
 	return 0 ;
 }
