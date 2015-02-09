@@ -15,8 +15,6 @@ flag = 0
 if len(sys.argv) > 2:
 	flag = int(sys.argv[2])
 
-print flag
-
 # Start TkInter and set defaults
 root = Tk.Tk()
 fig = plt.figure(figsize=(15,5))
@@ -35,6 +33,8 @@ sizestr = Tk.StringVar()
 rangestr = Tk.StringVar()
 imagename = Tk.StringVar()
 layernum = Tk.IntVar()
+fname.set(sys.argv[1])
+imagename.set(os.path.splitext(os.path.basename(fname.get()))[0] + '.png')
 
 image_exists = 0
 
@@ -61,16 +61,15 @@ def parse_extension(ext_string):
 		print "Did not understand data type from extension. Defaulting to float."
 		typestr = 'f4'
 		typesize = 4
-		size = 199
+		size = 427
 		rangemax = 1
 
 center = int(size/2)
 
 parse_extension(ext)
-fname.set(sys.argv[1])
+
 sizestr.set(str(size))
 rangestr.set("%.1e" % rangemax)
-imagename.set(os.path.splitext(os.path.basename(fname.get()))[0] + '.png')
 layernum.set(center)
 
 old_fname = fname.get()
@@ -142,6 +141,9 @@ def parse_and_plot(event=None):
 		plot_vol_slices(layernum.get())
 	else:
 		print "Reparsing volume:", fname.get(), sizestr.get()
+		slider.configure(from_=0,to=int(sizestr.get()))
+		layernum.set(int(int(sizestr.get())/2))
+		
 		parse_vol()
 		plot_vol_slices(layernum.get())
 
@@ -208,7 +210,7 @@ Tk.Button(
 
 Tk.Button(root,text = "+",command = increment_layer
 	).grid(row=4,column=3,sticky=Tk.SW)
-Tk.Scale(root,
+slider = Tk.Scale(root,
 	from_ = 142, 
 	to = 285,
 	orient = Tk.HORIZONTAL,
@@ -216,7 +218,8 @@ Tk.Scale(root,
 	width = 20,
 	variable = layernum
 #	command = parse_and_plot
-	).grid(row=4,column=2,sticky=Tk.W)
+	)
+slider.grid(row=4,column=2,sticky=Tk.W)
 Tk.Button(root,text = "-",command = decrement_layer
 	).grid(row=4,column=1,sticky=Tk.SE)
 
