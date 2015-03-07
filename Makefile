@@ -3,9 +3,10 @@ LDFLAGS=-lgsl -lgslcblas -lfftw3f_threads -lfftw3f -lm
 CFLAGS=-fopenmp -O3 -Wall
 
 objects = bin/diffmap.o bin/setup.o bin/utils.o
-utils = utils/chop_bragg
+utils = utils/chop_bragg utils/assemble_hkl utils/gen_bmerge
+autils = utils/forward utils/fstretch
 
-all: gen_data recon bin/gen_data.o bin/recon.o $(objects) $(utils)
+all: gen_data recon $(utils) $(autils)
 
 bin/%.o: src/%.c src/brcont.h
 	gcc -c $< -o $@ $(CFLAGS)
@@ -20,4 +21,4 @@ utils/%: utils/src/%.c
 	gcc $< -o $@ $(LDFLAGS) $(CFLAGS)
 
 clean:
-	rm -f recon gen_data bin/gen_data.o bin/recon.o $(objects)
+	rm -f recon gen_data bin/gen_data.o bin/recon.o $(objects) $(utils) $(autils)

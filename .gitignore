@@ -1,9 +1,12 @@
 recon
 gen_data
 /bin
-/utils
+/utils/*
+!/utils/src
 /data
 src/config.conf
 *.log
 *.dat
 *.png
+*.bin
+*.raw
