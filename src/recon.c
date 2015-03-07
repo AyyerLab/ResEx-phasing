@@ -47,6 +47,12 @@ int main(int argc, char *argv[]) {
 			(double)(t2.tv_sec - t1.tv_sec) + (t2.tv_usec - t1.tv_usec) / 1000000.,
 			error) ;
 		fclose(fp) ;
+		
+		if (iter % 10 == 0) {
+			fp = fopen("data/interm.raw", "w") ;
+			fwrite(p1, sizeof(float), vol, fp) ;
+			fclose(fp) ;
+		}
 	}
 	
 	for (i = 0 ; i < vol ; ++i)

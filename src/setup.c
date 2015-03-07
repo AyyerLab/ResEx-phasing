@@ -88,11 +88,10 @@ int setup_gen() {
 int allocate_memory(int flag) {
 	iterate = malloc(vol * sizeof(float)) ;
 	exp_intens = malloc(vol * sizeof(float)) ;
-	exp_hkl = malloc(hklvol * sizeof(float)) ;
 	
 	if (flag == 1) {
 		obs_mag = malloc(vol * sizeof(float)) ;
-		hkl_mag = malloc(hklvol * sizeof(float)) ;
+		hkl_calc = malloc(hklvol * sizeof(fftwf_complex)) ;
 		p1 = malloc(vol * sizeof(float)) ;
 		p2 = malloc(vol * sizeof(float)) ;
 		r1 = malloc(vol * sizeof(float)) ;
@@ -136,11 +135,7 @@ int parse_intens(char *fname) {
 }
 
 int parse_hkl(char *fname) {
-	long i, j, k ;
-	long hs = hsize, hc = hsize/2 ;
-	long ks = ksize, kc = ksize/2 ;
-	long ls = lsize, lc = lsize/2 ;
-	float *intens ;
+	long i ;
 	
 	FILE *fp = fopen(fname, "r") ;
 	if (fp == NULL) {
@@ -148,21 +143,12 @@ int parse_hkl(char *fname) {
 		return 1 ;
 	}
 	
-	intens = malloc(hklvol * sizeof(float)) ;
-	fread(intens, sizeof(float), hklvol, fp) ;
+	fread(hkl_calc, sizeof(fftw_complex), hklvol, fp) ;
 	fclose(fp) ;
 	
-	for (i = 0 ; i < hs ; ++i)
-	for (j = 0 ; j < ks ; ++j)
-	for (k = 0 ; k < ls ; ++k)
-		if (intens[i*ks*ls + j*ls + k] > 0.)
-			hkl_mag[((i+hc+1)%hs)*ks*ls + ((j+kc+1)%hs)*ls + ((k+lc+1)%hs)]
-				= sqrt(intens[i*ks*ls + j*ls + k]) ;
-		else
-			hkl_mag[((i+hc+1)%hs)*ks*ls + ((j+kc+1)%ks)*ls + ((k+lc+1)%ls)]
-				= intens[i*ks*ls + j*ls + k] ;
-	
-	free(intens) ;
+	for (i = 0 ; i < hklvol ; ++i)
+	if (hkl_calc[i] == 0.)
+		hkl_calc[i] = FLT_MAX ;
 	
 	return 0 ;
 }

@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <float.h>
 #include <sys/time.h>
 #include <math.h>
 #include <complex.h>
@@ -15,12 +16,11 @@ int iter ;
 long size, vol, hklvol, num_supp ;
 long hsize, ksize, lsize, hoffset, koffset, loffset ;
 float *iterate, *obs_mag, *exp_intens, *p1, *p2, *r1 ;
-float *hkl_mag, *exp_hkl ;
 long *support ;
 int num_rot ;
 double *quat ;
 fftwf_complex *fdensity, *rdensity ;
-fftwf_complex *fhkl, *rhkl ;
+fftwf_complex *fhkl, *rhkl, *hkl_calc ;
 fftwf_plan forward_cont, inverse_cont, forward_hkl, inverse_hkl ;
 
 // diffmap.c
@@ -34,5 +34,5 @@ int setup_gen() ;
 void init_model(float*) ;
 void average_model(float*, float*) ;
 void gen_prtf(float*) ;
-void symmetrize_intens(fftwf_complex*, float*, int) ;
+void symmetrize_incoherent(fftwf_complex*, float*) ;
 void blur_intens(float*, float*) ;

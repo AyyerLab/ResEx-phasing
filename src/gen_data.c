@@ -1,7 +1,8 @@
 #include "brcont.h"
 
 int main(int argc, char *argv[]) {
-	long i, x, y, z, h, k, l ;
+	long i, x, y, z ;
+//	long h, k, l ;
 	long dx, dy, dz, ch, ck, cl, center1, maxc ;
 	float dist, qmax, qmin ;
 	float *contintens, *hklintens ;
@@ -13,6 +14,8 @@ int main(int argc, char *argv[]) {
 	}
 	qmin = atof(argv[1]) ;
 	qmax = atof(argv[2]) ;
+	
+	omp_set_num_threads(32) ;
 	
 	// Setup arrays and parse files
 	if (setup_gen())
@@ -35,7 +38,10 @@ int main(int argc, char *argv[]) {
 	fftwf_execute(forward_cont) ;
 	
 	// Symmetrize intensity
-	symmetrize_intens(fdensity, exp_intens, 1) ;
+//	for (i = 0 ; i < vol ; ++i)
+//		exp_intens[i] = pow(cabsf(fdensity[i]), 2.) ;
+	symmetrize_incoherent(fdensity, exp_intens) ;
+//	blur_intens(exp_intens, exp_intens) ;
 	
 	// Apply qmin limit
 	for (x = 0 ; x < size ; ++x)
@@ -49,7 +55,7 @@ int main(int argc, char *argv[]) {
 		
 		if (dist < qmin)
 			exp_intens[x*size*size + y*size + z] = -1.f ;
-		if (dist > size / 2.)
+		if (dist > 1.)
 			exp_intens[x*size*size + y*size + z] = 0.f ;
 		
 		contintens[((x+size/2)%size)*size*size + ((y+size/2)%size)*size + ((z+size/2)%size)]
@@ -61,7 +67,7 @@ int main(int argc, char *argv[]) {
 	fwrite(contintens, sizeof(float), vol, fp) ;
 	fclose(fp) ;
 	
-	// Calculate hkl object
+/*	// Calculate hkl object
 	for (h = 0 ; h < hsize ; ++h)
 	for (k = 0 ; k < ksize ; ++k)
 	for (l = 0 ; l < lsize ; ++l)
@@ -72,6 +78,8 @@ int main(int argc, char *argv[]) {
 	fftwf_execute(forward_hkl) ;
 	
 	// Symmetrize hkl intensity
+//	for (i = 0 ; i < vol ; ++i)
+//		exp_hkl[i] = pow(cabsf(fhkl[i]), 2.) ;
 	symmetrize_intens(fhkl, exp_hkl, 0) ;
 	
 	// Apply qmax limit
@@ -95,6 +103,6 @@ int main(int argc, char *argv[]) {
 	fp = fopen("data/ps2hklintens_427.raw", "wb") ;
 	fwrite(hklintens, sizeof(float), hklvol, fp) ;
 	fclose(fp) ;
-	
+*/	
 	return 0 ;
 }

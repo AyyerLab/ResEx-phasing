@@ -1,11 +1,9 @@
-/* Phasing both Bragg and continuous intensities using a divide and 
-	concur approach. Both contraints are applied to different models
-	in the divide constraint. The third constraint is the support
-	constraint which is applied in real-space. The concur constraint 
-	enforces equality between the three models.
-	
-	The iterate is a list of three vectors, each of size 'vol' i.e.
-		Dimensions[x] = {3, vol}
+/* Phasing the continuous intensities using Bragg phases and a sequential
+	approach. The Bragg projection involves replacing both the Bragg 
+	magnitudes and phases for those hkl values where they are known. The 
+	continuous projection replaces the magnitudes with the known magnitudes
+	and leaves the phases unchanged. The other constraint is the support 
+	constraint. The Difference Map update with beta = 1 is used.
 */
 
 #include "brcont.h"
@@ -18,8 +16,6 @@ void proj_bragg(float *in, float *out) {
 	long h, k, l, i ;
 	float norm_factor = 1.f / (float) hklvol ;
 	
-	memset(exp_hkl, 0, hklvol*sizeof(float)) ;
-	
 	// Extract central region and rescale axes
 	for (h = 0 ; h < hsize ; ++h)
 	for (k = 0 ; k < ksize ; ++k)
@@ -30,17 +26,10 @@ void proj_bragg(float *in, float *out) {
 	// Fourier transform to get structure factors
 	fftwf_execute(forward_hkl) ;
 	
-	// Symmetrize hkl structure factors
-	symmetrize_intens(fhkl, exp_hkl, 0) ;
-	
-	// Replace with measured modulus
-	for (i = 0 ; i < hklvol ; ++i) {
-		if (hkl_mag[i] > 0.)
-			fhkl[i] *= hkl_mag[i] / sqrt(exp_hkl[i]) ;
-//			fhkl[i] *= hkl_mag[i] / cabsf(fhkl[i]) ;
-		else if (hkl_mag[i] == 0.)
-			fhkl[i] = 0. ;
-	}
+	// Replace with known magnitudes and phases
+	for (i = 0 ; i < hklvol ; ++i)
+	if (hkl_calc[i] == FLT_MAX)
+		fhkl[i] = hkl_calc[i] ;
 	
 	// Inverse Fourier transform
 	fftwf_execute(inverse_hkl) ;
@@ -52,7 +41,7 @@ void proj_bragg(float *in, float *out) {
 	for (k = 0 ; k < ksize ; ++k)
 	for (l = 0 ; l < lsize ; ++l)
 		out[(h+hoffset)*size*size + (k+koffset)*size + (l+loffset)]
-		 = cabsf(rhkl[h*ksize*lsize + k*lsize + l]) * norm_factor ;
+		 = crealf(rhkl[h*ksize*lsize + k*lsize + l]) * norm_factor ;
 }
 
 // Projection over continuous data 
@@ -70,7 +59,7 @@ void proj_cont(float *in, float *out) {
 	fftwf_execute(forward_cont) ;
 	
 	// Symmetrize to get intensities to compare
-	symmetrize_intens(fdensity, exp_intens, 1) ;
+	symmetrize_incoherent(fdensity, exp_intens) ;
 	
 	// Scale using measured modulus at high resolution
 	for (i = 0 ; i < vol ; ++i) {
@@ -85,7 +74,7 @@ void proj_cont(float *in, float *out) {
 	fftwf_execute(inverse_cont) ;
 	
 	for (i = 0 ; i < vol ; ++i)
-		out[i] = cabsf(rdensity[i]) * norm_factor ;
+		out[i] = crealf(rdensity[i]) * norm_factor ;
 }
 
 // Support projection
@@ -105,7 +94,7 @@ void proj_supp(float *in, float *out) {
 
 // Data constraint (Bragg + Continuous)
 // Can set out = in
-void proj1(float *in, float *out) {
+void proj_data(float *in, float *out) {
 	long i ;
 	
 	proj_cont(in, out) ;
@@ -119,12 +108,12 @@ double diffmap(float *x) {
 	long i ;
 	float diff, change = 0. ;
 	
-	proj1(x, p1) ;
+	proj_supp(x, p1) ;
 	
 	for (i = 0 ; i < vol ; ++i)
 		r1[i] = 2. * p1[i] - x[i] ;
 	
-	proj_supp(r1, p2) ;
+	proj_data(r1, p2) ;
 	
 	for (i = 0 ; i < vol ; ++i) {
 		diff = p2[i] - p1[i] ;

@@ -30,7 +30,6 @@ void average_model(float *current, float *sum) {
 void gen_prtf(float *model) {
 	long x, y, z, bin, num_bins = 50 ;
 	long dx, dy, dz, center1 = size / 2 + 1 ;
-	long ch = hsize/2+1, ck = ksize/2+1, cl = lsize/2+1, maxc ;
 	float *contrast = calloc(num_bins, sizeof(float)) ;
 	long *bin_count = calloc(num_bins, sizeof(long)) ;
 	FILE *fp ;
@@ -41,7 +40,7 @@ void gen_prtf(float *model) {
 	
 	fftwf_execute(forward_cont) ;
 	
-	symmetrize_intens(fdensity, exp_intens, 1) ;
+	symmetrize_incoherent(fdensity, exp_intens) ;
 	
 	for (x = 0 ; x < size ; ++x)
 	for (y = 0 ; y < size ; ++y)
@@ -60,40 +59,6 @@ void gen_prtf(float *model) {
 		}
 	}
 	
-	// Bragg part
-	maxc = ch > ck ? ch : ck ;
-	maxc = maxc > cl ? maxc : cl ;
-	
-	for (x = 0 ; x < hsize ; ++x)
-	for (y = 0 ; y < ksize ; ++y)
-	for (z = 0 ; z < lsize ; ++z)
-		rhkl[x*ksize*lsize + y*lsize + z] 
-		 = model[(x+hoffset)*size*size + (y+koffset)*size + (z+loffset)] ;
-	
-	fftwf_execute(forward_hkl) ;
-	
-	symmetrize_intens(fhkl, exp_hkl, 0) ;
-	
-	long mbin = 0 ;
-	for (x = 0 ; x < hsize ; ++x)
-	for (y = 0 ; y < ksize ; ++y)
-	for (z = 0 ; z < lsize ; ++z) {
-		dx = (x + ch) % hsize  - ch ;
-		dy = (y + ck) % ksize  - ck ;
-		dz = (z + cl) % lsize  - cl ;
-		
-		bin = sqrt(dx*dx + dy*dy + dz*dz) / maxc * num_bins + 0.5 ;
-		if (bin > mbin)
-			mbin = bin ;
-		
-		if (bin < num_bins && hkl_mag[x*size*size + y*size + z] > 0.) {
-//			contrast[bin] += cabs(fdensity[x*size*size + y*size + z]) / 
-			contrast[bin] += sqrt(exp_hkl[x*ksize*lsize + y*lsize + z]) / 
-			                 hkl_mag[x*ksize*lsize + y*lsize + z] ;
-			bin_count[bin]++ ;
-		}
-	}
-	
 	fp = fopen("prtf.dat", "w") ;
 	for (bin = 0 ; bin < num_bins ; ++bin)
 	if (bin_count[bin] > 0)
@@ -106,25 +71,16 @@ void gen_prtf(float *model) {
 	free(bin_count) ;
 }
 
-// Symmetrize intensity according to P(2_1)(2_1)(2_1) space group
-// (size,hsize,ksize,lsize)
-void symmetrize_intens(fftwf_complex *in, float *out, int flag) {
+// Symmetrize intensity incoherently according to P(2_1)(2_1)(2_1) space group
+// (size)
+void symmetrize_incoherent(fftwf_complex *in, float *out) {
 	long hs, ks, ls, kc, lc ;
 	
-	if (flag == 1) {
-		hs = size ;
-		ks = size ;
-		ls = size ;
-		kc = ks / 2 ;
-		lc = ls / 2 ;
-	}
-	else if (flag == 0) {
-		hs = hsize ;
-		ks = ksize ;
-		ls = lsize ;
-		kc = ks / 2 ;
-		lc = ls / 2 ;
-	}
+	hs = size ;
+	ks = size ;
+	ls = size ;
+	kc = ks / 2 ;
+	lc = ls / 2 ;
 	
 	#pragma omp parallel default(shared)
 	{
