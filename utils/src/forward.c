@@ -17,13 +17,15 @@ float gaussian(float x, float width) {
 }
 
 int main(int argc, char *argv[]) {
-	long x, y, z, i[3], t[3], spotnum[3] ;
+	long x, y, z ;
+//	long i[3], t[3], spotnum[3] ;
 	long a[3], kxsize, kysize, kzsize ;
 	long kxrad, kyrad, kzrad ;
 	long size, c, vol, n_cell ;
 	double dist ;
 	float blur, val, b_factor ;
-	float complex *model, cval ;
+//	float complex cval ;
+	float complex *model ;
 	float *intens, *kernel, *factor ;
 	FILE *fp ;
 	char fname[999] ;
@@ -89,12 +91,12 @@ int main(int argc, char *argv[]) {
 //		factor[x] = exp(- 2. * M_PI * M_PI * b_factor * b_factor * x * x / c / c) ;
 		factor[x] = exp(- M_PI * M_PI * b_factor * b_factor * x * x / c / c) ;
 	
-	// Calculate spotnums
+/*	// Calculate spotnums
 	for (x = 0 ; x < 3 ; ++x)
 		spotnum[x] = (long) floor(c / a[x]) ;
 	fprintf(stderr, "spotnums = %ld, %ld, %ld\n", spotnum[0], spotnum[1], spotnum[2]) ;
 	
-/*	// Geenerate list of hkl intensities with coherent sum
+	// Geenerate list of hkl intensities with coherent sum
 	// Convolve with Gaussian and add Wilson suppression
 	for (i[0] = -spotnum[0] ; i[0] <= spotnum[0] ; ++i[0])
 	for (i[1] = -spotnum[1] ; i[1] <= spotnum[1] ; ++i[1])
