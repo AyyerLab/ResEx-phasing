@@ -139,6 +139,7 @@ int parse_intens(char *fname) {
 int parse_hkl(char *fname, double hklqmax) {
 	long h, k, l ;
 	long hc = hsize/2, kc = ksize/2, lc = lsize/2 ;
+	double hc2 = hc*hc, kc2 = kc*kc, lc2 = lc*lc ;
 	double dist ;
 	
 	FILE *fp = fopen(fname, "r") ;
@@ -153,7 +154,7 @@ int parse_hkl(char *fname, double hklqmax) {
 	for (h = 0 ; h < hsize ; ++h)
 	for (k = 0 ; k < ksize ; ++k)
 	for (l = 0 ; l < lsize ; ++l) {
-		dist = sqrt((h-hc)*(h-hc) + (k-kc)*(k-kc) + (l-lc)*(l-lc)) ;
+		dist = sqrt((h-hc)*(h-hc)/hc2 + (k-kc)*(k-kc)/kc2 + (l-lc)*(l-lc)/lc2) ;
 		if (dist > hklqmax)
 			hkl_calc[h*ksize*lsize + k*lsize + l] = FLT_MAX ;
 	}
