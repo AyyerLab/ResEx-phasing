@@ -1,23 +1,29 @@
 # System size
-427
+501
 
-# Non-zero-padded sizes
-143 143 143
+# Non-zero-padded sizes (Bragg spacing: 3,4,6)
+167 125 83
 
 # Left zero padding
-142 142 142
+167 188 209
 
 # Continuous intensity file
-data/ps2contintens_427.raw
+data/anton_50pr_501_subt_zero.raw
 
-# hkl intensity file
-data/ps2hklintens_427.raw
+# Bragg file
+data/ps2_bragg.raw
 
 # Support file
-data/ps2.supp
+data/ps2_1_3.5.supp
 
 # Starting model
-data/ps2obj.raw
+data/ps2obj.ra
+
+# Quaternion file
+quat_0.5.dat
 
 # FFTW wisdom file
 data/wisdom_427_4
+
+# qmax for Braggs
+150

@@ -2,7 +2,7 @@
 
 int allocate_memory(int) ;
 int parse_intens(char*) ;
-int parse_hkl(char*) ;
+int parse_hkl(char*, double) ;
 int parse_support(char*) ;
 void create_plans(char*) ;
 int gen_input(char*, int) ;
@@ -11,6 +11,7 @@ int parse_quat(char*) ;
 int setup() {
 	char var_name[500], input_fname[500], quat_fname[500] ;
 	char intens_fname[500], hkl_fname[500], support_fname[500], wisdom_fname[500] ;
+	double hklqmax ;
 	
 	FILE *fp = fopen("src/config.conf", "r") ;
 	if (fp == NULL) {
@@ -26,6 +27,7 @@ int setup() {
 	fgets(var_name, 500, fp) ; fscanf(fp, "%s\n", input_fname) ;
 	fgets(var_name, 500, fp) ; fscanf(fp, "%s\n", quat_fname) ;
 	fgets(var_name, 500, fp) ; fscanf(fp, "%s\n", wisdom_fname) ;
+	fgets(var_name, 500, fp) ; fscanf(fp, "%lf\n", &hklqmax) ;
 	fclose(fp) ;
 	
 	vol = size*size*size ;
@@ -37,7 +39,7 @@ int setup() {
 		return 1 ;
 	if (parse_intens(intens_fname))
 		return 1 ;
-	if (parse_hkl(hkl_fname))
+	if (parse_hkl(hkl_fname, hklqmax))
 		return 1 ;
 	if (parse_support(support_fname))
 		return 1 ;
@@ -134,8 +136,10 @@ int parse_intens(char *fname) {
 	return 0 ;
 }
 
-int parse_hkl(char *fname) {
-	long i ;
+int parse_hkl(char *fname, double hklqmax) {
+	long h, k, l ;
+	long hc = hsize/2, kc = ksize/2, lc = lsize/2 ;
+	double dist ;
 	
 	FILE *fp = fopen(fname, "r") ;
 	if (fp == NULL) {
@@ -146,9 +150,13 @@ int parse_hkl(char *fname) {
 	fread(hkl_calc, sizeof(fftw_complex), hklvol, fp) ;
 	fclose(fp) ;
 	
-	for (i = 0 ; i < hklvol ; ++i)
-	if (hkl_calc[i] == 0.)
-		hkl_calc[i] = FLT_MAX ;
+	for (h = 0 ; h < hsize ; ++h)
+	for (k = 0 ; k < ksize ; ++k)
+	for (l = 0 ; l < lsize ; ++l) {
+		dist = sqrt((h-hc)*(h-hc) + (k-kc)*(k-kc) + (l-lc)*(l-lc)) ;
+		if (dist > hklqmax)
+			hkl_calc[h*ksize*lsize + k*lsize + l] = FLT_MAX ;
+	}
 	
 	return 0 ;
 }
