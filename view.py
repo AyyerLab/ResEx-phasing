@@ -23,7 +23,7 @@ mng = plt.get_current_fig_manager()
 
 typestr = 'f4'
 typesize = 4
-size = 427
+size = 501
 rangemax = 1e2
 
 ext = os.path.splitext(os.path.basename(sys.argv[1]))[1]
@@ -44,24 +44,24 @@ def parse_extension(ext_string):
 	if ext_string == '.raw':
 		typestr = 'f4'
 		typesize = 4
-		size = 427
+		size = 501
 		rangemax = 1e2
 	elif ext_string == '.bin':
 		typestr = 'f8'
 		typesize = 8
-		size = 427
+		size = 501
 		rangemax = 0.002
 	elif ext_string == '.supp':
 		print "Support file"
 		typestr = 'uint8'
 		typesize = 1
-		size = 427
+		size = 501
 		rangemax = 1
 	else:
 		print "Did not understand data type from extension. Defaulting to float."
 		typestr = 'f4'
 		typesize = 4
-		size = 427
+		size = 501
 		rangemax = 1
 
 center = int(size/2)
