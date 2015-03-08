@@ -4,7 +4,7 @@ CFLAGS=-fopenmp -O3 -Wall
 
 objects = bin/diffmap.o bin/setup.o bin/utils.o
 utils = utils/chop_bragg utils/assemble_hkl utils/gen_bmerge
-autils = utils/forward utils/fstretch
+autils = utils/forward utils/fstretch utils/bragg_gen
 
 all: gen_data recon $(utils) $(autils)
 
