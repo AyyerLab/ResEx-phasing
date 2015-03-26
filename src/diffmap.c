@@ -28,8 +28,10 @@ void proj_bragg(float *in, float *out) {
 	
 	// Replace with known magnitudes and phases
 	for (i = 0 ; i < hklvol ; ++i)
-	if (hkl_calc[i] == FLT_MAX)
+	if (hkl_calc[i] != FLT_MAX)
 		fhkl[i] = hkl_calc[i] ;
+//	else
+//		fhkl[i] = 0.f ;
 	
 	// Inverse Fourier transform
 	fftwf_execute(inverse_hkl) ;
@@ -97,23 +99,22 @@ void proj_supp(float *in, float *out) {
 void proj_data(float *in, float *out) {
 	long i ;
 	
-	proj_cont(in, out) ;
+	proj_bragg(in, out) ;
 	for (i = 0 ; i < vol ; ++i)
 		in[i] = out[i] ;
-	
-	proj_bragg(in, out) ;
+	proj_cont(in, out) ;
 }
 
 double diffmap(float *x) {
 	long i ;
 	float diff, change = 0. ;
 	
-	proj_supp(x, p1) ;
+	proj_data(x, p1) ;
 	
 	for (i = 0 ; i < vol ; ++i)
 		r1[i] = 2. * p1[i] - x[i] ;
 	
-	proj_data(r1, p2) ;
+	proj_supp(r1, p2) ;
 	
 	for (i = 0 ; i < vol ; ++i) {
 		diff = p2[i] - p1[i] ;
