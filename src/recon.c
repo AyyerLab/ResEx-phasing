@@ -64,5 +64,19 @@ int main(int argc, char *argv[]) {
 	fwrite(average, sizeof(float), vol, fp) ;
 	fclose(fp) ;
 	
+	long x, y, z, s = size, c = s/2 ;
+	for (i = 0 ; i < vol ; ++i)
+		rdensity[i] = average[i] ;
+	fftwf_execute(forward_cont) ;
+	for (x = 0 ; x < s ; ++x)
+	for (y = 0 ; y < s ; ++y)
+	for (z = 0 ; z < s ; ++z)
+		average[((x+c)%s)*s*s + ((y+c)%s)*s + ((z+c)%s)]
+		 = pow(cabsf(fdensity[x*s*s + y*s + z]), 2.) ;
+	
+	fp = fopen("data/frecon.raw", "wb") ;
+	fwrite(average, sizeof(float), vol, fp) ;
+	fclose(fp) ;
+	
 	return 0 ;
 }
