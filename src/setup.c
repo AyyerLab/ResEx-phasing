@@ -93,7 +93,7 @@ int allocate_memory(int flag) {
 	
 	if (flag == 1) {
 		obs_mag = malloc(vol * sizeof(float)) ;
-		hkl_calc = malloc(hklvol * sizeof(fftwf_complex)) ;
+		hkl_calc = fftwf_malloc(hklvol * sizeof(fftwf_complex)) ;
 		p1 = malloc(vol * sizeof(float)) ;
 		p2 = malloc(vol * sizeof(float)) ;
 		r1 = malloc(vol * sizeof(float)) ;
@@ -126,7 +126,7 @@ int parse_intens(char *fname) {
 	for (k = 0 ; k < s ; ++k)
 		if (intens[i*s*s + j*s + k] > 0.)
 			obs_mag[((i+c+1)%s)*s*s + ((j+c+1)%s)*s + ((k+c+1)%s)]
-				= sqrt(intens[i*s*s + j*s + k]) ;
+				= sqrt(intens[i*s*s + j*s + k]) * 370.67506 ;
 		else
 			obs_mag[((i+c+1)%s)*s*s + ((j+c+1)%s)*s + ((k+c+1)%s)]
 				= intens[i*s*s + j*s + k] ;
@@ -148,16 +148,24 @@ int parse_hkl(char *fname, double hklqmax) {
 		return 1 ;
 	}
 	
-	fread(hkl_calc, sizeof(fftw_complex), hklvol, fp) ;
+	fftwf_complex *hkl_temp = malloc(hklvol * sizeof(fftw_complex)) ;
+	
+	fread(hkl_temp, sizeof(fftw_complex), hklvol, fp) ;
 	fclose(fp) ;
 	
 	for (h = 0 ; h < hsize ; ++h)
 	for (k = 0 ; k < ksize ; ++k)
 	for (l = 0 ; l < lsize ; ++l) {
-		dist = sqrt((h-hc)*(h-hc)/hc2 + (k-kc)*(k-kc)/kc2 + (l-lc)*(l-lc)/lc2) ;
-		if (dist > hklqmax)
-			hkl_calc[h*ksize*lsize + k*lsize + l] = FLT_MAX ;
+		dist = (h-hc)*(h-hc)/hc2 + (k-kc)*(k-kc)/kc2 + (l-lc)*(l-lc)/lc2 ;
+		
+		if (dist < hklqmax*hklqmax)
+			hkl_calc[((h+hc+1)%hsize)*ksize*lsize + ((k+kc+1)%ksize)*lsize + ((l+lc+1)%lsize)] 
+			 = hkl_temp[h*ksize*lsize + k*lsize + l] * pow(-1., h-hc+k-kc+l-lc) ;
+		else
+			hkl_calc[((h+hc+1)%hsize)*ksize*lsize + ((k+kc+1)%ksize)*lsize + ((l+lc+1)%lsize)] = FLT_MAX ;
 	}
+	
+	fftwf_free(hkl_temp) ;
 	
 	return 0 ;
 }
