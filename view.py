@@ -24,7 +24,7 @@ mng = plt.get_current_fig_manager()
 typestr = 'f4'
 typesize = 4
 size = 501
-rangemax = 1e2
+rangemax = 1e1
 
 ext = os.path.splitext(os.path.basename(sys.argv[1]))[1]
 
@@ -45,7 +45,7 @@ def parse_extension(ext_string):
 		typestr = 'f4'
 		typesize = 4
 		size = 501
-		rangemax = 1e2
+		rangemax = 1e1
 	elif ext_string == '.bin':
 		typestr = 'f8'
 		typesize = 8
@@ -57,6 +57,12 @@ def parse_extension(ext_string):
 		typesize = 1
 		size = 501
 		rangemax = 1
+	elif ext_string == '.cpx':
+		print "Complex file"
+		typestr = 'complex64'
+		typesize = 8
+		size = 501
+		rangemax = 1e2
 	else:
 		print "Did not understand data type from extension. Defaulting to float."
 		typestr = 'f4'
@@ -101,6 +107,10 @@ def parse_vol():
 	
 	old_fname = fname.get()
 	old_sizestr = sizestr.get()
+	
+	if typestr == 'complex64':
+		vol = np.square(np.absolute(vol))
+#		vol = np.absolute(vol)
 
 def plot_vol_slices(layernum):
 	global image_exists, flag
@@ -108,9 +118,9 @@ def plot_vol_slices(layernum):
 	rangemax = float(rangestr.get())
 	
 	if flag is 0:
-		a = vol[layernum,142:285,142:285]
-		b = vol[142:285,layernum,142:285]
-		c = vol[142:285,142:285,layernum]
+		a = vol[layernum,167:334,167:334]
+		b = vol[167:334,layernum,167:334]
+		c = vol[167:334,167:334,layernum]
 	elif flag is 1:
 		a = vol[layernum,:,:]	
 		b = vol[:,layernum,:]	
@@ -211,8 +221,8 @@ Tk.Button(
 Tk.Button(root,text = "+",command = increment_layer
 	).grid(row=4,column=3,sticky=Tk.SW)
 slider = Tk.Scale(root,
-	from_ = 142, 
-	to = 285,
+	from_ = 167, 
+	to = 334,
 	orient = Tk.HORIZONTAL,
 	length = 250,
 	width = 20,
