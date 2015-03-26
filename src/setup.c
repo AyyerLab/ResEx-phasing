@@ -160,7 +160,9 @@ int parse_hkl(char *fname, double hklqmax) {
 		
 		if (dist < hklqmax*hklqmax)
 			hkl_calc[((h+hc+1)%hsize)*ksize*lsize + ((k+kc+1)%ksize)*lsize + ((l+lc+1)%lsize)] 
-			 = hkl_temp[h*ksize*lsize + k*lsize + l] * pow(-1., h-hc+k-kc+l-lc) ;
+			 = hkl_temp[h*ksize*lsize + k*lsize + l] 
+			   * pow(-1., h-hc+k-kc+l-lc)
+			   * cexp(-4*I*M_PI*(l-lc)/lsize) ;
 		else
 			hkl_calc[((h+hc+1)%hsize)*ksize*lsize + ((k+kc+1)%ksize)*lsize + ((l+lc+1)%lsize)] = FLT_MAX ;
 	}
