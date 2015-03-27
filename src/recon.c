@@ -36,8 +36,11 @@ int main(int argc, char *argv[]) {
 		
 		error = diffmap(iterate) ;
 		
+		fprintf(stderr, "\rFinished %d/%d iterations", iter, num_iter) ;
+		
 		if (iter >= start_ave) {
 			average_model(p1, average) ;
+			fprintf(stderr, ". Now averaging.") ;
 		}
 		
 		gettimeofday(&t2, NULL) ;
@@ -54,6 +57,8 @@ int main(int argc, char *argv[]) {
 			fclose(fp) ;
 		}
 	}
+	
+	fprintf(stderr, "\nCalculating prtf and writing to file.\n") ;
 	
 	for (i = 0 ; i < vol ; ++i)
 		average[i] /= (num_iter - start_ave + 1) ;
