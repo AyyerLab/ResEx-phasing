@@ -4,7 +4,7 @@ int main(int argc, char *argv[]) {
 	long i, x, y, z ;
 //	long h, k, l ;
 	long dx, dy, dz, ch, ck, cl, center1, maxc ;
-	float dist, qmax, qmin ;
+	float dist, qmax, qmin, val ;
 	float *contintens, *hklintens ;
 	FILE *fp ;
 	
@@ -38,9 +38,7 @@ int main(int argc, char *argv[]) {
 	fftwf_execute(forward_cont) ;
 	
 	// Symmetrize intensity
-//	for (i = 0 ; i < vol ; ++i)
-//		exp_intens[i] = pow(cabsf(fdensity[i]), 2.) ;
-	symmetrize_incoherent(fdensity, exp_intens) ;
+	symmetrize_incoherent(fdensity, exp_mag) ;
 //	blur_intens(exp_intens, exp_intens) ;
 	
 	// Apply qmin limit
@@ -54,12 +52,14 @@ int main(int argc, char *argv[]) {
 		dist = sqrt(dx*dx + dy*dy + dz*dz) / center1 ;
 		
 		if (dist < qmin)
-			exp_intens[x*size*size + y*size + z] = -1.f ;
-		if (dist > 1.)
-			exp_intens[x*size*size + y*size + z] = 0.f ;
+			val = -1.f ;
+		else if (dist > 1.)
+			val = 0.f ;
+		else
+			val = powf(exp_mag[x*size*size + y*size + z], 2.f) ;
 		
 		contintens[((x+size/2)%size)*size*size + ((y+size/2)%size)*size + ((z+size/2)%size)]
-		 = exp_intens[x*size*size + y*size + z] ;
+		 = val ;
 	}
 	
 	// Write to file
