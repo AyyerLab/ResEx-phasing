@@ -72,7 +72,8 @@ int main(int argc, char *argv[]) {
 		fz = tz - iz ;
 		cz = 1. - fz ;
 		
-		fmodel[x*fsize*fsize + y*fsize + z] = 
+		fmodel[z*fsize*fsize + y*fsize + x] = 
+//		fmodel[x*fsize*fsize + y*fsize + z] = 
 			cx*cy*cz*model[ix*size*size + iy*size + iz] +
 			cx*cy*fz*model[ix*size*size + iy*size + (iz+1)] +
 			cx*fy*cz*model[ix*size*size + (iy+1)*size + iz] +
@@ -81,7 +82,11 @@ int main(int argc, char *argv[]) {
 			fx*cy*fz*model[(ix+1)*size*size + iy*size + (iz+1)] +
 			fx*fy*cz*model[(ix+1)*size*size + (iy+1)*size + iz] +
 			fx*fy*fz*model[(ix+1)*size*size + (iy+1)*size + (iz+1)] ;
+		
+		if (y == fsize-1 && z == fsize-1)
+			fprintf(stderr, "\rFinished x = %ld/%ld", x, fsize) ;
 	}
+	fprintf(stderr, "\n") ;
 	
 	// Write fmodel to file
 	sprintf(fname, "%s_str_%ld.cpx", remove_ext(argv[1]), fsize) ;
