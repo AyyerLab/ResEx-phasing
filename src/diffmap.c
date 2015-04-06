@@ -52,7 +52,7 @@ void proj_bragg(float *in, float *out) {
 void proj_cont(float *in, float *out) {
 	long i ;
 	float norm_factor = 1.f / (float) vol ;
-	memset(exp_intens, 0, vol*sizeof(float)) ;
+	memset(exp_mag, 0, vol*sizeof(float)) ;
 	
 	// Fourier transform to get structure factors
 	for (i = 0 ; i < vol ; ++i)
@@ -61,16 +61,19 @@ void proj_cont(float *in, float *out) {
 	fftwf_execute(forward_cont) ;
 	
 	// Symmetrize to get intensities to compare
-	symmetrize_incoherent(fdensity, exp_intens) ;
+	symmetrize_incoherent(fdensity, exp_mag) ;
 	
 	// Scale using measured modulus at high resolution
 	for (i = 0 ; i < vol ; ++i) {
 		if (obs_mag[i] > 0.)
-			fdensity[i] *= obs_mag[i] / sqrt(exp_intens[i]) ;
-//			fdensity[i] *= obs_mag[i] / cabsf(fdensity[i]) ;
+			fdensity[i] *= obs_mag[i] / exp_mag[i] ;
 		else if (obs_mag[i] == 0.)
 			fdensity[i] = 0. ;
-	}
+/*		else if (obs_mag[i] != -1.f) {
+			if (exp_mag[i] > 100.)
+				fdensity[i] *= 100. / exp_mag[i] ;
+		}
+*/	}
 	
 	// Inverse Fourier transform
 	fftwf_execute(inverse_cont) ;

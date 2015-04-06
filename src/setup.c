@@ -89,7 +89,7 @@ int setup_gen() {
 
 int allocate_memory(int flag) {
 	iterate = malloc(vol * sizeof(float)) ;
-	exp_intens = malloc(vol * sizeof(float)) ;
+	exp_mag = malloc(vol * sizeof(float)) ;
 	
 	if (flag == 1) {
 		obs_mag = malloc(vol * sizeof(float)) ;

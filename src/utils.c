@@ -40,7 +40,7 @@ void gen_prtf(float *model) {
 	
 	fftwf_execute(forward_cont) ;
 	
-	symmetrize_incoherent(fdensity, exp_intens) ;
+	symmetrize_incoherent(fdensity, exp_mag) ;
 	
 	for (x = 0 ; x < size ; ++x)
 	for (y = 0 ; y < size ; ++y)
@@ -53,8 +53,8 @@ void gen_prtf(float *model) {
 		
 		if (bin < num_bins && obs_mag[x*size*size + y*size + z] > 0.) {
 //			contrast[bin] += cabs(fdensity[x*size*size + y*size + z]) / 
-			contrast[bin] += sqrt(exp_intens[x*size*size + y*size + z]) / 
-			                 obs_mag[x*size*size + y*size + z] ;
+			contrast[bin] += exp_mag[x*size*size + y*size + z]
+			                 / obs_mag[x*size*size + y*size + z] ;
 			bin_count[bin]++ ;
 		}
 	}
@@ -122,6 +122,10 @@ void symmetrize_incoherent(fftwf_complex *in, float *out) {
 			}
 			
 			out[x*ks*ls] = powf(cabsf(in[x*ks*ls]), 2.) ;
+			
+			for (y = 0 ; y < ks ; ++y)
+			for (z = 0 ; z < ls ; ++z)
+				out[x*ks*ls + y*ls + z] = sqrtf(out[x*ks*ls + y*ls + z]) ;
 		}
 	}
 }

@@ -15,7 +15,7 @@
 int iter ;
 long size, vol, hklvol, num_supp ;
 long hsize, ksize, lsize, hoffset, koffset, loffset ;
-float *iterate, *obs_mag, *exp_intens, *p1, *p2, *r1 ;
+float *iterate, *obs_mag, *exp_mag, *p1, *p2, *r1 ;
 long *support ;
 int num_rot ;
 double *quat ;
