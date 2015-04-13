@@ -18,6 +18,7 @@ resolutions.
 ### utils/fstretch
 Stretch the true-scale simulations to take into account the integer Bragg 
 spacing. The stretch factors are (2.2045, 1.9475, 1.913).
+
 	./utils/fstretch ../partial/data/out3d_1280c.cpx 1280 501 2.2045 1.9475 1.913
 
 This produces `../partial/data/out3d_1280c_str_501.cpx` which is a 501^3 volume.
@@ -25,6 +26,7 @@ This produces `../partial/data/out3d_1280c_str_501.cpx` which is a 501^3 volume.
 ### utils/bragg_gen
 Generate Bragg hkl values by sampling the stretched complex intensities. The 
 reciprocal lattice constants are (6, 4, 3)
+
 	./utils/bragg_gen ../partial/data/out3d_1280c_str_501.cpx 501 6 4 3
 
 This generates `data/hkl_167...cpx`
@@ -41,7 +43,9 @@ to set low-q values to -1. and cube-corner values to 0.
 
 ## Run reconstruction
 After the config file has been processed, the reconstruction is run using
+
 	./recon <iter> <ave_iter>
+
 where `<iter>` is the number of iterations and `<ave_iter>` is the iteration 
 number after which it starts a running average and calculates the PRTF. The 
 log file is PHASING.log
@@ -51,7 +55,9 @@ The reconstruction produces data/recon.raw and its intensities data/frecon.raw.
 Every 10 iterations, it also write the intermediate state data/interm.raw.
 
 All of these can be viewed using the Python script view.py. The usage is:
+
 	./view.py data/recon.raw
 	./view.py data/frecon.raw 1
+
 The extra flag is added if one wants to look at the full volume and not just 
 the central region.
