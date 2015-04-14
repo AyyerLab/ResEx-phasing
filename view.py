@@ -67,12 +67,12 @@ def parse_extension(ext_string):
 		print "Did not understand data type from extension. Defaulting to float."
 		typestr = 'f4'
 		typesize = 4
-		size = 501
+		size = 171
 		rangemax = 1
 
-center = int(size/2)
-
 parse_extension(ext)
+
+center = int(size/2)
 
 sizestr.set(str(size))
 rangestr.set("%.1e" % rangemax)
@@ -221,8 +221,8 @@ Tk.Button(
 Tk.Button(root,text = "+",command = increment_layer
 	).grid(row=4,column=3,sticky=Tk.SW)
 slider = Tk.Scale(root,
-	from_ = 167, 
-	to = 334,
+	from_ = 0, 
+	to = int(sizestr.get()),
 	orient = Tk.HORIZONTAL,
 	length = 250,
 	width = 20,
