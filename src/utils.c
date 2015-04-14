@@ -238,3 +238,60 @@ void blur_intens(float *in, float *out) {
 		free(priv_out) ;
 	}
 }
+
+// Recalculate support
+// 'blur' gives width of Gaussian used to convolve with density
+// 'threshold' gives cutoff value as a fraction of maximum
+void apply_shrinkwrap(float *model, float blur, float threshold) {
+	long x, y, z, c = size/2 ;
+	float rsq, fblur ;
+	uint8_t *supvol = calloc(vol, sizeof(uint8_t)) ;
+	
+	for (x = 0 ; x < vol ; ++x) {
+		rdensity[x] = model[x] ;
+	}
+	
+	// Blur density
+	fftwf_execute(forward_cont) ;
+	
+	fblur = size / (2. * M_PI * blur) ;
+	
+	for (x = 0 ; x < size ; ++x)
+	for (y = 0 ; y < size ; ++y)
+	for (z = 0 ; z < size ; ++z) {
+		rsq = ((x+c)%size-c)*((x+c)%size-c) + ((y+c)%size-c)*((y+c)%size-c) + ((z+c)%size-c)*((z+c)%size-c) ;
+		fdensity[x*size*size + y*size + z] *= expf(-rsq / 2. / fblur / fblur) ;
+	}
+	
+	fftwf_execute(inverse_cont) ;
+	
+	// Apply threshold
+	num_supp = 0 ;
+	
+	float max = -1.f ;
+	for (x = 0 ; x < vol ; ++x) {
+//		model[x] = crealf(rdensity[x]) / vol ;
+		if (crealf(rdensity[x]) > max)
+			max = crealf(rdensity[x]) ;
+	}
+	
+	threshold *= max ;
+	
+	for (x = 0 ; x < vol ; ++x)
+	if (crealf(rdensity[x]) > threshold) {
+		support[num_supp++] = x ;
+		supvol[x] = 1 ;
+	}
+	
+	char fname[999] ;
+	sprintf(fname, "data/shrinkwrap_501_%d.supp", iter) ;
+	FILE *fp = fopen(fname, "wb") ;
+	fwrite(supvol, sizeof(uint8_t), vol, fp) ;
+	fclose(fp) ;
+	
+/*	fp = fopen("data/smoothed.raw", "wb") ;
+	fwrite(model, sizeof(float), vol, fp) ;
+	fclose(fp) ;
+*/	
+	free(supvol) ;
+}

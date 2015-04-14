@@ -101,6 +101,7 @@ int allocate_memory(int flag) {
 	
 	rdensity = fftwf_malloc(vol * sizeof(fftwf_complex)) ;
 	fdensity = fftwf_malloc(vol * sizeof(fftwf_complex)) ;
+	support = malloc(vol * sizeof(long)) ;
 	rhkl = fftwf_malloc(hklvol * sizeof(fftwf_complex)) ;
 	fhkl = fftwf_malloc(hklvol * sizeof(fftwf_complex)) ;
 	
@@ -173,7 +174,7 @@ int parse_hkl(char *fname, double hklqmax) {
 }
 
 int parse_support(char *fname) {
-	long x, t ;
+	long x ;
 	uint8_t *supvol = malloc(vol * sizeof(uint8_t)) ;
 	
 	FILE *fp = fopen(fname, "rb") ;
@@ -184,15 +185,9 @@ int parse_support(char *fname) {
 	fread(supvol, sizeof(uint8_t), vol, fp) ;
 	fclose(fp) ;
 	
-	num_supp = 0 ;
-	for (x = 0 ; x < vol ; ++x)
-		num_supp += supvol[x] ;
-	
-	support = malloc(num_supp * sizeof(long)) ;
-	t = 0 ;
 	for (x = 0 ; x < vol ; ++x)
 	if (supvol[x] == 1)
-		support[t++] = x ;
+		support[num_supp++] = x ;
 	
 	free(supvol) ;
 	

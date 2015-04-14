@@ -36,3 +36,4 @@ void average_model(float*, float*) ;
 void gen_prtf(float*) ;
 void symmetrize_incoherent(fftwf_complex*, float*) ;
 void blur_intens(float*, float*) ;
+void apply_shrinkwrap(float*, float, float) ;

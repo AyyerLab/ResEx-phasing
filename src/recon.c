@@ -31,6 +31,14 @@ int main(int argc, char *argv[]) {
 	fprintf(fp, "-------------------------\n") ;
 	fclose(fp) ;
 	
+	float blur = 1.5f ;
+	char fname[999] ;
+	long x, y, z, s = size, c = s/2 ;
+	
+	fprintf(stderr, "num_supp = %ld\n", num_supp) ; 
+	apply_shrinkwrap(iterate, blur, 0.2f) ;
+	fprintf(stderr, "Applied shrinkwrap (%.3f). num_supp = %ld\n", blur, num_supp) ;
+	
 	for (iter = 1 ; iter <= num_iter ; ++iter) {
 		gettimeofday(&t1, NULL) ;
 		
@@ -38,9 +46,9 @@ int main(int argc, char *argv[]) {
 		
 		fprintf(stderr, "\rFinished %d/%d iterations", iter, num_iter) ;
 		
-		if (iter >= start_ave) {
+		if (iter % 30 > 20) {
+			fprintf(stderr, ". Now averaging. ") ;
 			average_model(p1, average) ;
-			fprintf(stderr, ". Now averaging.") ;
 		}
 		
 		gettimeofday(&t2, NULL) ;
@@ -51,37 +59,48 @@ int main(int argc, char *argv[]) {
 			error) ;
 		fclose(fp) ;
 		
-		if (iter % 10 == 0) {
+		if (iter % 30 == 0) {
+			blur *= 0.95 ;
+			for (i = 0 ; i < vol ; ++i)
+				average[i] /= 10. ;
+			
+			apply_shrinkwrap(average, blur, 0.2f) ;
+			fprintf(stderr, "Applied shrinkwrap (%.3f). num_supp = %ld\n", blur, num_supp) ;
+			
+			sprintf(fname, "data/recon_%d.raw", iter) ;
+			fp = fopen(fname, "wb") ;
+			fwrite(average, sizeof(float), vol, fp) ;
+			fclose(fp) ;
+			
+			for (i = 0 ; i < vol ; ++i)
+				rdensity[i] = average[i] ;
+			fftwf_execute(forward_cont) ;
+			for (x = 0 ; x < s ; ++x)
+			for (y = 0 ; y < s ; ++y)
+			for (z = 0 ; z < s ; ++z)
+				average[((x+c)%s)*s*s + ((y+c)%s)*s + ((z+c)%s)]
+				 = pow(cabsf(fdensity[x*s*s + y*s + z]), 2.) ;
+			
+			sprintf(fname, "data/frecon_%d.raw", iter) ;
+			fp = fopen(fname, "wb") ;
+			fwrite(average, sizeof(float), vol, fp) ;
+			fclose(fp) ;
+			
+//			if (iter < num_iter - 1)
+				memset(average, 0, vol*sizeof(float)) ;
+		}
+		
+/*		if (iter % 10 == 0) {
 			fp = fopen("data/interm.raw", "w") ;
 			fwrite(p1, sizeof(float), vol, fp) ;
 			fclose(fp) ;
 		}
-	}
+*/	}
 	
-	fprintf(stderr, "\nCalculating prtf and writing to file.\n") ;
+	fprintf(stderr, "\n") ;
+//	fprintf(stderr, "\nCalculating prtf and writing to file.\n") ;
 	
-	for (i = 0 ; i < vol ; ++i)
-		average[i] /= (num_iter - start_ave + 1) ;
-	
-	gen_prtf(average) ;
-	
-	fp = fopen("data/recon.raw", "wb") ;
-	fwrite(average, sizeof(float), vol, fp) ;
-	fclose(fp) ;
-	
-	long x, y, z, s = size, c = s/2 ;
-	for (i = 0 ; i < vol ; ++i)
-		rdensity[i] = average[i] ;
-	fftwf_execute(forward_cont) ;
-	for (x = 0 ; x < s ; ++x)
-	for (y = 0 ; y < s ; ++y)
-	for (z = 0 ; z < s ; ++z)
-		average[((x+c)%s)*s*s + ((y+c)%s)*s + ((z+c)%s)]
-		 = pow(cabsf(fdensity[x*s*s + y*s + z]), 2.) ;
-	
-	fp = fopen("data/frecon.raw", "wb") ;
-	fwrite(average, sizeof(float), vol, fp) ;
-	fclose(fp) ;
+//	gen_prtf(average) ;
 	
 	return 0 ;
 }
