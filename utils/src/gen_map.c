@@ -41,8 +41,8 @@ int main(int argc, char *argv[]) {
 		fval = model[x*s*s + y*s + z] ;
 		if (fval < 0.5)
 			fval = 0. ;
-		if (fval > 5.)
-			fval = 5. ;
+//		if (fval > 10.)
+//			fval = 10. ;
 		mmodel[(z-163)*ms*ms + (y-163)*ms + (x-163)] = fval ;
 	}
 	free(model) ;
@@ -89,15 +89,21 @@ int main(int argc, char *argv[]) {
 	// X_LENGTH, Y_LENGTH, Z_LENGTH
 //	fval = 542.07 ;
 //	fval = 271.035 ;
-	fval = 272.883 ;
+//	fval = 272.883 ;
+//	fval = 271.83 ;
+	fval = 315.07 ;
 	fwrite(&fval, sizeof(float), 1, fp) ;
 //	fval = 624.5 ;
 //	fval = 312.25 ;
-	fval = 308.906 ;
+//	fval = 308.906 ;
+//	fval = 307.71 ;
+	fval = 309.52 ;
 	fwrite(&fval, sizeof(float), 1, fp) ;
 //	fval = 632.7 ;
 //	fval = 316.35 ;
-	fval = 314.445 ;
+//	fval = 314.445 ;
+//	fval = 313.23 ;
+	fval = 273.49 ;
 	fwrite(&fval, sizeof(float), 1, fp) ;
 	// ALPHA, BETA, GAMMA
 	fval = 90. ;
