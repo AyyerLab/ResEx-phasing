@@ -72,8 +72,8 @@ int main(int argc, char *argv[]) {
 		fz = tz - iz ;
 		cz = 1. - fz ;
 		
-		fmodel[z*fsize*fsize + y*fsize + x] = 
-//		fmodel[x*fsize*fsize + y*fsize + z] = 
+//		fmodel[z*fsize*fsize + y*fsize + x] = 
+		fmodel[x*fsize*fsize + y*fsize + z] = 
 			cx*cy*cz*model[ix*size*size + iy*size + iz] +
 			cx*cy*fz*model[ix*size*size + iy*size + (iz+1)] +
 			cx*fy*cz*model[ix*size*size + (iy+1)*size + iz] +
