@@ -4,6 +4,7 @@ gen_data
 /utils/*
 !/utils/src
 /data
+/images
 src/config.conf
 *.log
 *.dat

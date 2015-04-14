@@ -3,8 +3,8 @@ LDFLAGS=-lgsl -lgslcblas -lfftw3f_threads -lfftw3f -lm
 CFLAGS=-fopenmp -O3 -Wall
 
 objects = bin/diffmap.o bin/setup.o bin/utils.o
-utils = utils/chop_bragg utils/assemble_hkl utils/gen_bmerge
-autils = utils/forward utils/fstretch utils/bragg_gen utils/gen_map
+utils = utils/chop_bragg utils/assemble_hkl utils/gen_bmerge utils/gen_dens
+autils = utils/forward utils/fstretch utils/bragg_gen utils/gen_map utils/create_support
 
 all: gen_data recon $(utils) $(autils)
 
