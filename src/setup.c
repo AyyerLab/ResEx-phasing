@@ -33,7 +33,7 @@ int setup() {
 	vol = size*size*size ;
 	hklvol = hsize*ksize*lsize ;
 	fftwf_init_threads() ;
-	fftwf_plan_with_nthreads(4) ;
+	fftwf_plan_with_nthreads(16) ;
 	
 	if (allocate_memory(1))
 		return 1 ;
@@ -74,7 +74,7 @@ int setup_gen() {
 	vol = size*size*size ;
 	hklvol = hsize*ksize*lsize ;
 	fftwf_init_threads() ;
-	fftwf_plan_with_nthreads(4) ;
+	fftwf_plan_with_nthreads(16) ;
 	
 	if (allocate_memory(0))
 		return 1 ;

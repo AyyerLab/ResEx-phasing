@@ -30,17 +30,29 @@ int main(int argc, char *argv[]) {
 	vol = size*size*size ;
 	
 	fftwf_init_threads() ;
-	fftwf_plan_with_nthreads(4) ;
-	
-	fp = fopen("data/wisdom_501_4", "r") ;
-	fftwf_import_wisdom_from_file(fp) ;
-	fclose(fp) ;
+	fftwf_plan_with_nthreads(16) ;
 	
 	rdensity = fftwf_malloc(vol * sizeof(fftwf_complex)) ;
 	fdensity = fftwf_malloc(vol * sizeof(fftwf_complex)) ;
 	temp = malloc(vol * sizeof(float)) ;
 	
-	inverse = fftwf_plan_dft_3d(size, size, size, fdensity, rdensity, FFTW_BACKWARD, FFTW_MEASURE) ;
+	fp = fopen("data/wisdom_501_16", "rb") ;
+	if (fp == NULL) {
+		fprintf(stderr, "Measuring plans\n") ;
+		inverse = fftwf_plan_dft_3d(size, size, size, fdensity, rdensity, FFTW_BACKWARD, FFTW_MEASURE) ;
+		
+		fp = fopen("data/wisdom_501_16", "wb") ;
+		fftwf_export_wisdom_to_file(fp) ;
+		fclose(fp) ;
+	
+		fprintf(stderr, "Created plans\n") ;
+	}
+	else {
+		fftwf_import_wisdom_from_file(fp) ;
+		fclose(fp) ;
+		
+		inverse = fftwf_plan_dft_3d(size, size, size, fdensity, rdensity, FFTW_BACKWARD, FFTW_MEASURE) ;
+	}
 	
 	fp = fopen(argv[1], "rb") ;
 	fread(fdensity, sizeof(fftwf_complex), vol, fp) ;

@@ -11,19 +11,19 @@
 data/anton_50pr_501_subt_zero.raw
 
 # Bragg file
-data/ps2_bragg.raw
+data/hkl_167_125_83_orig.cpx
 
 # Support file
-data/ps2_1_3.5.supp
+data/out3d_501_tight.supp
 
 # Starting model
-data/ps2obj.ra
+data/output_19.raw
 
 # Quaternion file
 quat_0.5.dat
 
 # FFTW wisdom file
-data/wisdom_427_4
+data/wisdom_501_16
 
 # qmax for Braggs
 0.6

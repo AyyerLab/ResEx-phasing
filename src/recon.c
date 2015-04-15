@@ -31,7 +31,7 @@ int main(int argc, char *argv[]) {
 	fprintf(fp, "-------------------------\n") ;
 	fclose(fp) ;
 	
-	float blur = 1.5f ;
+	float blur = 1.0f ;
 	char fname[999] ;
 	long x, y, z, s = size, c = s/2 ;
 	
@@ -44,10 +44,10 @@ int main(int argc, char *argv[]) {
 		
 		error = diffmap(iterate) ;
 		
-		fprintf(stderr, "\rFinished %d/%d iterations", iter, num_iter) ;
+		fprintf(stderr, "\rFinished %d/%d iterations. ", iter, num_iter) ;
 		
-		if (iter % 30 > 20) {
-			fprintf(stderr, ". Now averaging. ") ;
+		if (iter % 50 > 30 || iter%50 == 0) {
+			fprintf(stderr, "Now averaging. ") ;
 			average_model(p1, average) ;
 		}
 		
@@ -59,10 +59,10 @@ int main(int argc, char *argv[]) {
 			error) ;
 		fclose(fp) ;
 		
-		if (iter % 30 == 0) {
+		if (iter % 50 == 0) {
 			blur *= 0.95 ;
 			for (i = 0 ; i < vol ; ++i)
-				average[i] /= 10. ;
+				average[i] /= 20. ;
 			
 			apply_shrinkwrap(average, blur, 0.2f) ;
 			fprintf(stderr, "Applied shrinkwrap (%.3f). num_supp = %ld\n", blur, num_supp) ;
