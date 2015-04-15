@@ -22,6 +22,7 @@ spacing. The stretch factors are (2.2045, 1.9475, 1.913).
 	./utils/fstretch ../partial/data/out3d_1280c.cpx 1280 501 2.2045 1.9475 1.913
 
 This produces `../partial/data/out3d_1280c_str_501.cpx` which is a 501^3 volume.
+Optionally, you can add an additional argument to specify the output file.
 
 ### utils/bragg_gen
 Generate Bragg hkl values by sampling the stretched complex intensities. The 
@@ -29,7 +30,8 @@ reciprocal lattice constants are (6, 4, 3)
 
 	./utils/bragg_gen ../partial/data/out3d_1280c_str_501.cpx 501 6 4 3
 
-This generates `data/hkl_167...cpx`
+This generates `data/hkl_167...cpx`. Optionally, you can add an additional 
+argument to specify the output file.
 
 ## Generation of merged data
 We start with a 501^3 volume of real numbers. The main pre-processing step is 

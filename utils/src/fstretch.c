@@ -22,6 +22,7 @@ int main(int argc, char *argv[]) {
 	
 	if (argc < 7) {
 		fprintf(stderr, "Format: %s <model_fname> <size> <fsize> <fx> <fy> <fz>\n", argv[0]) ;
+		fprintf(stderr, "Optional: <out_fname>\n") ;
 		return 1 ;
 	}
 	
@@ -30,6 +31,10 @@ int main(int argc, char *argv[]) {
 	f[0] = atof(argv[4]) ;
 	f[1] = atof(argv[5]) ;
 	f[2] = atof(argv[6]) ;
+	
+	sprintf(fname, "%s_str_%ld.cpx", remove_ext(argv[1]), fsize) ;
+	if (argc > 7)
+		strcpy(fname, argv[7]) ;
 	
 	vol = size*size*size ;
 	fvol = fsize*fsize*fsize ;
@@ -89,7 +94,7 @@ int main(int argc, char *argv[]) {
 	fprintf(stderr, "\n") ;
 	
 	// Write fmodel to file
-	sprintf(fname, "%s_str_%ld.cpx", remove_ext(argv[1]), fsize) ;
+	fprintf(stderr, "Writing to %s\n", fname) ;
 	fp = fopen(fname, "wb") ;
 	fwrite(fmodel, sizeof(float complex), fvol, fp) ;
 	fclose(fp) ;

@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <float.h>
 #include <math.h>
 #include <complex.h>
@@ -14,6 +15,7 @@ int main(int argc, char *argv[]) {
 	
 	if (argc < 6) {
 		fprintf(stderr, "Format: %s <model_fname> <size> <ax> <ay> <az>\n", argv[0]) ;
+		fprintf(stderr, "Optional: <out_fname>\n") ;
 		return 1 ;
 	}
 	
@@ -71,6 +73,8 @@ int main(int argc, char *argv[]) {
 	
 	// Save to file
 	sprintf(fname, "data/hkl_%ld_%ld_%ld.cpx", hkls[2], hkls[1], hkls[0]) ;
+	if (argc > 6)
+		strcpy(fname, argv[6]) ;
 	fp = fopen(fname, "wb") ;
 	fwrite(hkl, sizeof(float complex), hklvol, fp) ;
 	fclose(fp) ;
