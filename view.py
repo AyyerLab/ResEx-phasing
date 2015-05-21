@@ -12,8 +12,11 @@ if len(sys.argv) < 2:
 	sys.exit()
 
 flag = 0
+size = 501
 if len(sys.argv) > 2:
 	flag = int(sys.argv[2])
+if len(sys.argv) > 3:
+	size = int(sys.argv[3])
 
 # Start TkInter and set defaults
 root = Tk.Tk()
@@ -23,7 +26,6 @@ mng = plt.get_current_fig_manager()
 
 typestr = 'f4'
 typesize = 4
-size = 501
 rangemax = 1e1
 
 ext = os.path.splitext(os.path.basename(sys.argv[1]))[1]
@@ -44,30 +46,25 @@ def parse_extension(ext_string):
 	if ext_string == '.raw':
 		typestr = 'f4'
 		typesize = 4
-		size = 501
 		rangemax = 1e1
 	elif ext_string == '.bin':
 		typestr = 'f8'
 		typesize = 8
-		size = 501
 		rangemax = 0.002
 	elif ext_string == '.supp':
 		print "Support file"
 		typestr = 'uint8'
 		typesize = 1
-		size = 501
 		rangemax = 1
 	elif ext_string == '.cpx':
 		print "Complex file"
 		typestr = 'complex64'
 		typesize = 8
-		size = 501
 		rangemax = 1e2
 	else:
 		print "Did not understand data type from extension. Defaulting to float."
 		typestr = 'f4'
 		typesize = 4
-		size = 171
 		rangemax = 1
 
 parse_extension(ext)
@@ -117,9 +114,12 @@ def plot_vol_slices(layernum):
 	rangemax = float(rangestr.get())
 	
 	if flag is 0:
-		a = vol[layernum,167:334,167:334]
-		b = vol[167:334,layernum,167:334]
-		c = vol[167:334,167:334,layernum]
+		min = int(size/3)
+		max = int(2*size/3)
+		
+		a = vol[layernum,min:max,min:max]
+		b = vol[min:max,layernum,min:max]
+		c = vol[min:max,min:max,layernum]
 	elif flag is 1:
 		a = vol[layernum,:,:]	
 		b = vol[:,layernum,:]	
