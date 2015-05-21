@@ -34,7 +34,7 @@ rangestr = Tk.StringVar()
 imagename = Tk.StringVar()
 layernum = Tk.IntVar()
 fname.set(sys.argv[1])
-imagename.set(os.path.splitext(os.path.basename(fname.get()))[0] + '.png')
+imagename.set('images/' + os.path.splitext(os.path.basename(fname.get()))[0] + '.png')
 
 image_exists = 0
 
@@ -110,11 +110,10 @@ def parse_vol():
 	
 	if typestr == 'complex64':
 		vol = np.square(np.absolute(vol))
-#		vol = np.absolute(vol)
 
 def plot_vol_slices(layernum):
 	global image_exists, flag
-	imagename.set(os.path.splitext(os.path.basename(fname.get()))[0] + '.png')
+	imagename.set('images/' + os.path.splitext(os.path.basename(fname.get()))[0] + '.png')
 	rangemax = float(rangestr.get())
 	
 	if flag is 0:
@@ -156,6 +155,10 @@ def parse_and_plot(event=None):
 		
 		parse_vol()
 		plot_vol_slices(layernum.get())
+
+def force_plot(event=None):
+	parse_vol()
+	plot_vol_slices(layernum.get())
 
 def increment_layer(event=None):
 	layernum.set(min(layernum.get()+1, size))
@@ -241,9 +244,15 @@ Tk.Button(
 
 Tk.Button(
 	root,
+	text = "Reparse",
+	command = force_plot
+	).grid(row=5,column=2,sticky=Tk.W)
+
+Tk.Button(
+	root,
 	text = "Quit",
 	command = root.quit
-	).grid(row=5,column=2,sticky=Tk.W)
+	).grid(row=5,column=3,sticky=Tk.W)
 
 parse_and_plot()
 

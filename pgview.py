@@ -72,17 +72,20 @@ class pgview(QtGui.QWidget):
 		typestr, typesize = self.parse_ext(self.fname)
 		
 		self.data = np.fromfile(self.fname, dtype=typestr, count = self.size**3).reshape(self.size,self.size,self.size)
+		if typestr == 'complex64':
+			self.data = np.square(np.absolute(self.data))
+	
 		if self.flag == 0:
 			s = int(self.size/3)
 			e = int(2*self.size/3)
 			self.data = self.data[s:e, s:e, s:e]
+			self.iw.setImage(self.data, autoLevels=False)
 		else:
 			s = self.size
-			self.iw.setLevels(0, 1e7)
-		if typestr == 'complex64':
-			self.data = np.square(np.absolute(self.data))
-	
-		self.iw.setImage(self.data, autoLevels=False)
+			self.iw.setLevels(0, 1e3)
+#			self.iw.setImage(self.data, autoLevels=True)
+			self.iw.setImage(self.data, autoLevels=False)
+		
 		self.iw.jumpFrames(int(s/2))
 	
 	def parse_ext(self, file):

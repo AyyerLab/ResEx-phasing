@@ -11,7 +11,7 @@ needed to perform the reconstruction:
 * Run reconstruction
 * View results
 
-## Generation of hkl values:
+## Generation of Bragg data:
 This is the procedure to get the complex hkl grid which will be used at low 
 resolutions.
 
@@ -19,7 +19,7 @@ resolutions.
 Stretch the true-scale simulations to take into account the integer Bragg 
 spacing. The stretch factors are (2.2045, 1.9475, 1.913).
 
-	./utils/fstretch ../partial/data/out3d_1280c.cpx 1280 501 2.2045 1.9475 1.913
+	./utils/fstretch ../partial/data/4pbu.cpx 1280 501 2.2045 1.9475 1.913
 
 This produces `../partial/data/out3d_1280c_str_501.cpx` which is a 501^3 volume.
 Optionally, you can add an additional argument to specify the output file.
@@ -33,11 +33,34 @@ reciprocal lattice constants are (6, 4, 3)
 This generates `data/hkl_167...cpx`. Optionally, you can add an additional 
 argument to specify the output file.
 
-## Generation of merged data
+## Generation of continuous data
 We start with a 501^3 volume of real numbers. The main pre-processing step is 
-to set low-q values to -1. and cube-corner values to 0. 
+to set low-q values to -1. and cube-corner values to 0. Before this, we should 
+also calculate the scaling factor to have the experimental and simulated Bragg-
+magnitudes at comparable values. 
 
 ### utils/zero_outer
+Set voxels which are closer to the center than `rmax` to -1. Also set cube 
+corners to zero.
+
+	./utils/zero_outer ../data/anton_50pr_501_subt.raw 130
+
+This generates `data/anton_50pr_501_subt_zero.raw'. Slices through this array 
+can be viewed by running the command
+
+	./view.py data/anton_50pr_501_subt_zero.raw 1
+
+The trailing flag integer tells the view script to show the full array, and not 
+just the central part.
+
+### utils/calc_scale
+This utility calculates the scale factor required to make the merged and 
+simulated Fourier magnitudes comparable. It calculates the factor using voxels 
+with a radius between 140 and 160 voxels.
+
+	./utils/calc_scale data/anton_50pr_501_subt.raw
+
+Remember not to use the zeroed version of the experimental merge.
 
 ## Generate support file
 

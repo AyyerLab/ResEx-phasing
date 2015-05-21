@@ -5,6 +5,9 @@ gen_data
 !/utils/src
 /data
 /images
+/results
+/refine
+/gui
 src/config.conf
 *.log
 *.dat

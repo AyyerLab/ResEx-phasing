@@ -55,16 +55,22 @@ int main(int argc, char *argv[]) {
 	}
 	
 	fp = fopen(argv[1], "rb") ;
-	fread(fdensity, sizeof(fftwf_complex), vol, fp) ;
+	fread(rdensity, sizeof(fftwf_complex), vol, fp) ;
 	fclose(fp) ;
+	
+	for (x = 0 ; x < size ; ++x)
+	for (y = 0 ; y < size ; ++y)
+	for (z = 0 ; z < size ; ++z)
+		fdensity[((x+c)%size)*size*size + ((y+c)%size)*size + ((z+c)%size)]
+		  = rdensity[x*size*size + y*size + z] ;
 	
 	fftwf_execute(inverse) ;
 	
 	for (x = 0 ; x < size ; ++x)
 	for (y = 0 ; y < size ; ++y)
 	for (z = 0 ; z < size ; ++z)
-		temp[((z+c)%size)*size*size + ((y+c)%size)*size + ((x+c)%size)]
-		  = cabsf(rdensity[x*size*size + y*size + z]) / vol ;
+		temp[((x+c)%size)*size*size + ((y+c)%size)*size + ((z+c)%size)]
+		  = crealf(rdensity[x*size*size + y*size + z]) / vol ;
 	
 	sprintf(fname, "%s_dens.raw", remove_ext(argv[1])) ;
 	fp = fopen(fname, "wb") ;

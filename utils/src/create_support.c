@@ -29,8 +29,9 @@ int main(int argc, char* argv[]) {
 	uint8_t *support ;
 	FILE *fp ;
 	
-	if (argc < 3) {
+	if (argc < 4) {
 		fprintf(stderr, "Format: %s <density_fname> <blur> <threshold>\n", argv[0]) ;
+		fprintf(stderr, "Optional: <out_fname>\n") ;
 		return 1 ;
 	}
 	blur = atof(argv[2]) ;
@@ -40,7 +41,7 @@ int main(int argc, char* argv[]) {
 	vol = size*size*size ;
 	
 	// Create Gaussian kernel of given width
-	ksize = (long) 3 * blur ;
+	ksize = 3 * blur > 1 ? (long)3 * blur : 1 ;
 	krad = (ksize - 1) / 2 ;
 	kernel = malloc(ksize * ksize * ksize * sizeof(float)) ;
 	create_kernel(kernel, ksize, blur) ;
@@ -70,7 +71,10 @@ int main(int argc, char* argv[]) {
 	fprintf(stderr, "Calculated support with %ld voxels\n", num_supp) ;
 	
 	// Write to file
-	fp = fopen("data/support_501.supp", "wb") ;
+	if (argc > 4)
+		fp = fopen(argv[4], "wb") ;
+	else
+		fp = fopen("data/support_501.supp", "wb") ;
 	fwrite(support, sizeof(uint8_t), vol, fp) ;
 	fclose(fp) ;
 	

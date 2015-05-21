@@ -1,0 +1,37 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+
+int main() {
+	FILE *fp ;
+	
+	hs = 1000 ;
+	ws = 1000 ;
+	s = 501 ;
+	hc = h/2 ;
+	wc = w/2 ;
+	c = s/2 ;
+	vol = s*s*s ;
+	
+	rmin = 400 ;
+	rmax = 420 ;
+	
+	model = malloc(vol * sizeof(float)) ;
+	fp = fopen("data_anton_50pr_501.raw", "rb") ;
+	fread(model, sizeof(float), vol, fp) ;
+	fclose(fp) ;
+	
+	shell = malloc(hs * ws * sizeof(float)) ;
+	
+	for (x = -c ; x < c ; ++x)
+	for (y = -c ; y < c ; ++y)
+	for (z = -c ; z < c ; ++z) {
+		r = sqrt(x*x + y*y + z*z) ;
+		
+		if (r > rmax || r < rmin)
+			continue ;
+		
+		phi = arcsin(z/r) ;
+		lambda = arccos(x/sqrt(x*x + y*y)) ;
+		
+		w = lambda

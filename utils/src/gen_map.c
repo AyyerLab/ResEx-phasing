@@ -3,6 +3,13 @@
 #include <string.h>
 #include <math.h>
 
+char* extract_fname(char* fullName) {
+	return 
+		strrchr(fullName,'/') != NULL
+			? strrchr(fullName,'/') + 1
+			: fullName ;
+}
+
 char* remove_ext(char *fullName) {
 	char *out = malloc(500 * sizeof(char)) ;
 	strcpy(out,fullName) ;
@@ -39,8 +46,8 @@ int main(int argc, char *argv[]) {
 	for (y = 163 ; y < 334 ; ++y)
 	for (z = 163 ; z < 334 ; ++z) {
 		fval = model[x*s*s + y*s + z] ;
-		if (fval < 0.5)
-			fval = 0. ;
+//		if (fval < 0.5)
+//			fval = 0. ;
 //		if (fval > 10.)
 //			fval = 10. ;
 		mmodel[(z-163)*ms*ms + (y-163)*ms + (x-163)] = fval ;
@@ -66,7 +73,7 @@ int main(int argc, char *argv[]) {
 	fprintf(stderr, "max = %.6e, min = %.6e\n", max, min) ;
 	fprintf(stderr, "mean = %.6e, rms = %.6e\n", mean, rms) ;
 	
-	sprintf(fname, "%s.map.ccp4", remove_ext(argv[1])) ;
+	sprintf(fname, "data/maps/%s.map.ccp4", remove_ext(extract_fname(argv[1]))) ;
 	fp = fopen(fname, "wb") ;
 	// NC, NR, NS
 	ival = ms ;
@@ -77,7 +84,8 @@ int main(int argc, char *argv[]) {
 	ival = 2 ;
 	fwrite(&ival, sizeof(int), 1, fp) ;
 	// NCSTART, NRSTART, NSSTART
-	ival = -85 ;
+//	ival = -85 ;
+	ival = 0 ;
 	fwrite(&ival, sizeof(int), 1, fp) ;
 	fwrite(&ival, sizeof(int), 1, fp) ;
 	fwrite(&ival, sizeof(int), 1, fp) ;
