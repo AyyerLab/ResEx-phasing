@@ -8,7 +8,8 @@ objects = $(patsubst src/%.c,bin/%.o,$(src))
 utils_src = $(wildcard utils/src/*.c)
 utils = $(patsubst utils/src/%.c,utils/%,$(utils_src))
 
-all: gen_data recon $(utils)
+#all: gen_data recon $(utils)
+all: recon $(utils)
 
 recon: $(filter-out bin/gen_data.o, $(objects))
 	$(LINK.c) $^ -o $@

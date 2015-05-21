@@ -13,15 +13,12 @@
 #include <omp.h>
 
 int iter ;
-long size, vol, hklvol, num_supp ;
-long hsize, ksize, lsize, hoffset, koffset, loffset ;
+long size, vol, num_supp ;
 float *iterate, *obs_mag, *exp_mag, *p1, *p2, *r1 ;
 long *support ;
-int num_rot ;
-double *quat ;
 fftwf_complex *fdensity, *rdensity ;
-fftwf_complex *fhkl, *rhkl, *hkl_calc ;
-fftwf_plan forward_cont, inverse_cont, forward_hkl, inverse_hkl ;
+float complex *bragg_calc ;
+fftwf_plan forward, inverse ;
 
 // diffmap.c
 double diffmap(float*) ;

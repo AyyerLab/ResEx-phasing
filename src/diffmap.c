@@ -13,37 +13,31 @@
 // (rhkl,fhkl,exp_hkl,hkl_mag)
 // Can set out = in
 void proj_bragg(float *in, float *out) {
-	long h, k, l, i ;
-	float norm_factor = 1.f / (float) hklvol ;
-	
-	// Extract central region and rescale axes
-	for (h = 0 ; h < hsize ; ++h)
-	for (k = 0 ; k < ksize ; ++k)
-	for (l = 0 ; l < lsize ; ++l)
-		rhkl[h*ksize*lsize + k*lsize + l] 
-		 = in[(h+hoffset)*size*size + (k+koffset)*size + (l+loffset)] ;
+	long i ;
+	float norm_factor = 1.f / (float) vol ;
 	
 	// Fourier transform to get structure factors
-	fftwf_execute(forward_hkl) ;
+	for (i = 0 ;i < vol ; ++i)
+		rdensity[i] = in[i] ;
+	
+	fftwf_execute(forward) ;
 	
 	// Replace with known magnitudes and phases
-	for (i = 0 ; i < hklvol ; ++i)
-	if (hkl_calc[i] != FLT_MAX)
-		fhkl[i] = hkl_calc[i] ;
-//	else
-//		fhkl[i] = 0.f ;
+	for (i = 0 ; i < vol ; ++i)
+	if (bragg_calc[i] != FLT_MAX)
+		fdensity[i] = bragg_calc[i] ;
+//	else /* Only when doing Bragg-only reconstruction */
+//		fdensity[i] = 0.f ;
 	
 	// Inverse Fourier transform
-	fftwf_execute(inverse_hkl) ;
+	fftwf_execute(inverse) ;
 	
-	// Zero pad and rescale axes
-	memset(out, 0, vol*sizeof(float)) ;
+	for (i = 0 ; i < vol ; ++i)
+		out[i] = crealf(rdensity[i]) * norm_factor ;
 	
-	for (h = 0 ; h < hsize ; ++h)
-	for (k = 0 ; k < ksize ; ++k)
-	for (l = 0 ; l < lsize ; ++l)
-		out[(h+hoffset)*size*size + (k+koffset)*size + (l+loffset)]
-		 = crealf(rhkl[h*ksize*lsize + k*lsize + l]) * norm_factor ;
+	FILE *fp = fopen("data/bragg_dens.raw", "wb") ;
+	fwrite(out, sizeof(float), vol, fp) ;
+	fclose(fp) ;
 }
 
 // Projection over continuous data 
@@ -58,7 +52,7 @@ void proj_cont(float *in, float *out) {
 	for (i = 0 ; i < vol ; ++i)
 		rdensity[i] = in[i] ;
 	
-	fftwf_execute(forward_cont) ;
+	fftwf_execute(forward) ;
 	
 	// Symmetrize to get intensities to compare
 	symmetrize_incoherent(fdensity, exp_mag) ;
@@ -76,7 +70,7 @@ void proj_cont(float *in, float *out) {
 */	}
 	
 	// Inverse Fourier transform
-	fftwf_execute(inverse_cont) ;
+	fftwf_execute(inverse) ;
 	
 	for (i = 0 ; i < vol ; ++i)
 		out[i] = crealf(rdensity[i]) * norm_factor ;
