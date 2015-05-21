@@ -56,7 +56,6 @@ int main(int argc, char* argv[]) {
 	fprintf(stderr, "Parsed density\n") ;
 	
 	// Convolve bright voxels with kernel, threshold and count voxels
-	num_supp = 0 ;
 	for (x = 0 ; x < size ; ++x)
 	for (y = 0 ; y < size ; ++y)
 	for (z = 0 ; z < size ; ++z)
@@ -68,6 +67,11 @@ int main(int argc, char* argv[]) {
 				support[((i+x-krad)%size)*size*size + ((j+y-krad)%size)*size + ((k+z-krad)%size)] = 1 ;
 				num_supp++ ;
 			}
+	
+	// Calculate number of voxels in support region
+	num_supp = 0 ;
+	for (x = 0 ; x < vol ; ++x)
+		num_supp += support[x] ;
 	fprintf(stderr, "Calculated support with %ld voxels\n", num_supp) ;
 	
 	// Write to file
