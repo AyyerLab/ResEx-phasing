@@ -47,7 +47,7 @@ int main(int argc, char *argv[]) {
 		
 		if (rsq < rmaxsq)
 			model[x*size*size + y*size + z] = -1.f ;
-		if (rsq > 0.95*c*c)
+		if (rsq > 0.8*c*c)
 			model[x*size*size + y*size + z] = 0.f ;
 	}
 	fprintf(stderr, "Zeroed outer voxels and set inner voxels to be negative\n") ;

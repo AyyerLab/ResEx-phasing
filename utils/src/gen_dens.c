@@ -72,7 +72,7 @@ int main(int argc, char *argv[]) {
 		temp[((x+c)%size)*size*size + ((y+c)%size)*size + ((z+c)%size)]
 		  = crealf(rdensity[x*size*size + y*size + z]) / vol ;
 	
-	sprintf(fname, "%s_dens.raw", remove_ext(argv[1])) ;
+	sprintf(fname, "%s-dens.raw", remove_ext(argv[1])) ;
 	fp = fopen(fname, "wb") ;
 	fwrite(temp, sizeof(float), vol, fp) ;
 	fclose(fp) ;
