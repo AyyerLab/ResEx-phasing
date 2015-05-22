@@ -115,7 +115,7 @@ int parse_intens(char *fname) {
 			obs_mag[((i+c+1)%s)*s*s + ((j+c+1)%s)*s + ((k+c+1)%s)]
 //				= sqrt(intens[i*s*s + j*s + k]) * 370.67506 ; // anton_50pr_subt
 //				= sqrt(intens[i*s*s + j*s + k]) * 157.19 ; // lorenzo_2848_hard
-				= sqrt(intens[i*s*s + j*s + k]) * 372.11 ; // lorenzo_hard_iso
+				= sqrt(intens[i*s*s + j*s + k]) * 421.17 ; // lorenzo_hard_iso_sym
 		else
 			obs_mag[((i+c+1)%s)*s*s + ((j+c+1)%s)*s + ((k+c+1)%s)]
 				= intens[i*s*s + j*s + k] ;
@@ -145,9 +145,10 @@ int parse_bragg(char *fname, double braggqmax) {
 	for (z = 0 ; z < size ; ++z) {
 		dist = ((x-c)*(x-c) + (y-c)*(y-c) + (z-c)*(z-c)) / c2 ;
 		
-		if (dist < braggqmax*braggqmax) // Reversing axes
+		if (dist < braggqmax*braggqmax) 
 			bragg_calc[((x+c+1)%size)*size*size + ((y+c+1)%size)*size + ((z+c+1)%size)] 
-			 = bragg_temp[z*size*size + y*size + x]
+//			 = bragg_temp[z*size*size + y*size + x] // Reversing axes
+			 = bragg_temp[x*size*size + y*size + z] 
 			   * powf(-1.f, x-c+y-c+z-c) ;
 		else
 			bragg_calc[((x+c+1)%size)*size*size + ((y+c+1)%size)*size + ((z+c+1)%size)] = FLT_MAX ;
