@@ -70,6 +70,22 @@ int main(int argc, char *argv[]) {
 	fwrite(model, sizeof(float), red_size*red_size*red_size, fp) ;
 	fclose(fp) ;
 	
+	float *temp = malloc(red_size*red_size*red_size*sizeof(float)) ;
+	s = red_size ;
+	long c = red_size / 2 ;
+	for (x = 0 ; x < s ; ++x)
+	for (y = 0 ; y < s ; ++y)
+	for (z = 0 ; z < s ; ++z)
+		temp[x*s*s + y*s + z] = 0.25 * (model[x*s*s + y*s + z] + 
+		                                model[x*s*s + y*s + (2*c-z)] +
+		                                model[x*s*s + (2*c-y)*s + z] +
+	                                    model[x*s*s + (2*c-y)*s + (2*c-z)]) ;
+	
+	sprintf(fname, "%s_sym.raw", remove_ext(fname)) ;
+	fp = fopen(fname, "wb") ;
+	fwrite(temp, sizeof(float), red_size*red_size*red_size, fp) ;
+	fclose(fp) ;
+	
 	free(counts) ;
 	free(model) ;
 	free(row) ;
