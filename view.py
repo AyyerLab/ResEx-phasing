@@ -28,8 +28,6 @@ typestr = 'f4'
 typesize = 4
 rangemax = 1e1
 
-ext = os.path.splitext(os.path.basename(sys.argv[1]))[1]
-
 fname = Tk.StringVar()
 sizestr = Tk.StringVar()
 rangestr = Tk.StringVar()
@@ -41,8 +39,10 @@ imagename.set('images/' + os.path.splitext(os.path.basename(fname.get()))[0] + '
 image_exists = 0
 
 # Determine extension and resulting data types
-def parse_extension(ext_string):
+def parse_extension(filename):
 	global typestr, size, typesize, rangemax
+	ext_string = os.path.splitext(os.path.basename(filename))[1]
+	
 	if ext_string == '.raw':
 		typestr = 'f4'
 		typesize = 4
@@ -67,7 +67,7 @@ def parse_extension(ext_string):
 		typesize = 4
 		rangemax = 1
 
-parse_extension(ext)
+parse_extension(sys.argv[1])
 
 center = int(size/2)
 
@@ -150,6 +150,7 @@ def parse_and_plot(event=None):
 		plot_vol_slices(layernum.get())
 	else:
 		print "Reparsing volume:", fname.get(), sizestr.get()
+		parse_extension(fname.get())
 		slider.configure(from_=0,to=int(sizestr.get()))
 		layernum.set(int(int(sizestr.get())/2))
 		
