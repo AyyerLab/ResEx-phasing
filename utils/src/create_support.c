@@ -24,7 +24,7 @@ void create_kernel(float *kernel, long ksize, float width) {
 int main(int argc, char* argv[]) {
 	long x, y, z, i, j, k ;
 	long ksize, krad, size, vol, num_supp ;
-	float blur, thresh ;
+	float val, blur, thresh ;
 	float *density, *kernel ;
 	uint8_t *support ;
 	FILE *fp ;
@@ -58,15 +58,15 @@ int main(int argc, char* argv[]) {
 	// Convolve bright voxels with kernel, threshold and count voxels
 	for (x = 0 ; x < size ; ++x)
 	for (y = 0 ; y < size ; ++y)
-	for (z = 0 ; z < size ; ++z)
-	if (density[x*size*size + y*size + z] > 0.2 * thresh)
+	for (z = 0 ; z < size ; ++z) {
+		val = fabs(density[x*size*size + y*size + z]) ;
+		if (val > 0.2 * thresh)
 		for (i = 0 ; i < ksize ; ++i)
 		for (j = 0 ; j < ksize ; ++j)
 		for (k = 0 ; k < ksize ; ++k)
-			if (density[x*size*size + y*size + z]*kernel[i*ksize*ksize + j*ksize + k] > thresh) {
-				support[((i+x-krad)%size)*size*size + ((j+y-krad)%size)*size + ((k+z-krad)%size)] = 1 ;
-				num_supp++ ;
-			}
+		if (val * kernel[i*ksize*ksize + j*ksize + k] > thresh) 
+			support[((i+x-krad)%size)*size*size + ((j+y-krad)%size)*size + ((k+z-krad)%size)] = 1 ;
+	}
 	
 	// Calculate number of voxels in support region
 	num_supp = 0 ;
