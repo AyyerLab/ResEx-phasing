@@ -88,7 +88,7 @@ int main(int argc, char *argv[]) {
 	for (x = 0 ; x < size ; ++x)
 	for (y = 0 ; y < size ; ++y)
 	for (z = 0 ; z < size ; ++z)
-		temp[((z+c)%size)*size*size + ((y+c)%size)*size + ((x+c)%size)]
+		temp[((x+c)%size)*size*size + ((y+c)%size)*size + ((z+c)%size)]
 		  = powf(cabsf(fdensity[x*size*size + y*size + z]), 2.f) ;
 	
 	fp = fopen("results/comb_foutput.raw", "wb") ;
