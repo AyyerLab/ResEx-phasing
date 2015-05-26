@@ -11,13 +11,6 @@ if len(sys.argv) < 2:
 	print("Need filename")
 	sys.exit()
 
-flag = 0
-size = 501
-if len(sys.argv) > 2:
-	flag = int(sys.argv[2])
-if len(sys.argv) > 3:
-	size = int(sys.argv[3])
-
 # Start TkInter and set defaults
 root = Tk.Tk()
 fig = plt.figure(figsize=(15,5))
@@ -35,6 +28,14 @@ imagename = Tk.StringVar()
 layernum = Tk.IntVar()
 fname.set(sys.argv[1])
 imagename.set('images/' + os.path.splitext(os.path.basename(fname.get()))[0] + '.png')
+
+flag = Tk.IntVar()
+flag.set(0)
+size = 501
+if len(sys.argv) > 2:
+	flag.set(int(sys.argv[2]))
+if len(sys.argv) > 3:
+	size = int(sys.argv[3])
 
 image_exists = 0
 
@@ -113,14 +114,14 @@ def plot_vol_slices(layernum):
 	imagename.set('images/' + os.path.splitext(os.path.basename(fname.get()))[0] + '.png')
 	rangemax = float(rangestr.get())
 	
-	if flag is 0:
+	if flag.get() is 0:
 		min = int(size/3)
 		max = int(2*size/3)
 		
 		a = vol[layernum,min:max,min:max]
 		b = vol[min:max,layernum,min:max]
 		c = vol[min:max,min:max,layernum]
-	elif flag is 1:
+	elif flag.get() is 1:
 		a = vol[layernum,:,:]	
 		b = vol[:,layernum,:]	
 		c = vol[:,:,layernum]
@@ -169,6 +170,9 @@ def decrement_layer(event=None):
 	layernum.set(max(layernum.get()-1, 0))
 	plot_vol_slices(layernum.get())
 
+def flag_changed(event=None):
+	plot_vol_slices(layernum.get())
+
 def save_plot(event=None):
 	fig.savefig(imagename.get(), bbox_inches='tight')
 	print "Saved to", imagename.get()
@@ -183,7 +187,7 @@ root.bind('<Control-s>', save_plot)
 root.bind('<Control-q>', quit_)
 root.bind('<Up>', increment_layer)
 root.bind('<Down>', decrement_layer)
-root.bind('<ButtonRelease-1>', parse_and_plot)
+#root.bind('<ButtonRelease-1>', parse_and_plot)
 
 canvas = FigureCanvasTkAgg(fig, root)
 canvas.get_tk_widget().grid(rowspan=24)
@@ -254,6 +258,13 @@ Tk.Button(
 	text = "Quit",
 	command = root.quit
 	).grid(row=5,column=3,sticky=Tk.W)
+
+Tk.Checkbutton(
+	root,
+	text = "Show full volume",
+	variable = flag,
+	command = flag_changed
+	).grid(row=6,column=1)
 
 parse_and_plot()
 
