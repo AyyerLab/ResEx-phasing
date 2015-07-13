@@ -70,6 +70,7 @@ int main(int argc, char *argv[]) {
 	for (y = 0 ; y < size ; ++y)
 	for (z = 0 ; z < size ; ++z)
 		temp[((x+c)%size)*size*size + ((y+c)%size)*size + ((z+c)%size)]
+//		temp[((z+c)%size)*size*size + ((y+c)%size)*size + ((x+c)%size)] // Reversed axes
 		  = crealf(rdensity[x*size*size + y*size + z]) / vol ;
 	
 	sprintf(fname, "%s-dens.raw", remove_ext(argv[1])) ;
