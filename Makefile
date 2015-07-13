@@ -11,7 +11,7 @@ utils = $(patsubst utils/src/%.c,utils/%,$(utils_src))
 #all: gen_data recon $(utils)
 all: recon $(utils)
 
-recon: $(filter-out bin/gen_data.o, $(objects))
+recon: $(filter-out bin/gen_data.o bin/hio.o, $(objects))
 	$(LINK.c) $^ -o $@
 
 $(objects): bin/%.o: src/%.c src/brcont.h

@@ -8,7 +8,8 @@ int main(int argc, char *argv[]) {
 	FILE *fp ;
 	
 	if (argc < 3) {
-		fprintf(stderr, "Format: %s <num_iter> <start_ave>\n", argv[0]) ;
+//		fprintf(stderr, "Format: %s <num_iter> <start_ave>\n", argv[0]) ;
+		fprintf(stderr, "Format: %s <num_iter> <start_ER>\n", argv[0]) ;
 		return 1 ;
 	}
 	num_iter = atoi(argv[1]) ;
@@ -31,15 +32,17 @@ int main(int argc, char *argv[]) {
 	fprintf(fp, "-------------------------\n") ;
 	fclose(fp) ;
 	
-	long x, y, z, s = size, c = s/2 ;
-	char fname[999] ;
-	
 	fprintf(stderr, "num_supp = %ld\n", num_supp) ; 
 	
 	for (iter = 1 ; iter <= num_iter ; ++iter) {
 		gettimeofday(&t1, NULL) ;
 		
-		error = diffmap(iterate) ;
+//		if (iter < start_ave)
+			error = diffmap(iterate) ;
+//		else {
+//			fprintf(stderr, "Doing error-reduction. ") ;
+//			error = error_red(iterate) ;
+//		}
 		
 		fprintf(stderr, "\rFinished %d/%d iterations. ", iter, num_iter) ;
 		
@@ -47,6 +50,9 @@ int main(int argc, char *argv[]) {
 			fprintf(stderr, "Now averaging. ") ;
 			average_model(p1, average) ;
 		}
+
+		//if (iter == 100 || iter == 150)
+		//	apply_shrinkwrap(p1, 1.5, 0.2) ;
 		
 		gettimeofday(&t2, NULL) ;
 		fp = fopen("PHASING.log", "a") ;
@@ -56,40 +62,24 @@ int main(int argc, char *argv[]) {
 			error) ;
 		fclose(fp) ;
 		
-		if (iter >= 250 && iter % 50 == 0 && iter <= 1850) {
-			sprintf(fname, "data/interm_%d.raw", iter) ;
-			fp = fopen(fname, "wb") ;
-			fwrite(p1, sizeof(float), vol, fp) ;
-			fclose(fp) ;
-		}
-		
-/*		if (iter < 250 && iter % 20 == 0) {
+		if (iter % 20 == 0) {
 			fp = fopen("data/interm.raw", "w") ;
 			fwrite(p1, sizeof(float), vol, fp) ;
 			fclose(fp) ;
 		}
-*/	}
+	}
 	
 	fprintf(stderr, "\nCalculating prtf and writing to file.\n") ;
 	
 	for (i = 0 ; i < vol ; ++i)
 		average[i] /= (num_iter - start_ave + 1) ;
+//		average[i] = iterate[i] ;
 	
 	fp = fopen("data/recon.raw", "wb") ;
 	fwrite(average, sizeof(float), vol, fp) ;
 	fclose(fp) ;
 	
 	gen_prtf(average) ;
-	
-	for (i = 0 ; i < vol ; ++i)
-		rdensity[i] = average[i] ;
-	fftwf_execute(forward) ;
-	for (x = 0 ; x < s ; ++x)
-	for (y = 0 ; y < s ; ++y)
-	for (z = 0 ; z < s ; ++z)
-		average[((x+c)%s)*s*s + ((y+c)%s)*s + ((z+c)%s)]
-			= pow(cabsf(fdensity[x*s*s + y*s + z]), 2.) ;
-	
 	
 	return 0 ;
 }

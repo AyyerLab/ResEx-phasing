@@ -115,7 +115,10 @@ int parse_intens(char *fname) {
 			obs_mag[((i+c+1)%s)*s*s + ((j+c+1)%s)*s + ((k+c+1)%s)]
 //				= sqrt(intens[i*s*s + j*s + k]) * 370.67506 ; // anton_50pr_subt
 //				= sqrt(intens[i*s*s + j*s + k]) * 157.19 ; // lorenzo_2848_hard
-				= sqrt(intens[i*s*s + j*s + k]) * 421.17 ; // lorenzo_hard_iso_sym
+//				= sqrt(intens[i*s*s + j*s + k]) * 421.17 ; // lorenzo_hard_iso_sym
+//				= sqrt(intens[i*s*s + j*s + k]) * 343.06 ; // lorenzo_hard_iso_sym w/ dominik-3
+//				= sqrt(intens[i*s*s + j*s + k]) * 341.33 ; // lorenzo_hard_iso_sym w/ dominik-3-test
+				= sqrt(intens[i*s*s + j*s + k]) * 336.16 ; // lorenzo_hard_iso_sym w/ dominik-4
 		else
 			obs_mag[((i+c+1)%s)*s*s + ((j+c+1)%s)*s + ((k+c+1)%s)]
 				= intens[i*s*s + j*s + k] ;

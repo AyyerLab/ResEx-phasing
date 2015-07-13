@@ -1,4 +1,4 @@
-#include "brcont.h"
+#include <brcont.h>
 
 // Data projection 
 // Can set out = in
@@ -17,7 +17,7 @@ void proj_data(float *in, float *out) {
 	if (bragg_calc[i] != FLT_MAX)
 		fdensity[i] = bragg_calc[i] ;
 //	else // Only when doing Bragg-only reconstruction 
-//	fdensity[i] = 0.f ;
+//		fdensity[i] = 0.f ;
 	
 	// Symmetrize to get intensities to compare
 	symmetrize_incoherent(fdensity, exp_mag) ;
@@ -37,59 +37,23 @@ void proj_data(float *in, float *out) {
 		out[i] = crealf(rdensity[i]) * norm_factor ;
 }
 
-// Support projection
-// (vol,num_supp,support)
-// Cannot set out = in
-void proj_supp(float *in, float *out) {
-	long i, pixel ;
-	
-	memset(out, 0, vol*sizeof(float)) ;
-	
-	for (i = 0 ; i < num_supp ; ++i) {
-		pixel = support[i] ;
-//		if (in[pixel] > 0.) // Positivity
-			out[pixel] = in[pixel] ;
-	}
-}
-
-double diffmap(float *x) {
+double hio(float *x) {
 	long i ;
-	float diff, change = 0.f ;
-/*	float alpha = 0.95 ;
-	
+	double change = 0., beta = 1. ;
+
 	proj_data(x, p1) ;
 	
 	for (i = 0 ; i < vol ; ++i)
-		x[i] = alpha*x[i] + (1.-alpha)*p1[i] ;
-*/	
-	proj_supp(x, p1) ;
-	
-	for (i = 0 ; i < vol ; ++i)
-		r1[i] = 2. * p1[i] - x[i] ;
-	
-	proj_data(r1, p2) ;
-	
-	for (i = 0 ; i < vol ; ++i) {
-		diff = p2[i] - p1[i] ;
+	if (supvol[i]) {
+		diff = p1[i] - x[i] ;
 		x[i] += diff ;
 		change += diff*diff ;
 	}
-	
-	return sqrt(change / vol) ;
-}
-
-double error_red(float *x) {
-	long i ;
-	float diff, change = 0.f ;
-	
-	proj_data(x, p1) ;
-	proj_supp(p1, p2) ;
-	
-	for (i = 0 ; i < vol ; ++i) {
-		diff = p2[i] - p1[i] ;
-		x[i] = p2[i] ;
+	else {
+		diff = - beta * p1[x] ;
+		x[i] += diff ;
 		change += diff*diff ;
 	}
-	
-	return sqrt(change / vol) ;
+
+	return sqrt(change/vol) ;
 }

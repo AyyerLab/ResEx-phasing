@@ -167,16 +167,17 @@ void apply_shrinkwrap(float *model, float blur, float threshold) {
 	num_supp = 0 ;
 	
 	float max = -1.f ;
-	for (x = 0 ; x < vol ; ++x) {
-//		model[x] = crealf(rdensity[x]) / vol ;
-		if (crealf(rdensity[x]) > max)
-			max = crealf(rdensity[x]) ;
-	}
+	for (x = 0 ; x < vol ; ++x)
+//	if (crealf(rdensity[x]) > max)
+	if (cabsf(rdensity[x]) > max)
+//		max = crealf(rdensity[x]) ;
+		max = cabsf(rdensity[x]) ; // Absolute support
 	
-	threshold *= max ;
+//	threshold *= max ;
 	
 	for (x = 0 ; x < vol ; ++x)
-	if (crealf(rdensity[x]) > threshold) {
+//	if (crealf(rdensity[x]) > threshold) {
+	if (crealf(rdensity[x]) > threshold) { // Absolute support
 		support[num_supp++] = x ;
 		supvol[x] = 1 ;
 	}
