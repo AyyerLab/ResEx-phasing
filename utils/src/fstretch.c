@@ -78,8 +78,8 @@ int main(int argc, char *argv[]) {
 		fz = tz - iz ;
 		cz = 1. - fz ;
 		
-		fmodel[z*fsize*fsize + y*fsize + x] = // To reverse indices
-//		fmodel[x*fsize*fsize + y*fsize + z] = 
+//		fmodel[z*fsize*fsize + y*fsize + x] = // To reverse indices
+		fmodel[x*fsize*fsize + y*fsize + z] = 
 			cx*cy*cz*model[ix*size*size + iy*size + iz] +
 			cx*cy*fz*model[ix*size*size + iy*size + (iz+1)] +
 			cx*fy*cz*model[ix*size*size + (iy+1)*size + iz] +
@@ -101,10 +101,10 @@ int main(int argc, char *argv[]) {
 	fclose(fp) ;
 	
 	// Write symmetrized intensity to file
-	temp = malloc(vol * sizeof(float)) ;
-	for (x = 0 ; x < size ; ++x)
-	for (y = 0 ; y < size ; ++y)
-	for (z = 0 ; z < size ; ++z)
+	temp = malloc(fvol * sizeof(float)) ;
+	for (x = 0 ; x < fsize ; ++x)
+	for (y = 0 ; y < fsize ; ++y)
+	for (z = 0 ; z < fsize ; ++z)
 		temp[x*fsize*fsize + y*fsize + z] = 0.25 * (pow(cabsf(fmodel[x*fsize*fsize + y*fsize + z]), 2.) + 
 		                                         pow(cabsf(fmodel[x*fsize*fsize + y*fsize + (2*fcen-z)]), 2.) +
 		                                         pow(cabsf(fmodel[x*fsize*fsize + (2*fcen-y)*fsize + z]), 2.) +
@@ -112,7 +112,7 @@ int main(int argc, char *argv[]) {
 	
 	sprintf(fname, "%s-sym.raw", remove_ext(fname)) ;
 	fp = fopen(fname, "wb") ;
-	fwrite(temp, sizeof(float), vol, fp) ;
+	fwrite(temp, sizeof(float), fvol, fp) ;
 	fclose(fp) ;
 	
 	// Free memory
