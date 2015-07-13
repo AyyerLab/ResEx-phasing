@@ -6,6 +6,7 @@ import sys
 import Tkinter as Tk
 import os
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import matplotlib.patches as patches
 
 if len(sys.argv) < 2:
 	print("Need filename")
@@ -128,14 +129,20 @@ def plot_vol_slices(layernum):
 		
 	s1 = fig.add_subplot(131)
 	s1.matshow(a, vmin=0, vmax=rangemax, cmap='hot')
+	#s1.add_artist(patches.Circle((250,250), 140, ec='blue', fc='none'))
+	#s1.add_artist(patches.Circle((250,250), 160, ec='blue', fc='none'))
 	plt.title("h = 0, YZ plane", y = 1.01)
 	plt.axis('off')
 	s2 = fig.add_subplot(132)
 	s2.matshow(b, vmin=0, vmax=rangemax, cmap='hot')
+	#s2.add_artist(patches.Circle((250,250), 140, ec='blue', fc='none'))
+	#s2.add_artist(patches.Circle((250,250), 160, ec='blue', fc='none'))
 	plt.title("k = 0, XZ plane", y = 1.01)
 	plt.axis('off')
 	s3 = fig.add_subplot(133)
 	s3.matshow(c, vmin=0, vmax=rangemax, cmap='hot')
+	#s3.add_artist(patches.Circle((250,250), 140, ec='blue', fc='none'))
+	#s3.add_artist(patches.Circle((250,250), 160, ec='blue', fc='none'))
 	plt.title("l = 0, XY plane", y = 1.01)
 	plt.axis('off')
 	
