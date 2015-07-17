@@ -9,6 +9,7 @@ gen_data
 /refine
 /gui
 src/config.conf
+rscript.sh
 *.log
 *.dat
 *.png
