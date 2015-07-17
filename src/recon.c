@@ -1,14 +1,15 @@
 #include "brcont.h"
 
 int main(int argc, char *argv[]) {
-	int i, iter, num_iter, start_ave ;
+	int i, num_iter, start_ave ;
 	double error ;
 	float *average ;
 	struct timeval t1, t2 ;
 	FILE *fp ;
 	
 	if (argc < 3) {
-		fprintf(stderr, "Format: %s <num_iter> <start_ave>\n", argv[0]) ;
+//		fprintf(stderr, "Format: %s <num_iter> <start_ave>\n", argv[0]) ;
+		fprintf(stderr, "Format: %s <num_iter> <start_ER>\n", argv[0]) ;
 		return 1 ;
 	}
 	num_iter = atoi(argv[1]) ;
@@ -31,13 +32,27 @@ int main(int argc, char *argv[]) {
 	fprintf(fp, "-------------------------\n") ;
 	fclose(fp) ;
 	
+	fprintf(stderr, "num_supp = %ld\n", num_supp) ; 
+	
 	for (iter = 1 ; iter <= num_iter ; ++iter) {
 		gettimeofday(&t1, NULL) ;
 		
-		error = diffmap(iterate) ;
+//		if (iter < start_ave)
+			error = diffmap(iterate) ;
+//		else {
+//			fprintf(stderr, "Doing error-reduction. ") ;
+//			error = error_red(iterate) ;
+//		}
 		
-		if (iter >= start_ave)
-			average_model(p1[2], average) ;
+		fprintf(stderr, "\rFinished %d/%d iterations. ", iter, num_iter) ;
+		
+		if (iter >= start_ave) {
+			fprintf(stderr, "Now averaging. ") ;
+			average_model(p1, average) ;
+		}
+
+		//if (iter == 100 || iter == 150)
+		//	apply_shrinkwrap(p1, 1.5, 0.2) ;
 		
 		gettimeofday(&t2, NULL) ;
 		fp = fopen("PHASING.log", "a") ;
@@ -46,16 +61,25 @@ int main(int argc, char *argv[]) {
 			(double)(t2.tv_sec - t1.tv_sec) + (t2.tv_usec - t1.tv_usec) / 1000000.,
 			error) ;
 		fclose(fp) ;
+		
+		if (iter % 20 == 0) {
+			fp = fopen("data/interm.raw", "w") ;
+			fwrite(p1, sizeof(float), vol, fp) ;
+			fclose(fp) ;
+		}
 	}
+	
+	fprintf(stderr, "\nCalculating prtf and writing to file.\n") ;
 	
 	for (i = 0 ; i < vol ; ++i)
 		average[i] /= (num_iter - start_ave + 1) ;
-	
-	gen_prtf(average) ;
+//		average[i] = iterate[i] ;
 	
 	fp = fopen("data/recon.raw", "wb") ;
 	fwrite(average, sizeof(float), vol, fp) ;
 	fclose(fp) ;
+	
+	gen_prtf(average) ;
 	
 	return 0 ;
 }

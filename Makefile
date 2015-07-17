@@ -1,21 +1,27 @@
 CC=gcc
 LDFLAGS=-lgsl -lgslcblas -lfftw3f_threads -lfftw3f -lm
 CFLAGS=-fopenmp -O3 -Wall
-UTILSCFLAGS=-lfftw3f -lm -O3 -Wall
 
-objects = bin/recon.o bin/diffmap.o bin/setup.o bin/utils.o
+src = $(wildcard src/*.c)
+objects = $(patsubst src/%.c,bin/%.o,$(src)) 
 
-all: recon $(objects)
+utils_src = $(wildcard utils/src/*.c)
+utils = $(patsubst utils/src/%.c,utils/%,$(utils_src))
 
-bin/%.o: src/%.c src/brcont.h
-	gcc -c $< -o $@ $(CFLAGS)
+#all: gen_data recon $(utils)
+all: recon $(utils)
 
-recon: $(objects)
+recon: $(filter-out bin/gen_data.o bin/hio.o, $(objects))
 	$(LINK.c) $^ -o $@
 
-utils/%: src/utils/%.c
-	gcc $< -o $@ $(UTILSCFLAGS)
+$(objects): bin/%.o: src/%.c src/brcont.h
+	$(CC) -c $< -o $@ $(CFLAGS)
+
+gen_data: $(filter-out bin/recon.o, $(objects))
+	$(LINK.c) $^ -o $@
+
+$(utils): utils/%: utils/src/%.c
+	$(CC) $< -o $@ $(LDFLAGS) $(CFLAGS)
 
 clean:
-#	rm -f recon $(objects) $(miscutils) $(datautils) $(supportutils) $(transformutils)
-	rm -f recon $(objects)
+	rm -f gen_data recon $(objects) $(utils)

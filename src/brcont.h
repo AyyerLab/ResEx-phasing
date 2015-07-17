@@ -1,9 +1,10 @@
-#pragma once
+//#pragma once
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <float.h>
 #include <sys/time.h>
 #include <math.h>
 #include <complex.h>
@@ -11,22 +12,26 @@
 #include <gsl/gsl_rng.h>
 #include <omp.h>
 
-long size, vol, hklvol, num_supp ;
-long hsize, ksize, lsize, hoffset, koffset, loffset ;
-float *obs_mag, *exp_intens, *hkl_mag, *exp_hkl ;
-float *iterate[3], *p1[3], *p2[3], *r1[3] ;
+int iter ;
+long size, vol, num_supp ;
+float *iterate, *obs_mag, *exp_mag, *p1, *p2, *r1 ;
 long *support ;
 fftwf_complex *fdensity, *rdensity ;
-fftwf_complex *fhkl, *rhkl ;
-fftwf_plan forward_cont, inverse_cont, forward_hkl, inverse_hkl ;
+float complex *bragg_calc ;
+fftwf_plan forward, inverse ;
 
 // diffmap.c
-double diffmap(float**) ;
+double diffmap(float*) ;
+double error_red(float*) ;
 
 // setup.c
 int setup() ;
+int setup_gen() ;
 
 // utils.c
-void init_model(float**) ;
+void init_model(float*) ;
 void average_model(float*, float*) ;
 void gen_prtf(float*) ;
+void symmetrize_incoherent(fftwf_complex*, float*) ;
+void blur_intens(float*, float*) ;
+void apply_shrinkwrap(float*, float, float) ;

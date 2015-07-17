@@ -1,23 +1,20 @@
 # System size
-427
+501
 
-# Non-zero-padded sizes
-143 143 143
+# Speckle intensity file
+data/lorenzo_hard_iso_sym_zero1.raw
 
-# Left zero padding
-142 142 142
-
-# Continuous intensity file
-data/ps2contintens_427.raw
-
-# hkl intensity file
-data/ps2hklintens_427.raw
+# Bragg Fourier-amplitudes file
+data/dominik-4-str.cpx
 
 # Support file
-data/ps2_427.supp
+data/dominik-4-4.5.supp
 
 # Starting model
-data/recon.r
+data/output_23.r
 
 # FFTW wisdom file
-data/wisdom_427_4
+data/wisdom_501_16
+
+# qmax for Braggs
+0.65
