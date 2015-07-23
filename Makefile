@@ -1,3 +1,4 @@
+.PHONY: mkdir
 CC=gcc
 LDFLAGS=-lgsl -lgslcblas -lfftw3f_threads -lfftw3f -lm
 CFLAGS=-fopenmp -O3 -Wall
@@ -9,7 +10,12 @@ utils_src = $(wildcard utils/src/*.c)
 utils = $(patsubst utils/src/%.c,utils/%,$(utils_src))
 
 #all: gen_data recon $(utils)
-all: recon $(utils)
+all: mkdir recon $(utils)
+
+mkdir: bin
+
+bin:
+	mkdir -p bin
 
 recon: $(filter-out bin/gen_data.o bin/hio.o, $(objects))
 	$(LINK.c) $^ -o $@
