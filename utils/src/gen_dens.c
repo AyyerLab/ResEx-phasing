@@ -23,6 +23,7 @@ int main(int argc, char *argv[]) {
 	
 	if (argc < 3) {
 		fprintf(stderr, "Format: %s <cpx_fmodel> <size>\n", argv[0]) ;
+		fprintf(stderr, "Optional: <out_fname>\n") ;
 		return 1 ;
 	}
 	size = atoi(argv[2]) ;
@@ -36,7 +37,8 @@ int main(int argc, char *argv[]) {
 	fdensity = fftwf_malloc(vol * sizeof(fftwf_complex)) ;
 	temp = malloc(vol * sizeof(float)) ;
 	
-	fp = fopen("data/wisdom_501_16", "rb") ;
+	sprintf(fname, "data/wisdom_%ld_16", size) ;
+	fp = fopen(fname, "rb") ;
 	if (fp == NULL) {
 		fprintf(stderr, "Measuring plans\n") ;
 		inverse = fftwf_plan_dft_3d(size, size, size, fdensity, rdensity, FFTW_BACKWARD, FFTW_MEASURE) ;
@@ -73,7 +75,10 @@ int main(int argc, char *argv[]) {
 //		temp[((z+c)%size)*size*size + ((y+c)%size)*size + ((x+c)%size)] // Reversed axes
 		  = crealf(rdensity[x*size*size + y*size + z]) / vol ;
 	
-	sprintf(fname, "%s-dens.raw", remove_ext(argv[1])) ;
+	if (argc > 3)
+		strcpy(fname, argv[3]) ;
+	else
+		sprintf(fname, "%s-dens.raw", remove_ext(argv[1])) ;
 	fp = fopen(fname, "wb") ;
 	fwrite(temp, sizeof(float), vol, fp) ;
 	fclose(fp) ;
