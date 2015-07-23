@@ -14,7 +14,7 @@ if len(sys.argv) < 2:
 
 # Start TkInter and set defaults
 root = Tk.Tk()
-fig = plt.figure(figsize=(15,5))
+fig = plt.figure(figsize=(21, 7))
 fig.subplots_adjust(left=0.0, bottom=0.00, right=0.99, wspace=0.0)
 mng = plt.get_current_fig_manager()
 
@@ -32,7 +32,7 @@ imagename.set('images/' + os.path.splitext(os.path.basename(fname.get()))[0] + '
 
 flag = Tk.IntVar()
 flag.set(0)
-size = 501
+size = 701
 if len(sys.argv) > 2:
 	flag.set(int(sys.argv[2]))
 if len(sys.argv) > 3:
@@ -197,44 +197,44 @@ root.bind('<Down>', decrement_layer)
 #root.bind('<ButtonRelease-1>', parse_and_plot)
 
 canvas = FigureCanvasTkAgg(fig, root)
-canvas.get_tk_widget().grid(rowspan=24)
+canvas.get_tk_widget().grid(columnspan=24)
 
-Tk.Label(root, text="Filename: ").grid(row=0,column=1,sticky=Tk.E)
+Tk.Label(root, text="Filename: ").grid(row=1,column=0,sticky=Tk.E)
 Tk.Entry(
 	root, 
 	textvariable = fname,
 	width = 35
-	).grid(row=0,column=2,columnspan=3,sticky=Tk.W)
+	).grid(row=1,column=1,columnspan=3,sticky=Tk.W)
 
-Tk.Label(root, text="Size: ").grid(row=1,column=1,sticky=Tk.E)
+Tk.Label(root, text="Size: ").grid(row=2,column=0,sticky=Tk.E)
 Tk.Entry(
 	root,
 	textvariable = sizestr,
 	width = 20
-	).grid(row=1,column=2,columnspan=2,sticky=Tk.W)
+	).grid(row=2,column=1,columnspan=2,sticky=Tk.W)
 
-Tk.Label(root, text="Range: ").grid(row=2,column=1,sticky=Tk.E)
+Tk.Label(root, text="Range: ").grid(row=3,column=0,sticky=Tk.E)
 Tk.Entry(
 	root,
 	textvariable = rangestr,
 	width = 20
-	).grid(row=2,column=2,columnspan=2,sticky=Tk.W)
+	).grid(row=3,column=1,columnspan=2,sticky=Tk.W)
 
-Tk.Label(root, text="Image name: ").grid(row=3,column=1,sticky=Tk.E)
+Tk.Label(root, text="Image name: ").grid(row=1,column=6,sticky=Tk.E)
 Tk.Entry(
 	root,
 	textvariable = imagename,
-	width = 30
-	).grid(row=3,column=2,columnspan=2,sticky=Tk.W)
+	width = 25 
+	).grid(row=1,column=7,columnspan=3,sticky=Tk.W)
 
 Tk.Button(
 	root,
 	text = "Save",
 	command = save_plot
-	).grid(row=3,column=4,sticky=Tk.W)
+	).grid(row=1,column=9,sticky=Tk.W)
 
-Tk.Button(root,text = "+",command = increment_layer
-	).grid(row=4,column=3,sticky=Tk.SW)
+Tk.Button(root,text = "-",command = decrement_layer
+	).grid(row=2,column=10,sticky=Tk.SE)
 slider = Tk.Scale(root,
 	from_ = 0, 
 	to = int(sizestr.get()),
@@ -244,34 +244,34 @@ slider = Tk.Scale(root,
 	variable = layernum
 #	command = parse_and_plot
 	)
-slider.grid(row=4,column=2,sticky=Tk.W)
-Tk.Button(root,text = "-",command = decrement_layer
-	).grid(row=4,column=1,sticky=Tk.SE)
-
-Tk.Button(
-	root,
-	text = "Plot",
-	command = parse_and_plot
-	).grid(row=5,column=1,sticky=Tk.W)
-
-Tk.Button(
-	root,
-	text = "Reparse",
-	command = force_plot
-	).grid(row=5,column=2,sticky=Tk.W)
-
-Tk.Button(
-	root,
-	text = "Quit",
-	command = root.quit
-	).grid(row=5,column=3,sticky=Tk.W)
+slider.grid(row=1,column=11,rowspan=2,sticky=Tk.W)
+Tk.Button(root,text = "+",command = increment_layer
+	).grid(row=2,column=12,sticky=Tk.SW)
 
 Tk.Checkbutton(
 	root,
 	text = "Show full volume",
 	variable = flag,
 	command = flag_changed
-	).grid(row=6,column=1)
+	).grid(row=2,column=7,columnspan=2,sticky=Tk.W)
+
+Tk.Button(
+	root,
+	text = "Plot",
+	command = parse_and_plot
+	).grid(row=3,column=7,sticky=Tk.W)
+
+Tk.Button(
+	root,
+	text = "Reparse",
+	command = force_plot
+	).grid(row=3,column=8,sticky=Tk.W)
+
+Tk.Button(
+	root,
+	text = "Quit",
+	command = root.quit
+	).grid(row=3,column=9,sticky=Tk.W)
 
 parse_and_plot()
 
