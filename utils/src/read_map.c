@@ -21,7 +21,7 @@ int main(int argc, char *argv[]) {
 	int nx, ny, nz, mode, mapx, mapy, mapz ;
 	long psize, pvol, shx, shy, shz, x, y, z ;
 	float lx, ly, lz, ax, ay, az ;
-	float px, py, pz ;
+	float px, py, pz, voxres ;
 	float *model, *padmodel ;
 	FILE *fp ;
 	char fname[999] ;
@@ -32,6 +32,8 @@ int main(int argc, char *argv[]) {
 	}
 	
 	fp = fopen(argv[1], "rb") ;
+//	voxres = 2200 / 3. ; // For Nov 2014 PCS data	
+	voxres = 500. ; // For Oct 2015 Lorenzo merge
 	
 	// Grid size
 	fread(&nx, sizeof(int), 1, fp) ;
@@ -82,9 +84,9 @@ int main(int argc, char *argv[]) {
 	fwrite(model, sizeof(float), nx*ny*nz, fp) ;
 	fclose(fp) ;
 	
-	px = 2200.*mx/3./lx ;
-	py = 2200.*my/3./ly ;
-	pz = 2200.*mz/3./lz ;
+	px = voxres*mx/lx ;
+	py = voxres*my/ly ;
+	pz = voxres*mz/lz ;
 	px = px > py ? px : py ;
 	px = px > pz ? px : pz ;
 	psize = (int) px + 3 ;
@@ -92,7 +94,7 @@ int main(int argc, char *argv[]) {
 	pvol = psize*psize*psize ;
 	
 	fprintf(stderr, "Padded volume size = %ld\n", psize) ;
-	px = 2200.*mx/3./lx ;
+	px = voxres*mx/lx ;
 	fprintf(stderr, "Ideal pad sizes = (%.3f, %.3f, %.3f)\n", pz, py, px) ;
 	fprintf(stderr, "Stretch factors = (%.5f, %.5f, %.5f)\n", psize/pz, psize/py, psize/px) ;
 	
