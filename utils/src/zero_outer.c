@@ -18,20 +18,23 @@ char* remove_ext(char *fullName) {
 }
 
 int main(int argc, char *argv[]) {
-	long x, y, z, size, c, rsq, rmax, rmaxsq ;
+	long x, y, z, size, c, rsq ;
+	float rmin, rminsq, rmax, rmaxsq ;
 	float *model ;
 	FILE *fp ;
 	char fname[500] ;
 	
-	if (argc < 4) {
-		fprintf(stderr, "Format: %s <model_fname> <size> <rmax>\n", argv[0]) ;
+	if (argc < 5) {
+		fprintf(stderr, "Format: %s <model_fname> <size> <rmin> <rmax>\n", argv[0]) ;
 		return 1 ;
 	}
 	size = atoi(argv[2]) ;
-	rmax = atoi(argv[3]) ;
+	rmin = atof(argv[3]) ;
+	rmax = atof(argv[4]) ;
 	
 	c = size / 2 ;
 	rmaxsq = rmax*rmax ;
+	rminsq = rmin*rmin ;
 	
 	model = malloc(size*size*size * sizeof(float)) ;
 	
@@ -45,9 +48,9 @@ int main(int argc, char *argv[]) {
 	for (z = 0 ; z < size ; ++z) {
 		rsq = (x-c)*(x-c) + (y-c)*(y-c) + (z-c)*(z-c) ;
 		
-		if (rsq < rmaxsq)
+		if (rsq < rminsq)
 			model[x*size*size + y*size + z] = -1.f ;
-		if (rsq > 0.8*c*c)
+		if (rsq > rmaxsq)
 			model[x*size*size + y*size + z] = 0.f ;
 	}
 	fprintf(stderr, "Zeroed outer voxels and set inner voxels to be negative\n") ;
