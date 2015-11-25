@@ -21,10 +21,12 @@ mng = plt.get_current_fig_manager()
 typestr = 'f4'
 typesize = 4
 rangemax = 1e1
+rangemin = 0
 
 fname = Tk.StringVar()
 sizestr = Tk.StringVar()
-rangestr = Tk.StringVar()
+rangeminstr = Tk.StringVar()
+rangemaxstr = Tk.StringVar()
 imagename = Tk.StringVar()
 layernum = Tk.IntVar()
 fname.set(sys.argv[1])
@@ -32,7 +34,7 @@ imagename.set('images/' + os.path.splitext(os.path.basename(fname.get()))[0] + '
 
 flag = Tk.IntVar()
 flag.set(0)
-size = 501
+size = 701
 if len(sys.argv) > 2:
 	flag.set(int(sys.argv[2]))
 if len(sys.argv) > 3:
@@ -74,12 +76,12 @@ parse_extension(sys.argv[1])
 center = int(size/2)
 
 sizestr.set(str(size))
-rangestr.set("%.1e" % rangemax)
+rangeminstr.set("%.1e" % rangemin)
+rangemaxstr.set("%.1e" % rangemax)
 layernum.set(center)
 
 old_fname = fname.get()
 old_sizestr = sizestr.get()
-old_rangestr = rangestr.get()
 
 vol = np.zeros((size,size,size), dtype=typestr)
 
@@ -90,19 +92,15 @@ def parse_vol():
 	
 	s = fname.get()
 	
-	if os.path.isfile(s):
-		f = open(s, "r")
-	else:
+	if not os.path.isfile(s):
 		print "Unable to open", s
 		return
 	
-	if size == len(vol):
-		vol = vol.reshape(size*size*size)
+	vol = np.fromfile(s, dtype=typestr, count=size*size*size)
+	if size*size*size == len(vol):
+		vol = vol.reshape(size,size,size)
 	else:
-		vol = np.resize(vol, size*size*size)
-	
-	vol = np.fromfile(f, dtype=typestr, count=size*size*size)
-	vol = vol.reshape((size,size,size))
+		vol = np.resize(vol, size*size*size).reshape(size,size,size)
 	
 	old_fname = fname.get()
 	old_sizestr = sizestr.get()
@@ -113,7 +111,9 @@ def parse_vol():
 def plot_vol_slices(layernum):
 	global image_exists, flag
 	imagename.set('images/' + os.path.splitext(os.path.basename(fname.get()))[0] + '.png')
-	rangemax = float(rangestr.get())
+	rangemax = float(rangemaxstr.get())
+	rangemin = float(rangeminstr.get())
+	size = int(sizestr.get())
 	
 	if flag.get() is 0:
 		min = int(size/3)
@@ -122,27 +122,32 @@ def plot_vol_slices(layernum):
 		a = vol[layernum,min:max,min:max]
 		b = vol[min:max,layernum,min:max]
 		c = vol[min:max,min:max,layernum]
+		#a = vol.sum(0)[min:max,min:max]
+		#b = vol.sum(1)[min:max,min:max]
+		#c = vol.sum(2)[min:max,min:max]
 	elif flag.get() is 1:
 		a = vol[layernum,:,:]	
 		b = vol[:,layernum,:]	
 		c = vol[:,:,layernum]
 		
 	s1 = fig.add_subplot(131)
-	s1.matshow(a, vmin=0, vmax=rangemax, cmap='hot')
-	#s1.add_artist(patches.Circle((250,250), 140, ec='blue', fc='none'))
-	#s1.add_artist(patches.Circle((250,250), 160, ec='blue', fc='none'))
+	s1.matshow(a, vmin=rangemin, vmax=rangemax, cmap='jet')
+	#s1.add_artist(patches.Circle((size/2,size/2), 300, ec='white', fc='none'))
+	#s1.add_artist(patches.Circle((size/2,size/2), 200, ec='white', fc='none'))
 	plt.title("h = 0, YZ plane", y = 1.01)
 	plt.axis('off')
 	s2 = fig.add_subplot(132)
-	s2.matshow(b, vmin=0, vmax=rangemax, cmap='hot')
-	#s2.add_artist(patches.Circle((250,250), 140, ec='blue', fc='none'))
-	#s2.add_artist(patches.Circle((250,250), 160, ec='blue', fc='none'))
+	s2.matshow(b, vmin=rangemin, vmax=rangemax, cmap='jet')
+	#s2.add_artist(patches.Circle((size/2,size/2), 200, ec='white', fc='none'))
+	#s2.add_artist(patches.Circle((size/2,size/2), 140, ec='blue', fc='none'))
+	#s2.add_artist(patches.Circle((size/2,size/2), 160, ec='blue', fc='none'))
 	plt.title("k = 0, XZ plane", y = 1.01)
 	plt.axis('off')
 	s3 = fig.add_subplot(133)
-	s3.matshow(c, vmin=0, vmax=rangemax, cmap='hot')
-	#s3.add_artist(patches.Circle((250,250), 140, ec='blue', fc='none'))
-	#s3.add_artist(patches.Circle((250,250), 160, ec='blue', fc='none'))
+	s3.matshow(c, vmin=rangemin, vmax=rangemax, cmap='jet')
+	#s3.add_artist(patches.Circle((size/2,size/2), 200, ec='white', fc='none'))
+	#s3.add_artist(patches.Circle((size/2,size/2), 140, ec='blue', fc='none'))
+	#s3.add_artist(patches.Circle((size/2,size/2), 160, ec='blue', fc='none'))
 	plt.title("l = 0, XY plane", y = 1.01)
 	plt.axis('off')
 	
@@ -181,7 +186,7 @@ def flag_changed(event=None):
 	plot_vol_slices(layernum.get())
 
 def save_plot(event=None):
-	fig.savefig(imagename.get(), bbox_inches='tight')
+	fig.savefig(imagename.get(), bbox_inches='tight', dpi=150)
 	print "Saved to", imagename.get()
 
 def quit_(event=None):
@@ -204,27 +209,32 @@ Tk.Entry(
 	root, 
 	textvariable = fname,
 	width = 35
-	).grid(row=0,column=2,columnspan=3,sticky=Tk.W)
+	).grid(row=0,column=2,columnspan=2,sticky=Tk.W)
 
 Tk.Label(root, text="Size: ").grid(row=1,column=1,sticky=Tk.E)
 Tk.Entry(
 	root,
 	textvariable = sizestr,
-	width = 20
-	).grid(row=1,column=2,columnspan=2,sticky=Tk.W)
+	width = 10
+	).grid(row=1,column=2,columnspan=1,sticky=Tk.W)
 
 Tk.Label(root, text="Range: ").grid(row=2,column=1,sticky=Tk.E)
 Tk.Entry(
 	root,
-	textvariable = rangestr,
-	width = 20
-	).grid(row=2,column=2,columnspan=2,sticky=Tk.W)
+	textvariable = rangeminstr,
+	width = 10
+	).grid(row=2,column=2,columnspan=1,sticky=Tk.W)
+Tk.Entry(
+	root,
+	textvariable = rangemaxstr,
+	width = 10
+	).grid(row=2,column=3,columnspan=1,sticky=Tk.W)
 
 Tk.Label(root, text="Image name: ").grid(row=3,column=1,sticky=Tk.E)
 Tk.Entry(
 	root,
 	textvariable = imagename,
-	width = 30
+	width = 35
 	).grid(row=3,column=2,columnspan=2,sticky=Tk.W)
 
 Tk.Button(
@@ -234,7 +244,7 @@ Tk.Button(
 	).grid(row=3,column=4,sticky=Tk.W)
 
 Tk.Button(root,text = "+",command = increment_layer
-	).grid(row=4,column=3,sticky=Tk.SW)
+	).grid(row=4,column=4,sticky=Tk.SW)
 slider = Tk.Scale(root,
 	from_ = 0, 
 	to = int(sizestr.get()),
@@ -244,7 +254,7 @@ slider = Tk.Scale(root,
 	variable = layernum
 #	command = parse_and_plot
 	)
-slider.grid(row=4,column=2,sticky=Tk.W)
+slider.grid(row=4,column=2,columnspan=2,sticky=Tk.W)
 Tk.Button(root,text = "-",command = decrement_layer
 	).grid(row=4,column=1,sticky=Tk.SE)
 
