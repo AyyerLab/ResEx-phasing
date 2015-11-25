@@ -16,7 +16,7 @@ char* remove_ext(char *fullName) {
 int main(int argc, char *argv[]) {
 	long x, y, z, size, c, vol ;
 	fftwf_complex *fdensity, *rdensity ;
-	float *temp ;
+	float *temp, r_max = -1, dist ;
 	FILE *fp ;
 	char fname[999] ;
 	fftwf_plan inverse ;
@@ -24,29 +24,35 @@ int main(int argc, char *argv[]) {
 	if (argc < 3) {
 		fprintf(stderr, "Format: %s <cpx_fmodel> <size>\n", argv[0]) ;
 		fprintf(stderr, "Optional: <out_fname>\n") ;
+		fprintf(stderr, "Second option: <r_max> cutoff radius\n") ;
 		return 1 ;
 	}
 	size = atoi(argv[2]) ;
 	c = size / 2 ;
 	vol = size*size*size ;
 	
+	if (argc > 4) {
+		r_max = atof(argv[4]) ;
+		fprintf(stderr, "Truncated to radius = %f\n", r_max) ;
+	}
+	
 	fftwf_init_threads() ;
-	fftwf_plan_with_nthreads(16) ;
+	fftwf_plan_with_nthreads(32) ;
 	
 	rdensity = fftwf_malloc(vol * sizeof(fftwf_complex)) ;
 	fdensity = fftwf_malloc(vol * sizeof(fftwf_complex)) ;
 	temp = malloc(vol * sizeof(float)) ;
 	
-	sprintf(fname, "data/wisdom_%ld_16", size) ;
+	sprintf(fname, "data/wisdom_%ld_32d", size) ;
 	fp = fopen(fname, "rb") ;
 	if (fp == NULL) {
 		fprintf(stderr, "Measuring plans\n") ;
 		inverse = fftwf_plan_dft_3d(size, size, size, fdensity, rdensity, FFTW_BACKWARD, FFTW_MEASURE) ;
 		
-		fp = fopen("data/wisdom_501_16", "wb") ;
+		fp = fopen(fname, "wb") ;
 		fftwf_export_wisdom_to_file(fp) ;
 		fclose(fp) ;
-	
+		
 		fprintf(stderr, "Created plans\n") ;
 	}
 	else {
@@ -62,9 +68,19 @@ int main(int argc, char *argv[]) {
 	
 	for (x = 0 ; x < size ; ++x)
 	for (y = 0 ; y < size ; ++y)
-	for (z = 0 ; z < size ; ++z)
-		fdensity[((x+c)%size)*size*size + ((y+c)%size)*size + ((z+c)%size)]
-		  = rdensity[x*size*size + y*size + z] ;
+	for (z = 0 ; z < size ; ++z) {
+		if (r_max < 0.)
+			fdensity[((x+c)%size)*size*size + ((y+c)%size)*size + ((z+c)%size)]
+			  = rdensity[x*size*size + y*size + z] ;
+		else {
+			dist = sqrtf((x-c)*(x-c) + (y-c)*(y-c) + (z-c)*(z-c)) ;
+			if (dist > r_max)
+				fdensity[((x+c)%size)*size*size + ((y+c)%size)*size + ((z+c)%size)] = 0. ;
+			else
+				fdensity[((x+c)%size)*size*size + ((y+c)%size)*size + ((z+c)%size)]
+				  = rdensity[x*size*size + y*size + z] ;
+		}
+	}
 	
 	fftwf_execute(inverse) ;
 	
