@@ -1,7 +1,7 @@
 #include "brcont.h"
 
 int allocate_memory(int) ;
-int parse_intens(char*) ;
+int parse_intens(char*, float) ;
 int parse_bragg(char*, double) ;
 int parse_support(char*) ;
 void create_plans(char*) ;
@@ -12,6 +12,7 @@ int setup() {
 	char var_name[500], input_fname[500] ;
 	char intens_fname[500], bragg_fname[500], support_fname[500], wisdom_fname[500] ;
 	double braggqmax ;
+	float scale_factor ;
 	
 	FILE *fp = fopen("src/config.conf", "r") ;
 	if (fp == NULL) {
@@ -25,15 +26,17 @@ int setup() {
 	fgets(var_name, 500, fp) ; fscanf(fp, "%s\n", input_fname) ;
 	fgets(var_name, 500, fp) ; fscanf(fp, "%s\n", wisdom_fname) ;
 	fgets(var_name, 500, fp) ; fscanf(fp, "%lf\n", &braggqmax) ;
+	fgets(var_name, 500, fp) ; fscanf(fp, "%f\n", &scale_factor) ;
 	fclose(fp) ;
+	fprintf(stderr, "Scale factor = %f\n", scale_factor) ;
 	
 	vol = size*size*size ;
 	fftwf_init_threads() ;
-	fftwf_plan_with_nthreads(16) ;
+	fftwf_plan_with_nthreads(32) ;
 	
 	if (allocate_memory(1))
 		return 1 ;
-	if (parse_intens(intens_fname))
+	if (parse_intens(intens_fname, scale_factor))
 		return 1 ;
 	if (parse_bragg(bragg_fname, braggqmax))
 		return 1 ;
@@ -94,7 +97,7 @@ int allocate_memory(int flag) {
 	return 0 ;
 }
 
-int parse_intens(char *fname) {
+int parse_intens(char *fname, float scale) {
 	long i, j, k, s = size, c = size/2 ;
 	float *intens ;
 	
@@ -118,7 +121,8 @@ int parse_intens(char *fname) {
 //				= sqrt(intens[i*s*s + j*s + k]) * 421.17 ; // lorenzo_hard_iso_sym
 //				= sqrt(intens[i*s*s + j*s + k]) * 343.06 ; // lorenzo_hard_iso_sym w/ dominik-3
 //				= sqrt(intens[i*s*s + j*s + k]) * 341.33 ; // lorenzo_hard_iso_sym w/ dominik-3-test
-				= sqrt(intens[i*s*s + j*s + k]) * 336.16 ; // lorenzo_hard_iso_sym w/ dominik-4
+//				= sqrt(intens[i*s*s + j*s + k]) * 336.16 ; // lorenzo_hard_iso_sym w/ dominik-4
+				= sqrt(intens[i*s*s + j*s + k]) * scale ;
 		else
 			obs_mag[((i+c+1)%s)*s*s + ((j+c+1)%s)*s + ((k+c+1)%s)]
 				= intens[i*s*s + j*s + k] ;
