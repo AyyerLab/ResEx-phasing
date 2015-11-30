@@ -1,108 +1,104 @@
 #include "brcont.h"
 
+float gaussian(float x, float width) {
+	return exp(- x*x / 2 / width/width) ;
+}
+
 int main(int argc, char *argv[]) {
-	long i, x, y, z ;
-//	long h, k, l ;
-	long dx, dy, dz, ch, ck, cl, center1, maxc ;
-	float dist, qmax, qmin, val ;
-	float *contintens, *hklintens ;
+	long x, y, z, center, num_bins, num_cells ;
+	long spotnum[3], i[3], ksize, krad ;
+	float dist, sigma, blur ;
+	float *dwfactor, *kernel ;
+	long a[3] = {3, 4, 7} ;
+	float q_scale[3] = {1.1639, 1.09405, 1.1691} ;
+	
+	long t[3] ;
 	FILE *fp ;
 	
-	if (argc < 3) {
-		fprintf(stderr, "Format: %s <qmin> <qmax>\n", argv[0]) ;
-		return 1 ;
-	}
-	qmin = atof(argv[1]) ;
-	qmax = atof(argv[2]) ;
-	
 	omp_set_num_threads(32) ;
+	sigma = 1.5 ;
+	blur = 0.2 ;
+	num_cells = 1000 ;
 	
 	// Setup arrays and parse files
 	if (setup_gen())
 		return 2 ;
+	fprintf(stderr, "Finished setup\n") ;
 	
-	contintens = malloc(vol * sizeof(float)) ;
-	hklintens = malloc(hklvol * sizeof(float)) ;
+	center = size / 2 ;
 	
-	center1 = size / 2 + 1 ;
-	ch = hsize / 2 + 1 ;
-	ck = ksize / 2 + 1 ;
-	cl = lsize / 2 + 1 ;
-	maxc = ch > ck ? ch : ck ;
-	maxc = maxc > cl ? maxc : cl ;
+	// Generate q-dependent factor
+	num_bins = (int) size ;
+	dwfactor = malloc(num_bins * sizeof(float)) ;
+	for (x = 0 ; x < num_bins ; ++x)
+		dwfactor[x] = expf(-powf(2.*M_PI*1.e-3*sigma*x, 2.)) ;
 	
-	// Calculate amplitudes
-	for (i = 0 ; i < vol ; ++i)
-		rdensity[i] = iterate[i] ;
+	// Generate lattice function
+	ksize = (int) 10 * blur ;
+	krad = (ksize - 1) / 2 ;
+	kernel = malloc(ksize * ksize * ksize * sizeof(float)) ;
+	for (i[0] = 0 ; i[0] < ksize ; ++i[0])
+	for (i[1] = 0 ; i[1] < ksize ; ++i[1])
+	for (i[2] = 0 ; i[2] < ksize ; ++i[2])
+		kernel[i[0]*ksize*ksize + i[1]*ksize + i[2]] = 
+			gaussian(
+				sqrt((krad-i[0])*(krad-i[0]) + 
+					(krad-i[1])*(krad-i[1]) + 
+					(krad-i[2])*(krad-i[2])), 
+				blur) ;
+	fprintf(stderr, "Generated kernel with ksize = %ld\n", ksize) ;
 	
-	fftwf_execute(forward_cont) ;
+	for (x = 0 ; x < 3 ; ++x)
+		spotnum[x] = (int) floor((size-ksize) / a[x] / 2.) ;
+	fprintf(stderr, "spotnums = %ld, %ld, %ld\n", spotnum[0], spotnum[1], spotnum[2]) ;
+	
+	for (i[0] = -spotnum[0] ; i[0] <= spotnum[0] ; ++i[0])
+	for (i[1] = -spotnum[1] ; i[1] <= spotnum[1] ; ++i[1])
+	for (i[2] = -spotnum[2] ; i[2] <= spotnum[2] ; ++i[2]) {
+		for (x = 0 ; x < 3 ; ++x)
+			t[x] = a[x] * i[x] + center ;
+		
+		// Convolve with Gaussian spot kernel
+		for (x = 0 ; x < ksize ; ++x)
+		for (y = 0 ; y < ksize ; ++y)
+		for (z = 0 ; z < ksize ; ++z)
+			intens[(t[0]+x-krad)*size*size + (t[1]+y-krad)*size + t[2]+z-krad] 
+			 = kernel[x*ksize*ksize + y*ksize + z] ;
+	}
+	fprintf(stderr, "Generated object with spotnums = %ld, %ld, %ld\n", spotnum[0], spotnum[1], spotnum[2]) ;
 	
 	// Symmetrize intensity
-	symmetrize_incoherent(fdensity, exp_mag) ;
-//	blur_intens(exp_intens, exp_intens) ;
+	symmetrize_incoherent(bragg_calc, incoh_mag) ;
+	symmetrize_coherent(bragg_calc, coh_mag) ;
+	fprintf(stderr, "Symmetrized intensity\n") ;
 	
-	// Apply qmin limit
+	// Apply q-dependent modulation
+	#pragma omp parallel for default(shared) private(x,y,z,dist) schedule(static,1)
 	for (x = 0 ; x < size ; ++x)
 	for (y = 0 ; y < size ; ++y)
 	for (z = 0 ; z < size ; ++z) {
-		dx = (x + center1) % size  - center1 ;
-		dy = (y + center1) % size  - center1 ;
-		dz = (z + center1) % size  - center1 ;
+		dist = pow((x-center)*q_scale[0], 2.) ;
+		dist += pow((y-center)*q_scale[1], 2.) ;
+		dist += pow((z-center)*q_scale[2], 2.) ;
+		dist = sqrt(dist) ;
 		
-		dist = sqrt(dx*dx + dy*dy + dz*dz) / center1 ;
+		intens[x*size*size + y*size + z]
+		 *= num_cells * powf(/*dwfactor[(int) dist] **/ 
+//		        coh_mag[((x+center)%size)*size*size + ((y+center)%size)*size + ((z+center)%size)], 2.f) ;
+		        coh_mag[x*size*size + y*size + z], 2.f) ;
 		
-		if (dist < qmin)
-			val = -1.f ;
-		else if (dist > 1.)
-			val = 0.f ;
-		else
-			val = powf(exp_mag[x*size*size + y*size + z], 2.f) ;
-		
-		contintens[((x+size/2)%size)*size*size + ((y+size/2)%size)*size + ((z+size/2)%size)]
-		 = val ;
+		intens[x*size*size + y*size + z] 
+//		 += powf(/*(1. - dwfactor[(int) dist]) **/
+		 = powf(/*(1. - dwfactor[(int) dist]) **/
+//		        incoh_mag[x*size*size + y*size + z], 2.f) ;
+		        cabsf(bragg_calc[((x+center)%size)*size*size + ((y+center)%size)*size + ((z+center)%size)]), 2.f) ;
 	}
+	fprintf(stderr, "Applied DW factor\n") ;
 	
 	// Write to file
-	fp = fopen("data/ps2contintens_427.raw", "wb") ;
-	fwrite(contintens, sizeof(float), vol, fp) ;
+	fp = fopen("data/3wu2_dimer-intens.raw", "wb") ;
+	fwrite(intens, sizeof(float), vol, fp) ;
 	fclose(fp) ;
 	
-/*	// Calculate hkl object
-	for (h = 0 ; h < hsize ; ++h)
-	for (k = 0 ; k < ksize ; ++k)
-	for (l = 0 ; l < lsize ; ++l)
-		rhkl[h*ksize*lsize + k*lsize + l] 
-		 = iterate[(h+hoffset)*size*size + (k+koffset)*size + (l+loffset)] ;
-	
-	// Calculate hkl amplitudes
-	fftwf_execute(forward_hkl) ;
-	
-	// Symmetrize hkl intensity
-//	for (i = 0 ; i < vol ; ++i)
-//		exp_hkl[i] = pow(cabsf(fhkl[i]), 2.) ;
-	symmetrize_intens(fhkl, exp_hkl, 0) ;
-	
-	// Apply qmax limit
-	for (h = 0 ; h < hsize ; ++h)
-	for (k = 0 ; k < ksize ; ++k)
-	for (l = 0 ; l < lsize ; ++l) {
-		dx = (h + ch) % hsize  - ch ;
-		dy = (k + ck) % ksize  - ck ;
-		dz = (l + cl) % lsize  - cl ;
-		
-		dist = sqrt(dx*dx + dy*dy + dz*dz) / maxc ;
-		
-		if (dist > qmax)
-			exp_hkl[h*ksize*lsize + k*lsize + l] = -1.f ;
-		
-		hklintens[((h+hsize/2)%hsize)*ksize*lsize + ((k+ksize/2)%ksize)*lsize + ((l+lsize/2)%lsize)]
-		 = exp_hkl[h*ksize*lsize + k*lsize + l] ;
-	}
-	
-	// Write to file
-	fp = fopen("data/ps2hklintens_427.raw", "wb") ;
-	fwrite(hklintens, sizeof(float), hklvol, fp) ;
-	fclose(fp) ;
-*/	
 	return 0 ;
 }
