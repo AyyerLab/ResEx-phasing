@@ -123,13 +123,17 @@ int main(int argc, char *argv[]) {
 		fsc[bin] /= sqrtf(norm1[bin] * norm2[bin]) ;
 	
 	// Write to file
-	sprintf(fname, "%s", extract_fname(argv[1])) ;
-	strtok(fname, "_.") ;
-	int num1 = atoi(strtok(NULL, "_.")) ;
-	sprintf(fname, "%s", extract_fname(argv[2])) ;
-	strtok(fname, "_.") ;
-	int num2 = atoi(strtok(NULL, "_.")) ;
-	sprintf(fname, "logs/fsc-%d-%d.dat", num1, num2) ;
+	if (argc > 3)
+		strcpy(fname, argv[3]) ;
+	else {
+		sprintf(fname, "%s", extract_fname(argv[1])) ;
+		strtok(fname, "_.") ;
+		int num1 = atoi(strtok(NULL, "_.")) ;
+		sprintf(fname, "%s", extract_fname(argv[2])) ;
+		strtok(fname, "_.") ;
+		int num2 = atoi(strtok(NULL, "_.")) ;
+		sprintf(fname, "logs/fsc-%d-%d.dat", num1, num2) ;
+	}
 	fprintf(stderr, "Writing to %s\n", fname) ;
 	
 	fp = fopen(fname, "w") ;
