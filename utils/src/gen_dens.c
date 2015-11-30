@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "Measuring plans\n") ;
 		inverse = fftwf_plan_dft_3d(size, size, size, fdensity, rdensity, FFTW_BACKWARD, FFTW_MEASURE) ;
 		
-		fp = fopen("data/wisdom_501_16", "wb") ;
+		fp = fopen(fname, "wb") ;
 		fftwf_export_wisdom_to_file(fp) ;
 		fclose(fp) ;
 	

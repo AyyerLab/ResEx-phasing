@@ -37,7 +37,7 @@ int main(int argc, char* argv[]) {
 	blur = atof(argv[2]) ;
 	thresh = atof(argv[3]) ;
 	
-	size = 501 ;
+	size = 701 ;
 	vol = size*size*size ;
 	
 	// Create Gaussian kernel of given width

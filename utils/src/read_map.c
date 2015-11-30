@@ -21,20 +21,18 @@ int main(int argc, char *argv[]) {
 	int nx, ny, nz, mode, mapx, mapy, mapz ;
 	long psize, pvol, shx, shy, shz, x, y, z ;
 	float lx, ly, lz, ax, ay, az ;
-	float px, py, pz, qscale ;
+	float px, py, pz ;
 	float *model, *padmodel ;
 	FILE *fp ;
 	char fname[999] ;
 	
 	if (argc < 2) {
 		fprintf(stderr, "Format: %s <map_fname>\n", argv[0]) ;
-		fprintf(stderr, "Optional argument: qscale (default 2200)\n") ;
 		return 1 ;
 	}
 
-	qscale = 2200. ;
-	if (argc == 3)
-		qscale = atof(argv[2]) ;
+//	float qscale[3] = {2577.54, 2740.98, 2566.08} ;
+	float qscale[3] = {2200, 2200, 2200} ;
 	
 	fp = fopen(argv[1], "rb") ;
 	
@@ -87,9 +85,9 @@ int main(int argc, char *argv[]) {
 	fwrite(model, sizeof(float), nx*ny*nz, fp) ;
 	fclose(fp) ;
 	
-	px = qscale*mx/3./lx ;
-	py = qscale*my/3./ly ;
-	pz = qscale*mz/3./lz ;
+	px = qscale[0]*mx/3./lx ;
+	py = qscale[1]*my/3./ly ;
+	pz = qscale[2]*mz/3./lz ;
 	px = px > py ? px : py ;
 	px = px > pz ? px : pz ;
 	psize = (int) px + 3 ;
@@ -97,7 +95,7 @@ int main(int argc, char *argv[]) {
 	pvol = psize*psize*psize ;
 	
 	fprintf(stderr, "Padded volume size = %ld\n", psize) ;
-	px = qscale*mx/3./lx ;
+	px = qscale[0]*mx/3./lx ;
 	fprintf(stderr, "Ideal pad sizes = (%.3f, %.3f, %.3f)\n", pz, py, px) ;
 	fprintf(stderr, "Stretch factors = (%.5f, %.5f, %.5f)\n", psize/pz, psize/py, psize/px) ;
 	
