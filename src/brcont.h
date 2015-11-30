@@ -12,10 +12,16 @@
 #include <gsl/gsl_rng.h>
 #include <omp.h>
 
+#define IGNORE 2
+#define BRAGG 1
+#define NON_BRAGG 0
+
 int iter ;
 long size, vol, num_supp ;
-float *iterate, *obs_mag, *exp_mag, *p1, *p2, *r1 ;
+float *iterate, *obs_mag, *p1, *p2, *r1 ;
+float *coh_mag, *incoh_mag, *intens ;
 long *support ;
+uint8_t *mask ;
 fftwf_complex *fdensity, *rdensity ;
 float complex *bragg_calc ;
 fftwf_plan forward, inverse ;
@@ -33,5 +39,6 @@ void init_model(float*) ;
 void average_model(float*, float*) ;
 void gen_prtf(float*) ;
 void symmetrize_incoherent(fftwf_complex*, float*) ;
+void symmetrize_coherent(fftwf_complex*, float*) ;
 void blur_intens(float*, float*) ;
 void apply_shrinkwrap(float*, float, float) ;

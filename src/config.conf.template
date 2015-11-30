@@ -1,20 +1,20 @@
 # System size
-501
+601
 
 # Speckle intensity file
-data/lorenzo_hard_iso_sym_zero1.raw
+data/3wu2_dimer-intens.raw
 
 # Bragg Fourier-amplitudes file
-data/dominik-4-str.cpx
+data/3wu2_dimer-str.cpx
 
 # Support file
-data/dominik-4-4.5.supp
+data/3wu2_dimer-1.5.supp
 
 # Starting model
-data/output_23.r
+data/3wu2_dimer-recon.r
 
 # FFTW wisdom file
-data/wisdom_501_16
+data/wisdom_601_32
 
 # qmax for Braggs
-0.65
+1.

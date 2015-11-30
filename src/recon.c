@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
 	if (setup())
 		return 2 ;
 	
-	omp_set_num_threads(32) ;
+	omp_set_num_threads(64) ;
 	
 	average = calloc(vol, sizeof(float)) ;
 	
@@ -50,7 +50,7 @@ int main(int argc, char *argv[]) {
 			fprintf(stderr, "Now averaging. ") ;
 			average_model(p1, average) ;
 		}
-
+		
 		//if (iter == 100 || iter == 150)
 		//	apply_shrinkwrap(p1, 1.5, 0.2) ;
 		

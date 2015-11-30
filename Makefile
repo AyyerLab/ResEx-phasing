@@ -9,13 +9,14 @@ objects = $(patsubst src/%.c,bin/%.o,$(src))
 utils_src = $(wildcard utils/src/*.c)
 utils = $(patsubst utils/src/%.c,utils/%,$(utils_src))
 
-#all: gen_data recon $(utils)
-all: mkdir recon $(utils)
+directories = bin images
 
-mkdir: bin
+all: mkdir gen_data recon $(utils)
 
-bin:
-	mkdir -p bin
+mkdir: $(directories)
+
+$(directories):
+	mkdir -p $(directories)
 
 recon: $(filter-out bin/gen_data.o bin/hio.o, $(objects))
 	$(LINK.c) $^ -o $@
@@ -23,7 +24,7 @@ recon: $(filter-out bin/gen_data.o bin/hio.o, $(objects))
 $(objects): bin/%.o: src/%.c src/brcont.h
 	$(CC) -c $< -o $@ $(CFLAGS)
 
-gen_data: $(filter-out bin/recon.o, $(objects))
+gen_data: bin/gen_data.o bin/utils.o bin/setup.o
 	$(LINK.c) $^ -o $@
 
 $(utils): utils/%: utils/src/%.c

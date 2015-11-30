@@ -40,13 +40,15 @@ void gen_prtf(float *model) {
 	
 	fftwf_execute(forward) ;
 	
-	symmetrize_incoherent(fdensity, exp_mag) ;
+	symmetrize_incoherent(fdensity, incoh_mag) ;
 	
 	for (x = 0 ; x < size ; ++x)
 	for (y = 0 ; y < size ; ++y)
 	for (z = 0 ; z < size ; ++z) {
 		model[((x+c)%size)*size*size + ((y+c)%size)*size + ((z+c)%size)]
 			= pow(cabsf(fdensity[x*size*size + y*size + z]), 2.) ;
+		if (mask[x*size*size + y*size + z] != NON_BRAGG)
+			continue ;
 		
 		dx = (x + c1) % size - c1 ;
 		dy = (y + c1) % size - c1 ;
@@ -56,7 +58,7 @@ void gen_prtf(float *model) {
 		
 		if (bin < num_bins && obs_mag[x*size*size + y*size + z] > 0.) {
 //			contrast[bin] += cabs(fdensity[x*size*size + y*size + z]) / 
-			contrast[bin] += exp_mag[x*size*size + y*size + z]
+			contrast[bin] += incoh_mag[x*size*size + y*size + z]
 			                 / obs_mag[x*size*size + y*size + z] ;
 			bin_count[bin]++ ;
 		}
@@ -79,60 +81,64 @@ void gen_prtf(float *model) {
 }
 
 // Symmetrize intensity incoherently according to P(2_1)(2_1)(2_1) space group
+// For incoherent summation, what matters is the 222 point group
 // (size)
 void symmetrize_incoherent(fftwf_complex *in, float *out) {
-	long hs, ks, ls, kc, lc ;
-	
-	hs = size ;
-	ks = size ;
-	ls = size ;
-	kc = ks / 2 ;
-	lc = ls / 2 ;
+	#pragma omp parallel default(shared)
+	{
+		long x, y, z, s = size, c = s/2 ;
+		
+		#pragma omp for schedule(static,1)
+		for (x = 0 ; x < s ; ++x)
+		for (y = 0 ; y < s ; ++y)
+		for (z = 0 ; z < s ; ++z) {
+			out[((x+c)%s)*s*s + ((y+c)%s)*s + ((z+c)%s)] = sqrtf(
+				powf(cabsf(in[x*s*s + y*s + z]), 2.f) +
+				powf(cabsf(in[((s-x)%s)*s*s + y*s + ((s-z)%s)]), 2.f) +
+				powf(cabsf(in[((s-x)%s)*s*s + ((s-y)%s)*s + z]), 2.f) +
+				powf(cabsf(in[x*s*s + ((s-y)%s)*s + ((s-z)%s)]), 2.f)) ;
+		}
+	}
+}
+
+// Symmetrize intensity coherently according to P(2_1)(2_1)(2_1) space group
+// (size)
+void symmetrize_coherent(fftwf_complex *in, float *out) {
+	long s = size, c = size/2 ;
 	
 	#pragma omp parallel default(shared)
 	{
-		long x, y, z ;
-		float ave_intens ;
+		long x, y, z, cx, cy, cz ;
+		float complex fx, fy, fz ;
 		
 		#pragma omp for schedule(static,1)
-		for (x = 0 ; x < hs ; ++x) {
-			for (y = 1 ; y <= kc ; ++y)
-			for (z = 1 ; z <= lc ; ++z) {
-				ave_intens = 0.25 * (
-					powf(cabsf(in[x*ks*ls + y*ls + z]), 2.) +
-					powf(cabsf(in[x*ks*ls + y*ls + (ls-z)]), 2.) +
-					powf(cabsf(in[x*ks*ls + (ks-y)*ls + z]), 2.) +
-					powf(cabsf(in[x*ks*ls + (ks-y)*ls + (ls-z)]), 2.)) ;
-				
-				out[x*ks*ls + y*ls + z] = ave_intens ;
-				out[x*ks*ls + y*ls + (ls-z)] = ave_intens ;
-				out[x*ks*ls + (ks-y)*ls + z] = ave_intens ;
-				out[x*ks*ls + (ks-y)*ls + (ls-z)] = ave_intens ;
-			}
+		for (x = 0 ; x < s ; ++x)
+		for (y = 0 ; y < s ; ++y)
+		for (z = 0 ; z < s ; ++z) {
+			cx = ((x+c)%s) - c ;
+			cy = ((y+c)%s) - c ;
+			cz = ((z+c)%s) - c ;
 			
-			for (z = 1 ; z <= lc ; ++z) {
-				ave_intens = 0.5 * (
-					powf(cabsf(in[x*ks*ls + z]), 2.) + 
-					powf(cabsf(in[x*ks*ls + (ls-z)]), 2.)) ;
-				
-				out[x*ks*ls + z] = ave_intens ;
-				out[x*ks*ls + (ls-z)] = ave_intens ;
-			}
+			if (cx%3 == 0)
+				fx = (cx/3) % 2 ? -1 : 1 ;
+			else
+				fx = cexpf(I * M_PI * cx / 3.f) ;
 			
-			for (y = 1 ; y <= kc ; ++y) {
-				ave_intens = 0.5 * (
-					powf(cabsf(in[x*ks*ls + y*ls]), 2.) + 
-					powf(cabsf(in[x*ks*ls + (ks-y)*ls]), 2.)) ;
-				
-				out[x*ks*ls + y*ls] = ave_intens ;
-				out[x*ks*ls + (ks-y)*ls] = ave_intens ;
-			}
+			if (cy%4 == 0)
+				fy = (cy/4) % 2 ? -1 : 1 ;
+			else
+				fy = cexpf(I * M_PI * cy / 4.f) ;
 			
-			out[x*ks*ls] = powf(cabsf(in[x*ks*ls]), 2.) ;
+			if (cz%7 == 0)
+				fz = (cz/7) % 2 ? -1 : 1 ;
+			else
+				fz = cexpf(I * M_PI * cz / 7.f) ;
 			
-			for (y = 0 ; y < ks ; ++y)
-			for (z = 0 ; z < ls ; ++z)
-				out[x*ks*ls + y*ls + z] = sqrtf(out[x*ks*ls + y*ls + z]) ;
+			out[((x+c)%s)*s*s + ((y+c)%s)*s + ((z+c)%s)] = cabsf(
+				in[x*s*s + y*s + z] +
+				in[((s-x)%s)*s*s + y*s + ((s-z)%s)] * fy / fz +
+				in[((s-x)%s)*s*s + ((s-y)%s)*s + z] * fz / fx +
+				in[x*s*s + ((s-y)%s)*s + ((s-z)%s)] * fx / fy) ;
 		}
 	}
 }
@@ -145,9 +151,8 @@ void apply_shrinkwrap(float *model, float blur, float threshold) {
 	float rsq, fblur ;
 	uint8_t *supvol = calloc(vol, sizeof(uint8_t)) ;
 	
-	for (x = 0 ; x < vol ; ++x) {
+	for (x = 0 ; x < vol ; ++x)
 		rdensity[x] = model[x] ;
-	}
 	
 	// Blur density
 	fftwf_execute(forward) ;
