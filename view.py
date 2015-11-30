@@ -20,7 +20,7 @@ mng = plt.get_current_fig_manager()
 
 typestr = 'f4'
 typesize = 4
-rangemax = 1e1
+rangemax = 5e1
 
 fname = Tk.StringVar()
 sizestr = Tk.StringVar()
@@ -48,7 +48,7 @@ def parse_extension(filename):
 	if ext_string == '.raw':
 		typestr = 'f4'
 		typesize = 4
-		rangemax = 1e1
+		rangemax = 1
 	elif ext_string == '.bin':
 		typestr = 'f8'
 		typesize = 8
@@ -85,8 +85,9 @@ vol = np.zeros((size,size,size), dtype=typestr)
 
 # Parse file to generate three arrays and plot them
 def parse_vol():
-	global vol, old_fname, old_sizestr
+	global vol, old_fname, old_sizestr, size, center
 	size = int(sizestr.get())
+	center = size/2
 	
 	s = fname.get()
 	
@@ -96,12 +97,14 @@ def parse_vol():
 		print "Unable to open", s
 		return
 	
-	if size == len(vol):
-		vol = vol.reshape(size*size*size)
-	else:
-		vol = np.resize(vol, size*size*size)
+	#if size == len(vol):
+	#	vol = vol.reshape(size*size*size)
+	#else:
+	#	vol = np.resize(vol.flatten(), size*size*size)
 	
 	vol = np.fromfile(f, dtype=typestr, count=size*size*size)
+	if len(vol) < size**3:
+		vol.resize(size**3)
 	vol = vol.reshape((size,size,size))
 	
 	old_fname = fname.get()
