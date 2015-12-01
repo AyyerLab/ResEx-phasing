@@ -1,0 +1,11 @@
+[parameters]
+size = 601
+bragg_qmax = 0.6
+scale_factor = 8422.4
+
+[files]
+intens_fname = data/extsim_1_zero.raw
+bragg_fname = data/3wu2_dimer-str.cpx
+support_fname = data/3wu2_dimer-1.5.supp
+#input_fname = 
+wisdom_fname = data/wisdom_601_32

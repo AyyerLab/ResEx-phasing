@@ -8,7 +8,7 @@ gen_data
 /results
 /refine
 /gui
-src/config.conf
+src/config.ini
 rscript.sh
 *.log
 *.dat
