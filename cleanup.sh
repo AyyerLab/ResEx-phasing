@@ -17,8 +17,9 @@ echo Cleaning to number $j...
 #read comment
 cp data/recon.raw results/output_${j}.raw
 cp data/frecon.raw results/foutput_${j}.raw
-cp PHASING.log logs/iter_${j}.log
-cp prtf.dat logs/prtf_${j}.dat
+cp PHASING.log results/log_${j}.dat
+cp prtf.dat results/prtf_${j}.dat
+cp src/config.ini results/conf_${j}.ini
 #printf "output_%.2d.raw\t(600,400)\t0.6\t\tSame as \`29', but tight support\n" $i
 #printf "output_%.2d.raw\t(600,400)\t0.6\t\tSame as \`29', but tight support\n" $i >> results/KEY
 echo
