@@ -71,7 +71,7 @@ void gen_prtf(float *model) {
 	if (bin_count[bin] > 0)
 		fprintf(fp, "%.4f\t%.6f\n", (bin + 1.) / num_bins, contrast[bin]/bin_count[bin]) ;
 	else 
-		fprintf(fp, "%.4f\t%.6f\n", (bin + 1.) / num_bins, 0.) ;
+		fprintf(fp, "%.4f\t%.6f\n", (bin + 1.) / num_bins, 1.) ;
 	fclose(fp) ;
 	
 	free(contrast) ;
