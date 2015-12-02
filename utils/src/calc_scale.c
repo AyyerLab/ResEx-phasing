@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <locale.h>
 
 int main(int argc, char *argv[]) {
 	long x, y, z, size, c, vol, num_vox = 0 ;
@@ -15,6 +16,7 @@ int main(int argc, char *argv[]) {
 	rmin = atof(argv[3]) ;
 	rmax = atof(argv[4]) ;
 	
+	setlocale(LC_ALL, "") ;
 	size = 701 ;
 	c = size / 2 ;
 	vol = size*size*size ;
@@ -56,7 +58,7 @@ int main(int argc, char *argv[]) {
 	
 	scale = dot / normsq ;
 	
-	printf("Scale factor for magnitude: %.4e\n", scale) ;
+	printf("Scale factor for magnitude: %f\n", scale) ;
 	printf("%'ld voxels contributed to this calculation\n", num_vox) ;
 	
 	// Free memory
