@@ -34,7 +34,7 @@ imagename.set('images/' + os.path.splitext(os.path.basename(fname.get()))[0] + '
 
 flag = Tk.IntVar()
 flag.set(0)
-size = 701
+size = 601
 if len(sys.argv) > 2:
 	flag.set(int(sys.argv[2]))
 if len(sys.argv) > 3:
@@ -247,7 +247,7 @@ Tk.Button(root,text = "+",command = increment_layer
 	).grid(row=4,column=4,sticky=Tk.SW)
 slider = Tk.Scale(root,
 	from_ = 0, 
-	to = int(sizestr.get()),
+	to = int(sizestr.get())-1,
 	orient = Tk.HORIZONTAL,
 	length = 250,
 	width = 20,
