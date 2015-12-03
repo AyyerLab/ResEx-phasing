@@ -63,8 +63,11 @@ int main(int argc, char *argv[]) {
 		fclose(fp) ;
 		
 		if (iter % 20 == 0) {
-			fp = fopen("data/interm.raw", "w") ;
+			fp = fopen("data/interm_s.raw", "w") ;
 			fwrite(p1, sizeof(float), vol, fp) ;
+			fclose(fp) ;
+			fp = fopen("data/interm_m.raw", "w") ;
+			fwrite(p2, sizeof(float), vol, fp) ;
 			fclose(fp) ;
 		}
 	}
