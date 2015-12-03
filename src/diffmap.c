@@ -55,13 +55,13 @@ void proj_supp(float *in, float *out) {
 double diffmap(float *x) {
 	long i ;
 	float diff, change = 0.f ;
-/*	float alpha = 0.95 ;
+	float alpha = 0.1 ;
 	
 	proj_data(x, p1) ;
 	
 	for (i = 0 ; i < vol ; ++i)
 		x[i] = alpha*x[i] + (1.-alpha)*p1[i] ;
-*/	
+	
 	proj_supp(x, p1) ;
 	
 	for (i = 0 ; i < vol ; ++i)
@@ -88,6 +88,33 @@ double error_red(float *x) {
 	for (i = 0 ; i < vol ; ++i) {
 		diff = p2[i] - p1[i] ;
 		x[i] = p2[i] ;
+		change += diff*diff ;
+	}
+	
+	return sqrt(change / vol) ;
+}
+
+double modified_hio(float *x) {
+	long i ;
+	float diff, change = 0.f ;
+	float beta = 0.9 ;
+	float thresh = 0.1 ;
+	
+	proj_data(x, p1) ;
+	
+	for (i = 0 ; i < vol ; ++i)
+		r1[i] = (1.f + beta) * p1[i] - x[i] ;
+	
+	proj_supp(r1, p2) ;
+	proj_supp(p1, r1) ;
+	
+	for (i = 0 ; i < vol ; ++i) {
+		if (fabs(p1[i]) > thresh)
+			diff = p2[i] - beta*p1[i] ;
+		else
+			diff = r1[i] - x[i] ;
+		
+		x[i] += diff ;
 		change += diff*diff ;
 	}
 	
