@@ -62,7 +62,7 @@ void gen_prtf(float *model) {
 		}
 	}
 	
-	fp = fopen("data/frecon.raw", "wb") ;
+	fp = fopen("data/bfrecon.raw", "wb") ;
 	fwrite(model, sizeof(float), vol, fp) ;
 	fclose(fp) ;
 	

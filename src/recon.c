@@ -63,8 +63,11 @@ int main(int argc, char *argv[]) {
 		fclose(fp) ;
 		
 		if (iter % 20 == 0) {
-			fp = fopen("data/interm.raw", "w") ;
+			fp = fopen("data/binterm_s.raw", "w") ;
 			fwrite(p1, sizeof(float), vol, fp) ;
+			fclose(fp) ;
+			fp = fopen("data/binterm_m.raw", "w") ;
+			fwrite(p2, sizeof(float), vol, fp) ;
 			fclose(fp) ;
 		}
 	}
@@ -75,7 +78,7 @@ int main(int argc, char *argv[]) {
 		average[i] /= (num_iter - start_ave + 1) ;
 //		average[i] = iterate[i] ;
 	
-	fp = fopen("data/recon.raw", "wb") ;
+	fp = fopen("data/brecon.raw", "wb") ;
 	fwrite(average, sizeof(float), vol, fp) ;
 	fclose(fp) ;
 	
