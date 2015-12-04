@@ -29,11 +29,18 @@ rangeminstr = Tk.StringVar()
 rangemaxstr = Tk.StringVar()
 imagename = Tk.StringVar()
 layernum = Tk.IntVar()
+radiusmin = Tk.StringVar()
+radiusmax = Tk.StringVar()
+flag = Tk.IntVar()
+circleflag = Tk.IntVar()
+
 fname.set(sys.argv[1])
 imagename.set('images/' + os.path.splitext(os.path.basename(fname.get()))[0] + '.png')
-
-flag = Tk.IntVar()
+radiusmin.set('100')
+radiusmax.set('200')
+circleflag.set(0)
 flag.set(0)
+
 size = 701
 if len(sys.argv) > 2:
 	flag.set(int(sys.argv[2]))
@@ -132,24 +139,31 @@ def plot_vol_slices(layernum):
 		
 	s1 = fig.add_subplot(131)
 	s1.matshow(a, vmin=rangemin, vmax=rangemax, cmap='jet')
-	#s1.add_artist(patches.Circle((size/2,size/2), 300, ec='white', fc='none'))
-	#s1.add_artist(patches.Circle((size/2,size/2), 200, ec='white', fc='none'))
 	plt.title("h = 0, YZ plane", y = 1.01)
 	plt.axis('off')
 	s2 = fig.add_subplot(132)
 	s2.matshow(b, vmin=rangemin, vmax=rangemax, cmap='jet')
-	#s2.add_artist(patches.Circle((size/2,size/2), 200, ec='white', fc='none'))
-	#s2.add_artist(patches.Circle((size/2,size/2), 140, ec='blue', fc='none'))
-	#s2.add_artist(patches.Circle((size/2,size/2), 160, ec='blue', fc='none'))
 	plt.title("k = 0, XZ plane", y = 1.01)
 	plt.axis('off')
 	s3 = fig.add_subplot(133)
 	s3.matshow(c, vmin=rangemin, vmax=rangemax, cmap='jet')
-	#s3.add_artist(patches.Circle((size/2,size/2), 200, ec='white', fc='none'))
-	#s3.add_artist(patches.Circle((size/2,size/2), 140, ec='blue', fc='none'))
-	#s3.add_artist(patches.Circle((size/2,size/2), 160, ec='blue', fc='none'))
 	plt.title("l = 0, XY plane", y = 1.01)
 	plt.axis('off')
+	
+	if flag.get() is 1:
+		[a.remove() for a in list(set(s1.findobj(patches.Circle)))]
+		[a.remove() for a in list(set(s2.findobj(patches.Circle)))]
+		[a.remove() for a in list(set(s3.findobj(patches.Circle)))]
+	
+	if circleflag.get() is 1 and flag.get() is 1:
+		rmin = float(radiusmin.get())
+		rmax = float(radiusmax.get())
+		s1.add_artist(patches.Circle((size/2,size/2), rmin, ec='white', fc='none'))
+		s1.add_artist(patches.Circle((size/2,size/2), rmax, ec='white', fc='none'))
+		s2.add_artist(patches.Circle((size/2,size/2), rmin, ec='white', fc='none'))
+		s2.add_artist(patches.Circle((size/2,size/2), rmax, ec='white', fc='none'))
+		s3.add_artist(patches.Circle((size/2,size/2), rmin, ec='white', fc='none'))
+		s3.add_artist(patches.Circle((size/2,size/2), rmax, ec='white', fc='none'))
 	
 	canvas.show()
 	
@@ -171,6 +185,7 @@ def parse_and_plot(event=None):
 		plot_vol_slices(layernum.get())
 
 def force_plot(event=None):
+	print "Reparsing volume:", fname.get(), sizestr.get()
 	parse_vol()
 	plot_vol_slices(layernum.get())
 
@@ -281,7 +296,25 @@ Tk.Checkbutton(
 	text = "Show full volume",
 	variable = flag,
 	command = flag_changed
-	).grid(row=6,column=1)
+	).grid(row=6,column=1,columnspan=2)
+
+Tk.Checkbutton(
+	root,
+	text = "Show circles",
+	variable = circleflag,
+	command = flag_changed
+	).grid(row=6,column=3)
+
+Tk.Entry(
+	root,
+	textvariable = radiusmin,
+	width = 10
+	).grid(row=7,column=2,columnspan=1,sticky=Tk.W)
+Tk.Entry(
+	root,
+	textvariable = radiusmax,
+	width = 10
+	).grid(row=7,column=3,columnspan=1,sticky=Tk.W)
 
 parse_and_plot()
 
