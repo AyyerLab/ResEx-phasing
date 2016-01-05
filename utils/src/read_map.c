@@ -33,7 +33,9 @@ int main(int argc, char *argv[]) {
 	
 	fp = fopen(argv[1], "rb") ;
 //	voxres = 2200 / 3. ; // For Nov 2014 PCS data	
-	voxres = 500. ; // For Oct 2015 Lorenzo merge
+//	voxres = 500. ; // For Oct 2015 Lorenzo merge
+	voxres = 800. ; // For Oct 2015 Oleksandr merge
+//	voxres = 1562. ; // For PSI-FD P14 merge
 	
 	// Grid size
 	fread(&nx, sizeof(int), 1, fp) ;
@@ -47,7 +49,7 @@ int main(int argc, char *argv[]) {
 	
 	fseek(fp, 12, SEEK_CUR) ;
 	
-	// Grid size
+	// Number of voxels corresponding to cell size
 	int mx, my, mz ;
 	fread(&mx, sizeof(int), 1, fp) ;
 	fread(&my, sizeof(int), 1, fp) ;
@@ -98,9 +100,12 @@ int main(int argc, char *argv[]) {
 	fprintf(stderr, "Ideal pad sizes = (%.3f, %.3f, %.3f)\n", pz, py, px) ;
 	fprintf(stderr, "Stretch factors = (%.5f, %.5f, %.5f)\n", psize/pz, psize/py, psize/px) ;
 	
-	shx = (psize - nx) / 2 - 15 ;
-	shy = (psize - ny) / 2 - 15 ;
-	shz = (psize - nz) / 2 - 15 ;
+//	shx = (psize - nx) / 2 - 15 ;
+//	shy = (psize - ny) / 2 - 15 ;
+//	shz = (psize - nz) / 2 - 15 ;
+	shx = (psize - nx) / 2 ;
+	shy = (psize - ny) / 2 ;
+	shz = (psize - nz) / 2 ;
 	
 	padmodel = calloc(pvol, sizeof(float)) ;
 	if (mapx == 1) {
@@ -111,10 +116,11 @@ int main(int argc, char *argv[]) {
 			 = model[x*ny*nz + y*nz + z] ;
 	}
 	else {
-		for (z = 0 ; z < nz ; ++z)
-		for (y = 0 ; y < ny ; ++y)
 		for (x = 0 ; x < nx ; ++x)
+		for (y = 0 ; y < ny ; ++y)
+		for (z = 0 ; z < nz ; ++z)
 			padmodel[(x+shx)*psize*psize + (y+shy)*psize + (z+shz)]
+//			 = model[((z+nz/2)%nz)*ny*nx + ((y+ny/2)%ny)*nx + ((x+nx/2)%nx)] ;
 			 = model[z*ny*nx + y*nx + x] ;
 	}
 	
