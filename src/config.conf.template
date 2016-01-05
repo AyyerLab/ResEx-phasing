@@ -1,20 +1,23 @@
 # System size
-501
+701
 
 # Speckle intensity file
-data/lorenzo_hard_iso_sym_zero1.raw
+data/lj49_q_sel_701_zero.raw
 
 # Bragg Fourier-amplitudes file
-data/dominik-4-str.cpx
+data/dominik-4-recon4f-fdens.cpx
 
 # Support file
-data/dominik-4-4.5.supp
+data/dominik-4-4-5.supp
 
 # Starting model
-data/output_23.r
+data/dominik-4-recon4f.raw
 
 # FFTW wisdom file
-data/wisdom_501_16
+data/wisdom_701_32
 
 # qmax for Braggs
-0.65
+0.51
+
+# Scale factor between Bragg and continuous data
+365.26
