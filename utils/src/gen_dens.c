@@ -43,18 +43,10 @@ int main(int argc, char *argv[]) {
 	fdensity = fftwf_malloc(vol * sizeof(fftwf_complex)) ;
 	temp = malloc(vol * sizeof(float)) ;
 	
-	sprintf(fname, "data/wisdom_%ld_32d", size) ;
+	sprintf(fname, "data/wisdom_%ld_32", size) ;
 	fp = fopen(fname, "rb") ;
-	if (fp == NULL) {
-		fprintf(stderr, "Measuring plans\n") ;
-		inverse = fftwf_plan_dft_3d(size, size, size, fdensity, rdensity, FFTW_BACKWARD, FFTW_MEASURE) ;
-		
-		fp = fopen(fname, "wb") ;
-		fftwf_export_wisdom_to_file(fp) ;
-		fclose(fp) ;
-		
-		fprintf(stderr, "Created plans\n") ;
-	}
+	if (fp == NULL)
+		inverse = fftwf_plan_dft_3d(size, size, size, fdensity, rdensity, FFTW_BACKWARD, FFTW_ESTIMATE) ;
 	else {
 		fftwf_import_wisdom_from_file(fp) ;
 		fclose(fp) ;
@@ -62,28 +54,32 @@ int main(int argc, char *argv[]) {
 		inverse = fftwf_plan_dft_3d(size, size, size, fdensity, rdensity, FFTW_BACKWARD, FFTW_MEASURE) ;
 	}
 	
+	// Read complex Fourier amplitudes
 	fp = fopen(argv[1], "rb") ;
 	fread(rdensity, sizeof(fftwf_complex), vol, fp) ;
 	fclose(fp) ;
 	
+	// Shift coordinates such that origin is at the corner
 	for (x = 0 ; x < size ; ++x)
 	for (y = 0 ; y < size ; ++y)
 	for (z = 0 ; z < size ; ++z) {
 		if (r_max < 0.)
-			fdensity[((x+c)%size)*size*size + ((y+c)%size)*size + ((z+c)%size)]
+			fdensity[((x+c+1)%size)*size*size + ((y+c+1)%size)*size + ((z+c+1)%size)]
 			  = rdensity[x*size*size + y*size + z] ;
 		else {
 			dist = sqrtf((x-c)*(x-c) + (y-c)*(y-c) + (z-c)*(z-c)) ;
 			if (dist > r_max)
-				fdensity[((x+c)%size)*size*size + ((y+c)%size)*size + ((z+c)%size)] = 0. ;
+				fdensity[((x+c+1)%size)*size*size + ((y+c+1)%size)*size + ((z+c+1)%size)] = 0. ;
 			else
-				fdensity[((x+c)%size)*size*size + ((y+c)%size)*size + ((z+c)%size)]
+				fdensity[((x+c+1)%size)*size*size + ((y+c+1)%size)*size + ((z+c+1)%size)]
 				  = rdensity[x*size*size + y*size + z] ;
 		}
 	}
 	
+	// Do inverse Fourier transform
 	fftwf_execute(inverse) ;
 	
+	// Shift real space density such that it is in the center of the cube
 	for (x = 0 ; x < size ; ++x)
 	for (y = 0 ; y < size ; ++y)
 	for (z = 0 ; z < size ; ++z)

@@ -38,27 +38,16 @@ int main(int argc, char *argv[]) {
 	temp = malloc(vol * sizeof(float)) ;
 	
 	// Generate FFTW plans
-	if (size == 501) {
-		fp = fopen("data/wisdom_501_16", "rb") ;
-		if (fp == NULL) {
-			fprintf(stderr, "Measuring plans\n") ;
-			forward = fftwf_plan_dft_3d(size, size, size, rdensity, fdensity, FFTW_FORWARD, FFTW_MEASURE) ;
-			
-			fp = fopen("data/wisdom_501_16", "wb") ;
-			fftwf_export_wisdom_to_file(fp) ;
-			fclose(fp) ;
-			
-			fprintf(stderr, "Created plans\n") ;
-		}
-		else {
-			fftwf_import_wisdom_from_file(fp) ;
-			fclose(fp) ;
-			
-			forward = fftwf_plan_dft_3d(size, size, size, rdensity, fdensity, FFTW_FORWARD, FFTW_MEASURE) ;
-		}
-	}
-	else 
+	sprintf(fname, "data/wisdom_%ld_32", size) ;
+	fp = fopen(fname, "rb") ;
+	if (fp == NULL)
 		forward = fftwf_plan_dft_3d(size, size, size, rdensity, fdensity, FFTW_FORWARD, FFTW_ESTIMATE) ;
+	else {
+		fftwf_import_wisdom_from_file(fp) ;
+		fclose(fp) ;
+		
+		forward = fftwf_plan_dft_3d(size, size, size, rdensity, fdensity, FFTW_FORWARD, FFTW_MEASURE) ;
+	}
 	
 	// Parse real-space density
 	fp = fopen(argv[1], "rb") ;
@@ -69,7 +58,8 @@ int main(int argc, char *argv[]) {
 	for (x = 0 ; x < size ; ++x)
 	for (y = 0 ; y < size ; ++y)
 	for (z = 0 ; z < size ; ++z)
-		rdensity[((x+c)%size)*size*size + ((y+c)%size)*size + ((z+c)%size)] = temp[x*size*size + y*size + z] ;
+//		rdensity[((x+c)%size)*size*size + ((y+c)%size)*size + ((z+c)%size)] = temp[x*size*size + y*size + z] ;
+		rdensity[((x+c+1)%size)*size*size + ((y+c+1)%size)*size + ((z+c+1)%size)] = temp[x*size*size + y*size + z] ;
 	
 	// Apply Fourier transform
 	fftwf_execute(forward) ;
