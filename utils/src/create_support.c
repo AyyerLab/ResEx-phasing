@@ -76,9 +76,12 @@ int main(int argc, char* argv[]) {
 	
 	// Write to file
 	if (argc > 5)
-		fp = fopen(argv[4], "wb") ;
-	else
-		fp = fopen("data/support_501.supp", "wb") ;
+		fp = fopen(argv[5], "wb") ;
+	else {
+		char fname[999] ;
+		sprintf(fname, "data/support_%ld.supp", size) ;
+		fp = fopen(fname, "wb") ;
+	}
 	fwrite(support, sizeof(uint8_t), vol, fp) ;
 	fclose(fp) ;
 	
