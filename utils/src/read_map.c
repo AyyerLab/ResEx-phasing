@@ -21,19 +21,33 @@ int main(int argc, char *argv[]) {
 	int nx, ny, nz, mode, mapx, mapy, mapz ;
 	long psize, pvol, shx, shy, shz, x, y, z ;
 	float lx, ly, lz, ax, ay, az ;
-	float px, py, pz, voxres ;
+	float px, py, pz, voxres[3] ;
 	float *model, *padmodel ;
 	FILE *fp ;
 	char fname[999] ;
 	
-	if (argc < 2) {
-		fprintf(stderr, "Format: %s <map_fname>\n", argv[0]) ;
+	if (argc < 3) {
+		fprintf(stderr, "Format: %s <map_fname> <voxres>\n", argv[0]) ;
+		fprintf(stderr, "\twhere <voxres> is the resolution at 1 pixel in nm\n") ;
+		fprintf(stderr, "One can also give three different <voxres> parameters for different axes\n") ;
 		return 1 ;
 	}
+	if (argc == 3) {
+		voxres[0] = atoi(argv[2]) ;
+		voxres[1] = atoi(argv[2]) ;
+		voxres[2] = atoi(argv[2]) ;
+	}
+	else if (argc > 4) {
+		voxres[0] = atoi(argv[2]) ;
+		voxres[1] = atoi(argv[3]) ;
+		voxres[2] = atoi(argv[4]) ;
+	}
+	else
+		return 1 ;
 	
 	fp = fopen(argv[1], "rb") ;
 //	voxres = 2200 / 3. ; // For Nov 2014 PCS data	
-	voxres = 500. ; // For Oct 2015 Lorenzo merge
+//	voxres = 500. ; // For Oct 2015 Lorenzo merge
 	
 	// Grid size
 	fread(&nx, sizeof(int), 1, fp) ;
@@ -84,9 +98,9 @@ int main(int argc, char *argv[]) {
 	fwrite(model, sizeof(float), nx*ny*nz, fp) ;
 	fclose(fp) ;
 	
-	px = voxres*mx/lx ;
-	py = voxres*my/ly ;
-	pz = voxres*mz/lz ;
+	px = voxres[0]*mx/lx ;
+	py = voxres[1]*my/ly ;
+	pz = voxres[2]*mz/lz ;
 	px = px > py ? px : py ;
 	px = px > pz ? px : pz ;
 	psize = (int) px + 3 ;
@@ -94,7 +108,7 @@ int main(int argc, char *argv[]) {
 	pvol = psize*psize*psize ;
 	
 	fprintf(stderr, "Padded volume size = %ld\n", psize) ;
-	px = voxres*mx/lx ;
+	px = voxres[0]*mx/lx ;
 	fprintf(stderr, "Ideal pad sizes = (%.3f, %.3f, %.3f)\n", pz, py, px) ;
 	fprintf(stderr, "Stretch factors = (%.5f, %.5f, %.5f)\n", psize/pz, psize/py, psize/px) ;
 	
