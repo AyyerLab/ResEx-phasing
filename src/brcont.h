@@ -23,6 +23,7 @@ fftwf_plan forward, inverse ;
 // diffmap.c
 double diffmap(float*) ;
 double error_red(float*) ;
+double modified_hio(float*) ;
 
 // setup.c
 int setup() ;

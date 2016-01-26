@@ -39,6 +39,7 @@ int main(int argc, char *argv[]) {
 		
 //		if (iter < start_ave)
 			error = diffmap(iterate) ;
+//			error = modified_hio(iterate) ;
 //		else {
 //			fprintf(stderr, "Doing error-reduction. ") ;
 //			error = error_red(iterate) ;
