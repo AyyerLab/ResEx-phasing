@@ -34,7 +34,7 @@ imagename.set('images/' + os.path.splitext(os.path.basename(fname.get()))[0] + '
 
 flag = Tk.IntVar()
 flag.set(0)
-size = 601
+size = 301
 if len(sys.argv) > 2:
 	flag.set(int(sys.argv[2]))
 if len(sys.argv) > 3:
