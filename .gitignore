@@ -1,15 +1,25 @@
+# Executables
 recon
 gen_data
 /bin
 /utils/*
+#	but keep the source files
 !/utils/src
+
+# Data
 /data
 /images
 /results
 /refine
-/gui
+/phenix
+
+# Config file
 src/config.ini
+
+# Run script
 rscript.sh
+
+# Data files
 *.log
 *.dat
 *.png
