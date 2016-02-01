@@ -19,22 +19,33 @@ char* remove_ext(char *fullName) {
 }
 
 int main(int argc, char *argv[]) {
-	long s, vol, ms, mvol, x, y, z ;
+	long s, vol, ms, mvol, x, y, z, mmin, mmax ;
 	int ival ;
-	float fval, *model, *mmodel ;
+	float fval, voxres, *model, *mmodel ;
 	float mean = 0.f, rms = 0.f, max = -1.e20, min = 1.e20 ;
 	char *buffer, fname[999] ;
 	FILE *fp ;
 	
-	if (argc < 2) {
-		fprintf(stderr, "Format: %s <recon_fname>\n", argv[0]) ;
+	if (argc < 3) {
+		fprintf(stderr, "Format: %s <recon_fname> <size>\n", argv[0]) ;
+		fprintf(stderr, "voxres = 800. unless given as third argument\n") ;
 		return 1 ;
 	}
+	s = atoi(argv[2]) ;
 	
-	s = 501 ;
+	if (argc > 3)
+		voxres = atof(argv[3]) ;
+	else
+		voxres = 800. ;
+	
 	vol = s*s*s ;
-	ms = 171 ;
+	mmin = s / 3 ;
+	mmax = s * 2 / 3 ;
+//	mmin = 250 ;
+//	mmax = 411 ;
+	ms = mmax - mmin ;
 	mvol = ms*ms*ms ;
+	fprintf(stderr, "Map size = %ld = %ld - %ld\n", ms, mmax, mmin) ;
 	
 	model = malloc(vol * sizeof(float)) ;
 	fp = fopen(argv[1], "rb") ;
@@ -42,16 +53,16 @@ int main(int argc, char *argv[]) {
 	fclose(fp) ;
 	
 	mmodel = malloc(mvol * sizeof(float)) ;
-	for (x = 163 ; x < 334 ; ++x)
-	for (y = 163 ; y < 334 ; ++y)
-	for (z = 163 ; z < 334 ; ++z) {
+	for (x = mmin ; x < mmax ; ++x)
+	for (y = mmin ; y < mmax ; ++y)
+	for (z = mmin ; z < mmax ; ++z) {
 		fval = model[x*s*s + y*s + z] ;
 //		if (fval < 0.5)
 //			fval = 0. ;
 //		if (fval > 10.)
 //			fval = 10. ;
-//		mmodel[(z-163)*ms*ms + (y-163)*ms + (x-163)] = fval ; // Reversed
-		mmodel[(x-163)*ms*ms + (y-163)*ms + (z-163)] = fval ;
+//		mmodel[(z-mmin)*ms*ms + (y-mmin)*ms + (x-mmin)] = fval ; // Reversed
+		mmodel[(x-mmin)*ms*ms + (y-mmin)*ms + (z-mmin)] = fval ;
 	}
 	free(model) ;
 	
@@ -66,10 +77,6 @@ int main(int argc, char *argv[]) {
 	mean /= (float) mvol ;
 	rms /= (float) mvol ;
 	rms = sqrtf(rms - mean*mean) ;
-	
-	fp = fopen("data/mmodel.map", "wb") ;
-	fwrite(mmodel, sizeof(float), mvol, fp) ;
-	fclose(fp) ;
 	
 	fprintf(stderr, "max = %.6e, min = %.6e\n", max, min) ;
 	fprintf(stderr, "mean = %.6e, rms = %.6e\n", mean, rms) ;
@@ -101,7 +108,10 @@ int main(int argc, char *argv[]) {
 //	fval = 272.883 ;
 //	fval = 271.83 ;
 //	fval = 315.07 ;
-	fval = 250.8 ; // Isotropic merge
+//	fval = 250.8 ; // Isotropic merge
+//	fval = 269.62 ; // PSI-Fd
+	fval = voxres/(s-1) * ms ;
+	fprintf(stderr, "box size = %f A\n", fval) ;
 	fwrite(&fval, sizeof(float), 1, fp) ;
 //	fval = 624.5 ;
 //	fval = 312.25 ;
