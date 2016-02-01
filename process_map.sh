@@ -29,15 +29,19 @@ strmodel=data/${mapnoext}-str.cpx
 lowresmodel_name=data/${mapnoext}-recon.raw
 supp_name=data/${mapnoext}-3.supp
 
-echo ./utils/gen_map $padmodel $padsize
-./utils/gen_map $padmodel $padsize &> $log_name
+echo ./utils/gen_fdens $padmodel $padsize
+#echo ================================================================================ >> $log_name
+./utils/gen_fdens $padmodel $padsize &>> $log_name
 
 echo ./utils/fstretch ${padnoext}-fdens.cpx $padsize $size $sx $sy $sz $strmodel
-./utils/fstretch ${padnoext}-fdens.cpx $padsize $size $sx $sy $sz $strmodel &> $log_name
+#echo ================================================================================ >> $log_name
+./utils/fstretch ${padnoext}-fdens.cpx $padsize $size $sx $sy $sz $strmodel &>> $log_name
 
 echo ./utils/gen_dens $strmodel $size $lowresmodel_name
-./utils/gen_dens $strmodel $size $lowresmodel_name
+#echo ================================================================================ >> $log_name
+./utils/gen_dens $strmodel $size $lowresmodel_name &>> $log_name
 
 echo ./utils/create_support $lowresmodel_name $size 3. 5 $supp_name
-./utils/create_support $lowresmodel_name $size 3. 5 $supp_name &> $log_name
+#echo ================================================================================ >> $log_name
+./utils/create_support $lowresmodel_name $size 3. 5 $supp_name &>> $log_name
 
