@@ -1,6 +1,6 @@
 CC=gcc
 LDFLAGS=-lgsl -lgslcblas -lfftw3f_threads -lfftw3f -lm
-CFLAGS=-fopenmp -O3 -Wall
+CFLAGS=-fopenmp -O3 -Wall -g
 
 src = $(wildcard src/*.c)
 objects = $(patsubst src/%.c,bin/%.o,$(src)) 
