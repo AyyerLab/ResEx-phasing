@@ -4,6 +4,7 @@
 #include <complex.h>
 #include <fftw3.h>
 #include <string.h>
+#include <omp.h>
 
 char* extract_fname(char* fullName) {
 	return 
@@ -14,7 +15,7 @@ char* extract_fname(char* fullName) {
 
 int main(int argc, char *argv[]) {
 	long x, y, z, size, c, vol, bin, num_bins, vox ;
-	double d_max, r, binsize ;
+	double d_min, r, binsize, voxres ;
 	float *temp, *norm1, *norm2 ;
 	float complex *model1, *model2, *fsc ;
 	fftwf_complex *rdensity, *fdensity ;
@@ -22,11 +23,12 @@ int main(int argc, char *argv[]) {
 	FILE *fp ;
 	char fname[999] ;
 	
-	if (argc < 3) {
-		fprintf(stderr, "Format: %s <model1> <model2>\n", argv[0]) ;
+	if (argc < 5) {
+		fprintf(stderr, "Format: %s <model1> <model2> <size> <voxres>\n", argv[0]) ;
 		return 1 ;
 	}
-	size = 501 ;
+	size = atoi(argv[3]) ;
+	voxres = atof(argv[4]) ;
 	vol = size*size*size ;
 	c = size / 2 ;
 	
@@ -38,8 +40,9 @@ int main(int argc, char *argv[]) {
 	model2 = malloc(vol * sizeof(float complex)) ;
 	
 	num_bins = 50 ;
-	d_max = 2200./750. ;
-	binsize = (double) c / num_bins + 1 ;
+	d_min = voxres / c ;
+	binsize = ((double) c) / num_bins ;
+	fprintf(stderr, "Resolution at edge of volume = %.3f A\n", d_min) ;
 	
 	fsc = calloc(num_bins, sizeof(float complex)) ;
 	norm1 = calloc(num_bins, sizeof(float)) ;
@@ -47,29 +50,9 @@ int main(int argc, char *argv[]) {
 	
 	// Parse fftwf plan
 	fftwf_init_threads() ;
-	fftwf_plan_with_nthreads(16) ;
+	fftwf_plan_with_nthreads(omp_get_max_threads()) ;
 	
-	if (size == 501) {
-		fp = fopen("data/wisdom_501_16", "rb") ;
-		if (fp == NULL) {
-			fprintf(stderr, "Measuring plans\n") ;
-			forward = fftwf_plan_dft_3d(size, size, size, rdensity, fdensity, FFTW_FORWARD, FFTW_MEASURE) ;
-			
-			fp = fopen("data/wisdom_501_16", "wb") ;
-			fftwf_export_wisdom_to_file(fp) ;
-			fclose(fp) ;
-			
-			fprintf(stderr, "Created plans\n") ;
-		}
-		else {
-			fftwf_import_wisdom_from_file(fp) ;
-			fclose(fp) ;
-			
-			forward = fftwf_plan_dft_3d(size, size, size, rdensity, fdensity, FFTW_FORWARD, FFTW_MEASURE) ;
-		}
-	}
-	else 
-		forward = fftwf_plan_dft_3d(size, size, size, rdensity, fdensity, FFTW_FORWARD, FFTW_ESTIMATE) ;
+	forward = fftwf_plan_dft_3d(size, size, size, rdensity, fdensity, FFTW_FORWARD, FFTW_ESTIMATE) ;
 	
 	// Parse first model
 	fp = fopen(argv[1], "rb") ;
@@ -129,23 +112,20 @@ int main(int argc, char *argv[]) {
 	sprintf(fname, "%s", extract_fname(argv[2])) ;
 	strtok(fname, "_.") ;
 	int num2 = atoi(strtok(NULL, "_.")) ;
-	sprintf(fname, "logs/fsc-%d-%d.dat", num1, num2) ;
+	sprintf(fname, "fsc-%d-%d.dat", num1, num2) ;
 	fprintf(stderr, "Writing to %s\n", fname) ;
 	
 	fp = fopen(fname, "w") ;
 	for (bin = 0 ; bin < num_bins ; ++bin)
-		fprintf(fp, "%.3f\t%.3f\t%.6f\n", (bin+1)/d_max/num_bins, num_bins*d_max/(bin+1), cabsf(fsc[bin])) ;
+		fprintf(fp, "%.3f\t%.3f\t%.6f\n", (bin+1)/d_min/num_bins, num_bins*d_min/(bin+1), cabsf(fsc[bin])) ;
 	fclose(fp) ;
-	/*
+	
 	// Free memory
 	free(temp) ;
 	free(model1) ;
 	free(model2) ;
 	fftwf_free(rdensity) ;
 	fftwf_free(fdensity) ;
-	free(fsc) ;
-	free(norm1) ;
-	free(norm2) ;
-	*/
+	
 	return 0 ;
 }
