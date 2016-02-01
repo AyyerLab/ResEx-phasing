@@ -112,9 +112,9 @@ int main(int argc, char *argv[]) {
 	fprintf(stderr, "Ideal pad sizes = (%.3f, %.3f, %.3f)\n", pz, py, px) ;
 	fprintf(stderr, "Stretch factors = (%.5f, %.5f, %.5f)\n", psize/pz, psize/py, psize/px) ;
 	
-	shx = (psize - nx) / 2 - 15 ;
-	shy = (psize - ny) / 2 - 15 ;
-	shz = (psize - nz) / 2 - 15 ;
+	shx = (psize - nx) / 2 ;
+	shy = (psize - ny) / 2 ;
+	shz = (psize - nz) / 2 ;
 	
 	padmodel = calloc(pvol, sizeof(float)) ;
 	if (mapx == 1) {
@@ -129,7 +129,8 @@ int main(int argc, char *argv[]) {
 		for (y = 0 ; y < ny ; ++y)
 		for (x = 0 ; x < nx ; ++x)
 			padmodel[(x+shx)*psize*psize + (y+shy)*psize + (z+shz)]
-			 = model[z*ny*nx + y*nx + x] ;
+//			 = model[z*ny*nx + y*nx + x] ;
+			 = model[((z+nz/2)%nz)*ny*nx + ((y+ny/2)%ny)*nx + ((x+nx/2)%nx)] ;
 	}
 	
 	sprintf(fname, "data/%s-%ld.raw", remove_ext(extract_fname(argv[1])), psize) ;
