@@ -22,5 +22,11 @@ cp prtf.dat results/prtf_${j}.dat
 cp src/config.ini results/conf_${j}.ini
 #printf "output_%.2d.raw\t(600,400)\t0.6\t\tSame as \`29', but tight support\n" $i
 #printf "output_%.2d.raw\t(600,400)\t0.6\t\tSame as \`29', but tight support\n" $i >> results/KEY
-echo
-
+echo Generating map
+./utils/gen_map results/output_${j}.raw 301 300.
+cd data/maps
+phenix.map_to_structure_factors output_${j}.map.ccp4 d_min=2.01
+mv map_to_structure_factors.mtz output_${j}.mtz
+cd ..
+cd ..
+pwd
