@@ -9,15 +9,15 @@ int main(int argc, char *argv[]) {
 	float *obs_mag, *model_mag ;
 	FILE *fp ;
 	
-	if (argc < 5) {
-		fprintf(stderr, "Format: %s <sym_model_fname> <merge_fname> <rmin> <rmax>\n", argv[0]) ;
+	if (argc < 6) {
+		fprintf(stderr, "Format: %s <sym_model_fname> <merge_fname> <size> <rmin> <rmax>\n", argv[0]) ;
 		return 1 ;
 	}
-	rmin = atof(argv[3]) ;
-	rmax = atof(argv[4]) ;
+	size = atoi(argv[3]) ;
+	rmin = atof(argv[4]) ;
+	rmax = atof(argv[5]) ;
 	
-	setlocale(LC_ALL, "") ;
-	size = 701 ;
+	setlocale(LC_ALL, "C") ;
 	c = size / 2 ;
 	vol = size*size*size ;
 	
