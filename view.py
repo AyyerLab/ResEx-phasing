@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 import numpy as np
 import matplotlib.pyplot as plt
@@ -214,106 +214,115 @@ root.bind('<Control-q>', quit_)
 root.bind('<Up>', increment_layer)
 root.bind('<Down>', decrement_layer)
 #root.bind('<ButtonRelease-1>', parse_and_plot)
+root.rowconfigure(0, weight=1)
+root.columnconfigure(0, weight=1)
 
-canvas = FigureCanvasTkAgg(fig, root)
-canvas.get_tk_widget().grid(rowspan=24)
+canvas_frame = Tk.Frame(root)
+canvas_frame.grid(row=0, column=0, sticky='news')
+canvas_frame.rowconfigure(0, weight=1)
+canvas_frame.columnconfigure(0, weight=1)
+canvas = FigureCanvasTkAgg(fig, canvas_frame)
+canvas.get_tk_widget().pack(fill='both', expand=1)
 
-Tk.Label(root, text="Filename: ").grid(row=0,column=1,sticky=Tk.E)
+config_frame = Tk.Frame(root)
+config_frame.grid(row=0, column=1,sticky=Tk.N)
+
+Tk.Label(config_frame, text="Filename: ").grid(row=0,column=0,sticky=Tk.E)
 Tk.Entry(
-	root, 
+	config_frame, 
 	textvariable = fname,
 	width = 35
-	).grid(row=0,column=2,columnspan=2,sticky=Tk.W)
+	).grid(row=0,column=1,columnspan=2,sticky=Tk.W)
 
-Tk.Label(root, text="Size: ").grid(row=1,column=1,sticky=Tk.E)
+Tk.Label(config_frame, text="Size: ").grid(row=1,column=0,sticky=Tk.E)
 Tk.Entry(
-	root,
+	config_frame,
 	textvariable = sizestr,
 	width = 10
-	).grid(row=1,column=2,columnspan=1,sticky=Tk.W)
+	).grid(row=1,column=1,columnspan=1,sticky=Tk.W)
 
-Tk.Label(root, text="Range: ").grid(row=2,column=1,sticky=Tk.E)
+Tk.Label(config_frame, text="Range: ").grid(row=2,column=0,sticky=Tk.E)
 Tk.Entry(
-	root,
+	config_frame,
 	textvariable = rangeminstr,
 	width = 10
-	).grid(row=2,column=2,columnspan=1,sticky=Tk.W)
+	).grid(row=2,column=1,columnspan=1,sticky=Tk.W)
 Tk.Entry(
-	root,
+	config_frame,
 	textvariable = rangemaxstr,
 	width = 10
-	).grid(row=2,column=3,columnspan=1,sticky=Tk.W)
+	).grid(row=2,column=2,columnspan=1,sticky=Tk.W)
 
-Tk.Label(root, text="Image name: ").grid(row=3,column=1,sticky=Tk.E)
+Tk.Label(config_frame, text="Image name: ").grid(row=3,column=0,sticky=Tk.E)
 Tk.Entry(
-	root,
+	config_frame,
 	textvariable = imagename,
 	width = 35
-	).grid(row=3,column=2,columnspan=2,sticky=Tk.W)
+	).grid(row=3,column=1,columnspan=2,sticky=Tk.W)
 
 Tk.Button(
-	root,
+	config_frame,
 	text = "Save",
 	command = save_plot
-	).grid(row=3,column=4,sticky=Tk.W)
+	).grid(row=3,column=3,sticky=Tk.W)
 
-Tk.Button(root,text = "+",command = increment_layer
-	).grid(row=4,column=4,sticky=Tk.SW)
-slider = Tk.Scale(root,
+Tk.Button(config_frame,text = "+",command = increment_layer
+	).grid(row=4,column=3,sticky=Tk.SW)
+slider = Tk.Scale(config_frame,
 	from_ = 0, 
 	to = int(sizestr.get())-1,
 	orient = Tk.HORIZONTAL,
-	length = 250,
+	length = 350,
 	width = 20,
 	variable = layernum
 #	command = parse_and_plot
 	)
-slider.grid(row=4,column=2,columnspan=2,sticky=Tk.W)
-Tk.Button(root,text = "-",command = decrement_layer
-	).grid(row=4,column=1,sticky=Tk.SE)
+slider.grid(row=4,column=1,columnspan=2,sticky=Tk.W)
+Tk.Button(config_frame,text = "-",command = decrement_layer
+	).grid(row=4,column=0,sticky=Tk.SE)
 
 Tk.Button(
-	root,
+	config_frame,
 	text = "Plot",
 	command = parse_and_plot
+	).grid(row=5,column=0,sticky=Tk.W)
+
+Tk.Button(
+	config_frame,
+	text = "Reparse",
+	command = force_plot
 	).grid(row=5,column=1,sticky=Tk.W)
 
 Tk.Button(
-	root,
-	text = "Reparse",
-	command = force_plot
-	).grid(row=5,column=2,sticky=Tk.W)
-
-Tk.Button(
-	root,
+	config_frame,
 	text = "Quit",
 	command = root.quit
-	).grid(row=5,column=3,sticky=Tk.W)
+	).grid(row=5,column=2,sticky=Tk.W)
 
 Tk.Checkbutton(
-	root,
+	config_frame,
 	text = "Show full volume",
 	variable = flag,
 	command = flag_changed
-	).grid(row=6,column=1,columnspan=2)
+	).grid(row=6,column=0,columnspan=2)
 
 Tk.Checkbutton(
-	root,
+	config_frame,
 	text = "Show circles",
 	variable = circleflag,
 	command = flag_changed
-	).grid(row=6,column=3)
+	).grid(row=6,column=2)
 
 Tk.Entry(
-	root,
+	config_frame,
 	textvariable = radiusmin,
 	width = 10
-	).grid(row=7,column=2,columnspan=1,sticky=Tk.W)
+	).grid(row=7,column=1,columnspan=1,sticky=Tk.W)
 Tk.Entry(
-	root,
+	config_frame,
 	textvariable = radiusmax,
 	width = 10
-	).grid(row=7,column=3,columnspan=1,sticky=Tk.W)
+	).grid(row=7,column=1,columnspan=1,sticky=Tk.W)
 
 parse_and_plot()
 
