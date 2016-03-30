@@ -23,10 +23,11 @@ cp src/config.ini results/conf_${j}.ini
 #printf "output_%.2d.raw\t(600,400)\t0.6\t\tSame as \`29', but tight support\n" $i
 #printf "output_%.2d.raw\t(600,400)\t0.6\t\tSame as \`29', but tight support\n" $i >> results/KEY
 echo Generating map
-./utils/gen_map results/output_${j}.raw 301 300.
+supp_fname=`grep support_fname src/config.ini|awk '{print $3}'`
+./utils/gen_map results/output_${j}.raw 301 300. $supp_fname
 cd data/maps
-phenix.map_to_structure_factors output_${j}.map.ccp4 d_min=2.01
-mv map_to_structure_factors.mtz output_${j}.mtz
+rm -f output_${j}.mtz
+phenix.map_to_structure_factors output_${j}.map.ccp4 d_min=2.3 output_file_name=output_${j}.mtz
 cd ..
 cd ..
 pwd
