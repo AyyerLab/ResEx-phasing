@@ -27,7 +27,7 @@ supp_fname=`grep support_fname src/config.ini|awk '{print $3}'`
 ./utils/gen_map results/output_${j}.raw 301 300. $supp_fname
 cd data/maps
 rm -f output_${j}.mtz
-phenix.map_to_structure_factors output_${j}.map.ccp4 d_min=2.3 output_file_name=output_${j}.mtz
+phenix.map_to_structure_factors output_${j}.map.ccp4 box=True output_file_name=output_${j}.mtz
 cd ..
 cd ..
 pwd
