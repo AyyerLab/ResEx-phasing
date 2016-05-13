@@ -35,32 +35,34 @@ supp_radius=3
 supp_thresh=10
 
 echo skip = $skip
+echo Log file: $log_name
+
 if [ $skip -eq 0 ]
 then
-	echo $log_name
-	echo ./utils/read_map $1 $res
-	./utils/read_map $1 $res &>$log_name
+	echo ./utils/read_map $1 $res | tee $log_name
+	./utils/read_map $1 $res &>> $log_name
 
-	echo ./utils/gen_fdens $padmodel $padsize
 	echo -------------------------------------------------------------------------------- >> $log_name
+	echo ./utils/gen_fdens $padmodel $padsize | tee -a $log_name
 	./utils/gen_fdens $padmodel $padsize &>> $log_name
 
-	echo ./utils/fstretch ${padnoext}-fdens.cpx $padsize $size $sx $sy $sz $strmodel
 	echo -------------------------------------------------------------------------------- >> $log_name
+	echo ./utils/fstretch ${padnoext}-fdens.cpx $padsize $size $sx $sy $sz $strmodel | tee -a $log_name
 	./utils/fstretch ${padnoext}-fdens.cpx $padsize $size $sx $sy $sz $strmodel &>> $log_name
 
-	echo ./utils/gen_dens $strmodel $size $lowresmodel_name
 	echo -------------------------------------------------------------------------------- >> $log_name
+	echo ./utils/gen_dens $strmodel $size $lowresmodel_name | tee -a $log_name
 	./utils/gen_dens $strmodel $size $lowresmodel_name &>> $log_name
 fi
 
 if [ $skip -lt 2 ]
 then
-	echo ./utils/create_support $lowresmodel_name $size $supp_radius $supp_thresh $supp_name
 	echo -------------------------------------------------------------------------------- >> $log_name
+	echo ./utils/create_support $lowresmodel_name $size $supp_radius $supp_thresh $supp_name | tee -a $log_name
 	./utils/create_support $lowresmodel_name $size $supp_radius $supp_thresh $supp_name &>> $log_name
 
-	echo Constraining lowresmodel by support
+	echo -------------------------------------------------------------------------------- >> $log_name
+	echo Constraining lowresmodel by support | tee -a $log_name
 	python <<-EOF
 	import numpy as np
 	m = np.fromfile('$lowresmodel_name', '=f4')
@@ -69,12 +71,12 @@ then
 	m.tofile('$supprecon_name')
 	EOF
 
-	echo ./utils/gen_fdens $lowresmodel_name $size data/${mapnoext}.cpx
 	echo -------------------------------------------------------------------------------- >> $log_name
+	echo ./utils/gen_fdens $lowresmodel_name $size data/${mapnoext}.cpx | tee -a $log_name
 	./utils/gen_fdens $lowresmodel_name $size data/${mapnoext}.cpx &>> $log_name
 
-	supp_name=data/${mapnoext}-$supp_radius.supp
-	echo ./utils/create_support $lowresmodel_name $size $supp_radius $supp_thresh $supp_name
 	echo -------------------------------------------------------------------------------- >> $log_name
+	supp_name=data/${mapnoext}-$supp_radius.supp
+	echo ./utils/create_support $lowresmodel_name $size $supp_radius $supp_thresh $supp_name | tee -a $log_name
 	./utils/create_support $lowresmodel_name $size $supp_radius $supp_thresh $supp_name &>> $log_name
 fi
