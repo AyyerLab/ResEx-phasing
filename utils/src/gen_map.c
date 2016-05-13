@@ -100,7 +100,7 @@ int main(int argc, char *argv[]) {
 	mean /= (float) num_supp ;
 	rms /= (float) num_supp ;
 	rms = sqrtf(rms - mean*mean) ;
-	fprintf(stderr, "Effective solvent fraction = %f\n", (double) 1. - num_supp / mvol) ;
+	fprintf(stderr, "Effective solvent fraction = %f\n", 1. - ((double) num_supp) / mvol) ;
 	fprintf(stderr, "max = %.6e, min = %.6e\n", max, min) ;
 	fprintf(stderr, "mean = %.6e, rms = %.6e\n", mean, rms) ;
 	
