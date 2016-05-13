@@ -44,10 +44,10 @@ int main(int argc, char *argv[]) {
 	}
 	else
 		return 1 ;
-	
+
+	// Reading map
+	// --------------------------------------------------------------------------------
 	fp = fopen(argv[1], "rb") ;
-//	voxres = 2200 / 3. ; // For Nov 2014 PCS data	
-//	voxres = 500. ; // For Oct 2015 Lorenzo merge
 	
 	// Grid size
 	fread(&nx, sizeof(int), 1, fp) ;
@@ -57,12 +57,30 @@ int main(int argc, char *argv[]) {
 	
 	// Mode
 	fread(&mode, sizeof(int), 1, fp) ;
-	fprintf(stderr, "Mode: %d (2 = float)\n", mode) ;
+	if (mode == 0)
+		fprintf(stderr, "Mode: (un)signed byte\n") ;
+	else if (mode == 1)
+		fprintf(stderr, "Mode: int16_t\n") ;
+	else if (mode == 2)
+		fprintf(stderr, "Mode: float32\n") ;
+	else if (mode == 3)
+		fprintf(stderr, "Mode: complex int16_t\n") ;
+	else if (mode == 4)
+		fprintf(stderr, "Mode: complex float32\n") ;
+	else if (mode == 6)
+		fprintf(stderr, "Mode: uint16_t\n") ;
+	else if (mode == 16)
+		fprintf(stderr, "Mode: RGB (3*uint8_t)\n") ;
 	
-	fseek(fp, 12, SEEK_CUR) ;
+//	fseek(fp, 12, SEEK_CUR) ;
+	int mx, my, mz ;
+	fread(&mx, sizeof(int), 1, fp) ;
+	fread(&my, sizeof(int), 1, fp) ;
+	fread(&mz, sizeof(int), 1, fp) ;
+	fprintf(stderr, "Starting indices: (%d, %d, %d)\n", mx, my, mz) ;
 	
 	// Grid size
-	int mx, my, mz ;
+//	int mx, my, mz ;
 	fread(&mx, sizeof(int), 1, fp) ;
 	fread(&my, sizeof(int), 1, fp) ;
 	fread(&mz, sizeof(int), 1, fp) ;
@@ -86,12 +104,24 @@ int main(int argc, char *argv[]) {
 	fread(&mapz, sizeof(int), 1, fp) ;
 	fprintf(stderr, "xyz -> abc mapping: (%d, %d, %d)\n", mapx, mapy, mapz) ;
 	
-	fseek(fp, 948, SEEK_CUR) ;
+	// Value properties
+	float min, max, mean ;
+	fread(&min, sizeof(float), 1, fp) ;
+	fread(&max, sizeof(float), 1, fp) ;
+	fread(&mean, sizeof(float), 1, fp) ;
 	
+	fseek(fp, 128, SEEK_CUR) ;
+	float rms ;
+	fread(&rms, sizeof(float), 1, fp) ;
+	fprintf(stderr, "min, max, mean, rms = (%.3f, %.3f, %.3f, %.3f)\n", min, max, mean, rms) ;
+	fseek(fp, 804, SEEK_CUR) ;
+	
+	// Voxels
 	model = malloc(nx*ny*nz* sizeof(float)) ;
 	fread(model, sizeof(float), nx*ny*nz, fp) ;
 	fclose(fp) ;
-	
+	// --------------------------------------------------------------------------------
+
 	sprintf(fname, "data/%s-map.raw", remove_ext(extract_fname(argv[1]))) ;
 	fprintf(stderr, "Saving model to %s\n", fname) ;
 	fp = fopen(fname, "wb") ;
@@ -121,13 +151,14 @@ int main(int argc, char *argv[]) {
 		for (x = 0 ; x < nx ; ++x)
 		for (y = 0 ; y < ny ; ++y)
 		for (z = 0 ; z < nz ; ++z)
-			padmodel[(z+shz)*psize*psize + (y+shy)*psize + (x+shx)]
-			 = model[x*ny*nz + y*nz + z] ;
+			padmodel[(x+shx)*psize*psize + (y+shy)*psize + (z+shz)]
+//			 = model[x*ny*nz + y*nz + z] ;
+			 = model[((x+nx/2)%nx)*ny*nz + ((y+ny/2)%ny)*nz + ((z+nz/2)%nz)] ;
 	}
 	else {
-		for (z = 0 ; z < nz ; ++z)
-		for (y = 0 ; y < ny ; ++y)
 		for (x = 0 ; x < nx ; ++x)
+		for (y = 0 ; y < ny ; ++y)
+		for (z = 0 ; z < nz ; ++z)
 			padmodel[(x+shx)*psize*psize + (y+shy)*psize + (z+shz)]
 //			 = model[z*ny*nx + y*nx + x] ;
 			 = model[((z+nz/2)%nz)*ny*nx + ((y+ny/2)%ny)*nx + ((x+nx/2)%nx)] ;
