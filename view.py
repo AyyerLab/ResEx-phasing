@@ -204,7 +204,7 @@ def save_plot(event=None):
 	print "Saved to", imagename.get()
 
 def quit_(event=None):
-	root.destroy()
+	root.quit()
 
 # Tk GUI
 root.bind('<Return>', parse_and_plot)
@@ -311,7 +311,7 @@ Tk.Checkbutton(
 	text = "Show circles",
 	variable = circleflag,
 	command = flag_changed
-	).grid(row=6,column=2)
+	).grid(row=6,column=1)
 
 Tk.Entry(
 	config_frame,
@@ -322,7 +322,7 @@ Tk.Entry(
 	config_frame,
 	textvariable = radiusmax,
 	width = 10
-	).grid(row=7,column=1,columnspan=1,sticky=Tk.W)
+	).grid(row=7,column=2,columnspan=1,sticky=Tk.W)
 
 parse_and_plot()
 
