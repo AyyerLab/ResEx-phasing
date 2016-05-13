@@ -311,7 +311,7 @@ Tk.Checkbutton(
 	text = "Show circles",
 	variable = circleflag,
 	command = flag_changed
-	).grid(row=6,column=1)
+	).grid(row=6,column=2)
 
 Tk.Entry(
 	config_frame,
