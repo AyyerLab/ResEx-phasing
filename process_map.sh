@@ -1,9 +1,15 @@
 #!/bin/zsh
 
-if [ $# -lt 2 ]
+if [ $# -lt 3 ]
 then
 	echo Format: $0 map size res_at_edge
 	exit
+fi
+
+skip=0
+if [ $# -gt 3 ]
+then
+	skip=$4
 fi
 
 size=$2
@@ -13,11 +19,7 @@ res=$(( 1. * res_at_edge * rad ))
 
 map_name=`basename $1`
 mapnoext="${map_name%.*}"
-log_name=${mapnoext}.log
-
-echo $log_name
-echo ./utils/read_map $1 $res
-./utils/read_map $1 $res &>$log_name
+log_name=results/${mapnoext}.log
 
 sx=`grep Stretch $log_name|awk -F'[=,()]' '{print $3}'`
 sy=`grep Stretch $log_name|awk -F'[=,()]' '{print $4}'`
@@ -29,38 +31,50 @@ strmodel=data/${mapnoext}-str.cpx
 lowresmodel_name=data/${mapnoext}-recon.raw
 supp_name=data/${mapnoext}-3.supp
 supprecon_name=data/${mapnoext}-srecon.raw
+supp_radius=3
+supp_thresh=10
 
-echo ./utils/gen_fdens $padmodel $padsize
-echo -------------------------------------------------------------------------------- >> $log_name
-./utils/gen_fdens $padmodel $padsize &>> $log_name
+echo skip = $skip
+if [ $skip -eq 0 ]
+then
+	echo $log_name
+	echo ./utils/read_map $1 $res
+	./utils/read_map $1 $res &>$log_name
 
-echo ./utils/fstretch ${padnoext}-fdens.cpx $padsize $size $sx $sy $sz $strmodel
-echo -------------------------------------------------------------------------------- >> $log_name
-./utils/fstretch ${padnoext}-fdens.cpx $padsize $size $sx $sy $sz $strmodel &>> $log_name
+	echo ./utils/gen_fdens $padmodel $padsize
+	echo -------------------------------------------------------------------------------- >> $log_name
+	./utils/gen_fdens $padmodel $padsize &>> $log_name
 
-echo ./utils/gen_dens $strmodel $size $lowresmodel_name
-echo -------------------------------------------------------------------------------- >> $log_name
-./utils/gen_dens $strmodel $size $lowresmodel_name &>> $log_name
+	echo ./utils/fstretch ${padnoext}-fdens.cpx $padsize $size $sx $sy $sz $strmodel
+	echo -------------------------------------------------------------------------------- >> $log_name
+	./utils/fstretch ${padnoext}-fdens.cpx $padsize $size $sx $sy $sz $strmodel &>> $log_name
 
-echo ./utils/create_support $lowresmodel_name $size 3. 1 $supp_name
-echo -------------------------------------------------------------------------------- >> $log_name
-./utils/create_support $lowresmodel_name $size 3. 1 $supp_name &>> $log_name
+	echo ./utils/gen_dens $strmodel $size $lowresmodel_name
+	echo -------------------------------------------------------------------------------- >> $log_name
+	./utils/gen_dens $strmodel $size $lowresmodel_name &>> $log_name
+fi
 
-echo Constraining lowresmodel by support
-python << EOF
-import numpy as np
-m = np.fromfile('$lowresmodel_name', '=f4')
-s = np.fromfile('$supp_name', '=u1')
-m *= s
-m.tofile('$supprecon_name')
-EOF
+if [ $skip -lt 2 ]
+then
+	echo ./utils/create_support $lowresmodel_name $size $supp_radius $supp_thresh $supp_name
+	echo -------------------------------------------------------------------------------- >> $log_name
+	./utils/create_support $lowresmodel_name $size $supp_radius $supp_thresh $supp_name &>> $log_name
 
-echo ./utils/gen_fdens $lowresmodel_name $size data/${mapnoext}.cpx
-echo -------------------------------------------------------------------------------- >> $log_name
-./utils/gen_fdens $lowresmodel_name $size data/${mapnoext}.cpx &>> $log_name
+	echo Constraining lowresmodel by support
+	python <<-EOF
+	import numpy as np
+	m = np.fromfile('$lowresmodel_name', '=f4')
+	s = np.fromfile('$supp_name', '=u1')
+	m *= s
+	m.tofile('$supprecon_name')
+	EOF
 
-supp_name=data/${mapnoext}-3.supp
-echo ./utils/create_support $lowresmodel_name $size 3 1 $supp_name
-echo -------------------------------------------------------------------------------- >> $log_name
-./utils/create_support $lowresmodel_name $size 3 1 $supp_name &>> $log_name
+	echo ./utils/gen_fdens $lowresmodel_name $size data/${mapnoext}.cpx
+	echo -------------------------------------------------------------------------------- >> $log_name
+	./utils/gen_fdens $lowresmodel_name $size data/${mapnoext}.cpx &>> $log_name
 
+	supp_name=data/${mapnoext}-$supp_radius.supp
+	echo ./utils/create_support $lowresmodel_name $size $supp_radius $supp_thresh $supp_name
+	echo -------------------------------------------------------------------------------- >> $log_name
+	./utils/create_support $lowresmodel_name $size $supp_radius $supp_thresh $supp_name &>> $log_name
+fi
