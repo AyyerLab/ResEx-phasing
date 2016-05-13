@@ -52,9 +52,6 @@ int main(int argc, char *argv[]) {
 			average_model(p1, average) ;
 		}
 
-		//if (iter == 100 || iter == 150)
-		//	apply_shrinkwrap(p1, 1.5, 0.2) ;
-		
 		gettimeofday(&t2, NULL) ;
 		fp = fopen("PHASING.log", "a") ;
 		fprintf(fp, "%.4d\t%.2f s\t%f\n", 
@@ -62,15 +59,6 @@ int main(int argc, char *argv[]) {
 			(double)(t2.tv_sec - t1.tv_sec) + (t2.tv_usec - t1.tv_usec) / 1000000.,
 			error) ;
 		fclose(fp) ;
-		
-		if (iter % 20 == 0) {
-			fp = fopen("data/interm_s.raw", "w") ;
-			fwrite(p1, sizeof(float), vol, fp) ;
-			fclose(fp) ;
-			fp = fopen("data/interm_m.raw", "w") ;
-			fwrite(p2, sizeof(float), vol, fp) ;
-			fclose(fp) ;
-		}
 	}
 	
 	fprintf(stderr, "\nCalculating prtf and writing to file.\n") ;
