@@ -26,3 +26,6 @@ rscript.sh
 *.bin
 *.raw
 *.h5
+
+# External files
+*DS_Store
