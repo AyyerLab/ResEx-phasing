@@ -72,8 +72,8 @@ then
 	EOF
 
 	echo -------------------------------------------------------------------------------- >> $log_name
-	echo ./utils/gen_fdens $lowresmodel_name $size data/${mapnoext}.cpx | tee -a $log_name
-	./utils/gen_fdens $lowresmodel_name $size data/${mapnoext}.cpx &>> $log_name
+	echo ./utils/gen_fdens $supprecon_name $size data/${mapnoext}.cpx | tee -a $log_name
+	./utils/gen_fdens $supprecon_name $size data/${mapnoext}.cpx &>> $log_name
 
 	echo -------------------------------------------------------------------------------- >> $log_name
 	supp_name=data/${mapnoext}-$supp_radius.supp
