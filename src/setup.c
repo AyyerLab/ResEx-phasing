@@ -158,7 +158,7 @@ int parse_intens(char *fname, float scale) {
 
 int parse_bragg(char *fname, double braggqmax) {
 	long x, y, z, c = size/2 ;
-	double dist, c2 = c*c ;
+	double distsq, c2 = c*c ;
 	
 	FILE *fp = fopen(fname, "r") ;
 	if (fp == NULL) {
@@ -174,13 +174,14 @@ int parse_bragg(char *fname, double braggqmax) {
 	for (x = 0 ; x < size ; ++x)
 	for (y = 0 ; y < size ; ++y)
 	for (z = 0 ; z < size ; ++z) {
-		dist = ((x-c)*(x-c) + (y-c)*(y-c) + (z-c)*(z-c)) / c2 ;
+		distsq = ((x-c)*(x-c) + (y-c)*(y-c) + (z-c)*(z-c)) / c2 ;
 		
-		if (dist < braggqmax*braggqmax) 
+		if (distsq < braggqmax*braggqmax) 
+			// Move (q=0) from center to corner
 			bragg_calc[((x+c+1)%size)*size*size + ((y+c+1)%size)*size + ((z+c+1)%size)] 
-//			 = bragg_temp[z*size*size + y*size + x] // Reversing axes
 			 = bragg_temp[x*size*size + y*size + z] 
-			   * powf(-1.f, x-c+y-c+z-c) ;
+//			   * powf(-1.f, x-c+y-c+z-c) ;
+			   * cexpf(I * 2. * M_PI * (x-c+y-c+z-c) * c / size) ;
 		else
 			bragg_calc[((x+c+1)%size)*size*size + ((y+c+1)%size)*size + ((z+c+1)%size)] = FLT_MAX ;
 	}
