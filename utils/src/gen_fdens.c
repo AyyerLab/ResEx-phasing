@@ -89,10 +89,10 @@ int main(int argc, char *argv[]) {
 	for (x = 0 ; x < size ; ++x)
 	for (y = 0 ; y < size ; ++y)
 	for (z = 0 ; z < size ; ++z)
-		temp[x*size*size + y*size + z] = 0.25 * (pow(cabsf(rdensity[x*size*size + y*size + z]), 2.) + 
-		                                         pow(cabsf(rdensity[x*size*size + y*size + (2*c-z)]), 2.) +
-		                                         pow(cabsf(rdensity[x*size*size + (2*c-y)*size + z]), 2.) +
-		                                         pow(cabsf(rdensity[x*size*size + (2*c-y)*size + (2*c-z)]), 2.)) ;
+		temp[x*size*size + y*size + z] = 0.25 * (powf(cabsf(rdensity[x*size*size + y*size + z]), 2.f) +
+		                                         powf(cabsf(rdensity[x*size*size + y*size + (2*c-z)]), 2.f) +
+		                                         powf(cabsf(rdensity[x*size*size + (2*c-y)*size + z]), 2.f) +
+		                                         powf(cabsf(rdensity[x*size*size + (2*c-y)*size + (2*c-z)]), 2.f)) ;
 	
 	// Write symmetrized intensities to file
 	fp = fopen(symfname, "wb") ;
