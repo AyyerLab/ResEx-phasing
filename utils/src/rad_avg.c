@@ -26,8 +26,8 @@ int main(int argc, char *argv[]) {
 	
 	vol = size*size*size ;
 	c = size / 2 ;
-	num_bins = 100 ;
-	binsize = (float) c / num_bins + 1 ;
+	num_bins = size ;
+	binsize = 1. ;
 	
 	model = malloc(vol * sizeof(float)) ;
 	bin = malloc(vol * sizeof(int)) ;
@@ -59,9 +59,16 @@ int main(int argc, char *argv[]) {
 	for (x = 0 ; x < vol ; ++x)
 		model[x] = rad_avg[bin[x]] ;
 	
-	sprintf(fname, "%s_avg.raw", remove_ext(argv[1])) ;
+/*	sprintf(fname, "%s_avg.raw", remove_ext(argv[1])) ;
 	fp = fopen(fname, "wb") ;
 	fwrite(model, sizeof(float), vol, fp) ;
+	fclose(fp) ;
+*/	
+	sprintf(fname, "%s_avg.dat", remove_ext(argv[1])) ;
+	fp = fopen(fname, "w") ;
+	for (x = 0 ; x < num_bins ; ++x)
+	if (count[x] > 0)
+		fprintf(fp, "%ld\t%.6e\n", x, rad_avg[x]) ;
 	fclose(fp) ;
 	
 	free(model) ;

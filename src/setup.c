@@ -9,25 +9,54 @@ int gen_input(char*, int) ;
 int parse_quat(char*) ;
 
 int setup() {
-	char var_name[500], input_fname[500] ;
+	char line[999], *token ;
+	char input_fname[500] ;
 	char intens_fname[500], bragg_fname[500], support_fname[500], wisdom_fname[500] ;
-	double braggqmax ;
-	float scale_factor ;
+	double bragg_qmax = 0. ;
+	float scale_factor = 0. ;
+	int num_threads = -1 ;
 	
-	FILE *fp = fopen("src/config.conf", "r") ;
+	size = 0 ;
+	
+	FILE *fp = fopen("src/config.ini", "r") ;
 	if (fp == NULL) {
-		fprintf(stderr, "Config file not found\n") ;
+		fprintf(stderr, "Config file not found.\n") ;
 		return 1 ;
 	}
-	fgets(var_name, 500, fp) ; fscanf(fp, "%ld\n", &size) ;
-	fgets(var_name, 500, fp) ; fscanf(fp, "%s\n", intens_fname) ;
-	fgets(var_name, 500, fp) ; fscanf(fp, "%s\n", bragg_fname) ;
-	fgets(var_name, 500, fp) ; fscanf(fp, "%s\n", support_fname) ;
-	fgets(var_name, 500, fp) ; fscanf(fp, "%s\n", input_fname) ;
-	fgets(var_name, 500, fp) ; fscanf(fp, "%s\n", wisdom_fname) ;
-	fgets(var_name, 500, fp) ; fscanf(fp, "%lf\n", &braggqmax) ;
-	fgets(var_name, 500, fp) ; fscanf(fp, "%f\n", &scale_factor) ;
-	fclose(fp) ;
+	while (fgets(line, 999, fp) != NULL) {
+		token = strtok(line, " =") ;
+		if (token[0] == '#' || token[0] == '\n' || token[0] == '[')
+			continue ;
+		
+		if (strcmp(token, "size") == 0)
+			size = atoi(strtok(NULL, " =\n")) ;
+		else if (strcmp(token, "bragg_qmax") == 0)
+			bragg_qmax = atof(strtok(NULL, " =\n")) ;
+		else if (strcmp(token, "scale_factor") == 0)
+			scale_factor = atof(strtok(NULL, " =\n")) ;
+		else if (strcmp(token, "intens_fname") == 0)
+			strcpy(intens_fname, strtok(NULL, " =\n")) ;
+		else if (strcmp(token, "bragg_fname") == 0)
+			strcpy(bragg_fname, strtok(NULL, " =\n")) ;
+		else if (strcmp(token, "input_fname") == 0)
+			strcpy(input_fname, strtok(NULL, " =\n")) ;
+		else if (strcmp(token, "support_fname") == 0)
+			strcpy(support_fname, strtok(NULL, " =\n")) ;
+		else if (strcmp(token, "num_threads") == 0)
+			num_threads = atoi(strtok(NULL, " =\n")) ;
+	}
+	
+	if (size == 0) {
+		fprintf(stderr, "Need nonzero size in config file\n") ;
+		return 1 ;
+	}
+	else if (size%2 == 0)
+		fprintf(stderr, "size = %ld is even. An odd number is preferred.\n", size) ;
+	
+	if (num_threads == -1)
+		num_threads = omp_get_max_threads() ;
+	sprintf(wisdom_fname, "data/wisdom_%ld_%d", size, num_threads) ;
+	
 	fprintf(stderr, "Scale factor = %f\n", scale_factor) ;
 	
 	vol = size*size*size ;
@@ -38,7 +67,7 @@ int setup() {
 		return 1 ;
 	if (parse_intens(intens_fname, scale_factor))
 		return 1 ;
-	if (parse_bragg(bragg_fname, braggqmax))
+	if (parse_bragg(bragg_fname, bragg_qmax))
 		return 1 ;
 	if (parse_support(support_fname))
 		return 1 ;
@@ -88,6 +117,7 @@ int allocate_memory(int flag) {
 		p1 = malloc(vol * sizeof(float)) ;
 		p2 = malloc(vol * sizeof(float)) ;
 		r1 = malloc(vol * sizeof(float)) ;
+		r2 = malloc(vol * sizeof(float)) ; // for beta != 1
 	}
 	
 	rdensity = fftwf_malloc(vol * sizeof(fftwf_complex)) ;
@@ -134,7 +164,7 @@ int parse_intens(char *fname, float scale) {
 
 int parse_bragg(char *fname, double braggqmax) {
 	long x, y, z, c = size/2 ;
-	double dist, c2 = c*c ;
+	double distsq, c2 = c*c ;
 	
 	FILE *fp = fopen(fname, "r") ;
 	if (fp == NULL) {
@@ -150,13 +180,13 @@ int parse_bragg(char *fname, double braggqmax) {
 	for (x = 0 ; x < size ; ++x)
 	for (y = 0 ; y < size ; ++y)
 	for (z = 0 ; z < size ; ++z) {
-		dist = ((x-c)*(x-c) + (y-c)*(y-c) + (z-c)*(z-c)) / c2 ;
+		distsq = ((x-c)*(x-c) + (y-c)*(y-c) + (z-c)*(z-c)) / c2 ;
 		
-		if (dist < braggqmax*braggqmax) 
+		if (distsq < braggqmax*braggqmax) 
+			// Move (q=0) from center to corner
 			bragg_calc[((x+c+1)%size)*size*size + ((y+c+1)%size)*size + ((z+c+1)%size)] 
-//			 = bragg_temp[z*size*size + y*size + x] // Reversing axes
 			 = bragg_temp[x*size*size + y*size + z] 
-			   * powf(-1.f, x-c+y-c+z-c) ;
+			   * cexpf(-I * 2. * M_PI * (x-c+y-c+z-c) * c / size) ;
 		else
 			bragg_calc[((x+c+1)%size)*size*size + ((y+c+1)%size)*size + ((z+c+1)%size)] = FLT_MAX ;
 	}

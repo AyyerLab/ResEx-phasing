@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <locale.h>
 #include <math.h>
+#include <locale.h>
 
 int main(int argc, char *argv[]) {
 	long x, y, z, size, c, vol, num_vox = 0 ;
@@ -17,7 +18,7 @@ int main(int argc, char *argv[]) {
 	rmin = atof(argv[4]) ;
 	rmax = atof(argv[5]) ;
 	
-	setlocale(LC_ALL, "") ;
+	setlocale(LC_ALL, "C") ; // For commas in large integers
 	c = size / 2 ;
 	vol = size*size*size ;
 	
@@ -30,7 +31,6 @@ int main(int argc, char *argv[]) {
 	// Calculate magnitude
 	for (x = 0 ; x < vol ; ++x)
 		model_mag[x] = sqrt(model_mag[x]) ;
-	
 	
 	// Parse experimental merge
 	obs_mag = malloc(vol * sizeof(float)) ;
@@ -50,6 +50,8 @@ int main(int argc, char *argv[]) {
 		rsq = (x-c)*(x-c) + (y-c)*(y-c) + (z-c)*(z-c) ;
 		
 		if (rsq > rmin*rmin && rsq < rmax*rmax && obs_mag[x*size*size + y*size + z] > 0.) {
+//			dot += model_mag[x*size*size + y*size + z] ;
+//			normsq += obs_mag[x*size*size + y*size + z] ;
 			dot += obs_mag[x*size*size + y*size + z] * model_mag[x*size*size + y*size + z] ;
 			normsq += pow(obs_mag[x*size*size + y*size + z], 2.) ;
 			num_vox++ ;

@@ -75,12 +75,15 @@ int main(int argc, char* argv[]) {
 	fprintf(stderr, "Calculated support with %ld voxels\n", num_supp) ;
 	
 	// Write to file
-	if (argc > 5)
+	if (argc > 5) {
 		fp = fopen(argv[5], "wb") ;
+		fprintf(stderr, "Writing support to %s\n", argv[5]) ;
+	}
 	else {
 		char fname[999] ;
 		sprintf(fname, "data/support_%ld.supp", size) ;
 		fp = fopen(fname, "wb") ;
+		fprintf(stderr, "Writing support to %s\n", fname) ;
 	}
 	fwrite(support, sizeof(uint8_t), vol, fp) ;
 	fclose(fp) ;

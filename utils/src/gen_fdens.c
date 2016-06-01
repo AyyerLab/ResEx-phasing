@@ -18,7 +18,7 @@ int main(int argc, char *argv[]) {
 	fftwf_complex *fdensity, *rdensity ;
 	float *temp ;
 	FILE *fp ;
-	char fname[999] ;
+	char fname[999], symfname[999] ;
 	fftwf_plan forward ;
 	
 	if (argc < 3) {
@@ -72,7 +72,14 @@ int main(int argc, char *argv[]) {
 		  = fdensity[x*size*size + y*size + z] ; 
 	
 	// Write complex array to file
-	sprintf(fname, "%s-fdens.cpx", remove_ext(argv[1])) ;
+	if (argc > 3) {
+		strcpy(fname, argv[3]) ;
+		sprintf(symfname, "%s-sym.raw", remove_ext(fname)) ;
+	}
+	else {
+		sprintf(fname, "%s-fdens.cpx", remove_ext(argv[1])) ;
+		sprintf(symfname, "%s-fdens-sym.raw", remove_ext(argv[1])) ;
+	}
 	fp = fopen(fname, "wb") ;
 	fwrite(rdensity, sizeof(fftwf_complex), vol, fp) ;
 	fclose(fp) ;
@@ -82,14 +89,13 @@ int main(int argc, char *argv[]) {
 	for (x = 0 ; x < size ; ++x)
 	for (y = 0 ; y < size ; ++y)
 	for (z = 0 ; z < size ; ++z)
-		temp[x*size*size + y*size + z] = 0.25 * (pow(cabsf(rdensity[x*size*size + y*size + z]), 2.) + 
-		                                         pow(cabsf(rdensity[x*size*size + y*size + (2*c-z)]), 2.) +
-		                                         pow(cabsf(rdensity[x*size*size + (2*c-y)*size + z]), 2.) +
-		                                         pow(cabsf(rdensity[x*size*size + (2*c-y)*size + (2*c-z)]), 2.)) ;
+		temp[x*size*size + y*size + z] = 0.25 * (powf(cabsf(rdensity[x*size*size + y*size + z]), 2.f) +
+		                                         powf(cabsf(rdensity[x*size*size + y*size + (2*c-z)]), 2.f) +
+		                                         powf(cabsf(rdensity[x*size*size + (2*c-y)*size + z]), 2.f) +
+		                                         powf(cabsf(rdensity[x*size*size + (2*c-y)*size + (2*c-z)]), 2.f)) ;
 	
 	// Write symmetrized intensities to file
-	sprintf(fname, "%s-fdens-sym.raw", remove_ext(argv[1])) ;
-	fp = fopen(fname, "wb") ;
+	fp = fopen(symfname, "wb") ;
 	fwrite(temp, sizeof(float), vol, fp) ;
 	fclose(fp) ;
 	

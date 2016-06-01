@@ -55,7 +55,7 @@ int main(int argc, char *argv[]) {
 	}
 	fprintf(stderr, "Zeroed outer voxels and set inner voxels to be negative\n") ;
 	
-	sprintf(fname, "%s_zero.raw", remove_ext(argv[1])) ;
+	sprintf(fname, "%s-zero.raw", remove_ext(argv[1])) ;
 	fprintf(stderr, "%s\n", fname) ;
 	fp = fopen(fname, "wb") ;
 	fwrite(model, sizeof(float), size*size*size, fp) ;
