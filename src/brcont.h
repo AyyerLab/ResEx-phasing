@@ -14,7 +14,7 @@
 
 int iter ;
 long size, vol, num_supp ;
-float *iterate, *obs_mag, *exp_mag, *p1, *p2, *r1 ;
+float *iterate, *obs_mag, *exp_mag, *p1, *p2, *r1, *r2 ;
 long *support ;
 fftwf_complex *fdensity, *rdensity ;
 float complex *bragg_calc ;

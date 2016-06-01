@@ -48,6 +48,7 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "\rFinished %d/%d iterations. ", iter, num_iter) ;
 		
 		if (iter >= start_ave) {
+//			fprintf(stderr, "Doing ER. ") ;
 			fprintf(stderr, "Now averaging. ") ;
 			average_model(p1, average) ;
 		}
