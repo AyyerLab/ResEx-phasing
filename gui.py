@@ -142,11 +142,14 @@ class GUI():
         ttk.Label(line,text="Res. at edge (A):").pack(side=Tk.LEFT)
         ttk.Entry(line,textvariable=self.resedge,width=5).pack(side=Tk.LEFT)
         ttk.Button(line,text="Process Map",command=self.process_map).pack(side=Tk.LEFT)
+        ttk.Button(line,text='Reset',command=self.reset_map_tab).pack(side=Tk.LEFT)
 
     def reset_map_tab(self, event=None):
+        self.processed_map = True
         self.map_frame.destroy()
         self.gen_map_tab()
         self.notebook.insert(1, self.map_frame)
+        self.notebook.select(self.notebook.tabs()[1])
 
     def gen_merge_tab(self):
         self.merge_frame = ttk.Frame(self.notebook)
@@ -348,13 +351,11 @@ class GUI():
 
     def process_map(self, event=None):
         mapnoext = os.path.splitext(os.path.basename(self.map_fname.get()))[0]
-        if self.processed_map:
-            if not tkMessageBox.askyesno('Process Map', 'Already processed. Try again?', default=tkMessageBox.NO, icon=tkMessageBox.QUESTION, parent=self.merge_frame):
-                return
         if os.path.isfile('data/'+mapnoext+'.cpx'):
             if not tkMessageBox.askyesno('Process Map', 'Found processed map output. Overwrite?', default=tkMessageBox.NO, icon=tkMessageBox.QUESTION, parent=self.merge_frame):
+                if self.processed_map:
+                    self.add_to_map_frame(mapnoext)
                 self.processed_map = True
-                self.add_to_map_frame(mapnoext)
                 return
         if self.resedge.get() is '':
             print 'Need resolution at edge of volume'
