@@ -49,10 +49,10 @@ int main(int argc, char *argv[]) {
 		rsq = (x-c)*(x-c) + (y-c)*(y-c) + (z-c)*(z-c) ;
 		
 		if (rsq > rmin*rmin && rsq < rmax*rmax && obs_mag[x*size*size + y*size + z] > 0.) {
-			dot += obs_mag[x*size*size + y*size + z] ;
-			normsq += model_mag[x*size*size + y*size + z] ;
-//			dot += obs_mag[x*size*size + y*size + z] * model_mag[x*size*size + y*size + z] ;
-//			normsq += pow(obs_mag[x*size*size + y*size + z], 2.) ;
+//			dot += model_mag[x*size*size + y*size + z] ;
+//			normsq += obs_mag[x*size*size + y*size + z] ;
+			dot += obs_mag[x*size*size + y*size + z] * model_mag[x*size*size + y*size + z] ;
+			normsq += pow(obs_mag[x*size*size + y*size + z], 2.) ;
 			num_vox++ ;
 		}
 	}
