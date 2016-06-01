@@ -56,7 +56,7 @@ def parse_extension(filename):
 	if ext_string == '.raw':
 		typestr = 'f4'
 		typesize = 4
-		rangemax = 1e1
+		rangemax = 1e2
 	elif ext_string == '.bin':
 		typestr = 'f8'
 		typesize = 8
