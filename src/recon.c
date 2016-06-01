@@ -68,7 +68,7 @@ int main(int argc, char *argv[]) {
 		average[i] /= (num_iter - start_ave + 1) ;
 //		average[i] = iterate[i] ;
 	
-	fp = fopen("data/brecon.raw", "wb") ;
+	fp = fopen("data/recon.raw", "wb") ;
 	fwrite(average, sizeof(float), vol, fp) ;
 	fclose(fp) ;
 	
