@@ -8,15 +8,15 @@
 int main(int argc, char *argv[]) {
 	long size, vol ;
 	float *model, *pmodel ;
-	double rescale ;
+	double target ;
 	FILE *fp ;
 	
 	if (argc < 5) {
-		fprintf(stderr, "Format: %s <model_fname> <size> <rescale> <out_fname>\n", argv[0]) ;
+		fprintf(stderr, "Format: %s <model_fname> <size> <target_count_at_edge> <out_fname>\n", argv[0]) ;
 		return 1 ;
 	}
 	size = atoi(argv[2]) ;
-	rescale = atof(argv[3]) ;
+	target = atof(argv[3]) ;
 	
 	vol = size*size*size ;
 	gsl_rng_env_setup() ;
@@ -32,39 +32,46 @@ int main(int argc, char *argv[]) {
 	pmodel = malloc(vol * sizeof(float)) ;
 	#pragma omp parallel default(shared)
 	{
-		int rank = omp_get_thread_num() ;
-		long x, y, z, c = size / 2 ;
-		double val, dist, multip ;
+		long x, y, z, c = size / 2, num_vox = 0 ;
+		double val, dist, multip, rescale ;
 		const gsl_rng_type *T ;
 		gsl_rng *rng ;
 		T = gsl_rng_default ;
 		rng = gsl_rng_alloc(T) ;
 		
-		#pragma omp for schedule(static,1)
-		for (x = 0 ; x < size ; ++x) {
-			for (y = 0 ; y < size ; ++y)
-			for (z = 0 ; z < size ; ++z) {
-				dist = sqrt((x-c)*(x-c) + (y-c)*(y-c) + (z-c)*(z-c)) ;
-				
-				if (dist == 0.)
-					multip = 293.33 ;
-				else
-					multip = 293.33 / dist ;
-				
-				val = model[x*size*size + y*size + z] * rescale * multip ;
-				if (val > 100.)
-					pmodel[x*size*size + y*size + z] = (val + gsl_ran_gaussian(rng, sqrt(val))) / multip ;
-				else
-					pmodel[x*size*size + y*size + z] = gsl_ran_poisson(rng, val) / multip ;
+		val = 0. ;
+		for (x = 0 ; x < size ; ++x)
+		for (y = 0 ; y < size ; ++y)
+		for (z = 0 ; z < size ; ++z) {
+			dist = sqrt((x-c)*(x-c) + (y-c)*(y-c) + (z-c)*(z-c)) ;
+			if ((int) dist == c) {
+				val += model[x*size*size + y*size + z] ;
+				num_vox++ ;
 			}
+		}
+		
+		rescale = target / (val / num_vox) ;
+		
+		#pragma omp for schedule(static,1)
+		for (x = 0 ; x < size ; ++x)
+		for (y = 0 ; y < size ; ++y)
+		for (z = 0 ; z < size ; ++z) {
+			dist = sqrt((x-c)*(x-c) + (y-c)*(y-c) + (z-c)*(z-c)) ;
 			
-			if (rank == 0)
-				fprintf(stderr, "\r%ld/%ld", x, size) ;
+			if (dist == 0.)
+				multip = c ;
+			else
+				multip = c / dist ;
+			
+			val = model[x*size*size + y*size + z] * rescale * multip ;
+			if (val > 100.)
+				pmodel[x*size*size + y*size + z] = (val + gsl_ran_gaussian(rng, sqrt(val))) / multip ;
+			else
+				pmodel[x*size*size + y*size + z] = gsl_ran_poisson(rng, val) / multip ;
 		}
 		
 		gsl_rng_free(rng) ;
 	}
-	fprintf(stderr, "\n") ;
 	
 	// Save sampled model
 	fp = fopen(argv[4], "wb") ;
