@@ -14,6 +14,7 @@ int setup() {
 	char intens_fname[500], bragg_fname[500], support_fname[500], wisdom_fname[500] ;
 	double bragg_qmax = 0. ;
 	float scale_factor = 0. ;
+	int num_threads = -1 ;
 	
 	size = 0 ;
 	
@@ -41,8 +42,8 @@ int setup() {
 			strcpy(input_fname, strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "support_fname") == 0)
 			strcpy(support_fname, strtok(NULL, " =\n")) ;
-		else if (strcmp(token, "wisdom_fname") == 0)
-			strcpy(wisdom_fname, strtok(NULL, " =\n")) ;
+		else if (strcmp(token, "num_threads") == 0)
+			num_threads = atoi(strtok(NULL, " =\n")) ;
 	}
 	
 	if (size == 0) {
@@ -51,6 +52,10 @@ int setup() {
 	}
 	else if (size%2 == 0)
 		fprintf(stderr, "size = %ld is even. An odd number is preferred.\n", size) ;
+	
+	if (num_threads == -1)
+		num_threads = omp_get_max_threads() ;
+	sprintf(wisdom_fname, "data/wisdom_%ld_%d", size, num_threads) ;
 	
 	fprintf(stderr, "Scale factor = %f\n", scale_factor) ;
 	
@@ -112,6 +117,7 @@ int allocate_memory(int flag) {
 		p1 = malloc(vol * sizeof(float)) ;
 		p2 = malloc(vol * sizeof(float)) ;
 		r1 = malloc(vol * sizeof(float)) ;
+		r2 = malloc(vol * sizeof(float)) ; // for beta != 1
 	}
 	
 	rdensity = fftwf_malloc(vol * sizeof(fftwf_complex)) ;
@@ -180,8 +186,7 @@ int parse_bragg(char *fname, double braggqmax) {
 			// Move (q=0) from center to corner
 			bragg_calc[((x+c+1)%size)*size*size + ((y+c+1)%size)*size + ((z+c+1)%size)] 
 			 = bragg_temp[x*size*size + y*size + z] 
-//			   * powf(-1.f, x-c+y-c+z-c) ;
-			   * cexpf(I * 2. * M_PI * (x-c+y-c+z-c) * c / size) ;
+			   * cexpf(-I * 2. * M_PI * (x-c+y-c+z-c) * c / size) ;
 		else
 			bragg_calc[((x+c+1)%size)*size*size + ((y+c+1)%size)*size + ((z+c+1)%size)] = FLT_MAX ;
 	}
