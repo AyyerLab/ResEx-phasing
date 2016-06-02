@@ -6,28 +6,36 @@ then
 	exit
 fi
 
+size=$2
+res_at_edge=$3
+rad=$(( size / 2 ))
+res=$(( 1. * res_at_edge * rad ))
+supp_radius=3
+supp_thresh=10
+
 skip=0
 if [ $# -gt 3 ]
 then
 	skip=$4
 fi
 
-size=$2
-res_at_edge=$3
-rad=$(( size / 2 ))
-res=$(( 1. * res_at_edge * rad ))
+if [ $# -gt 4 ]
+then
+	supp_radius=$5
+	supp_thresh=$6
+	echo supp_radius = $supp_radius supp_thresh = $supp_thresh
+fi
 
 map_name=`basename $1`
 mapnoext="${map_name%.*}"
 log_name=results/${mapnoext}.log
 echo Log file: $log_name
+echo $1 > $log_name
 
 strmodel=data/${mapnoext}-str.cpx
 lowresmodel_name=data/${mapnoext}-recon.raw
-supp_name=data/${mapnoext}-3.supp
+supp_name=data/${mapnoext}.supp
 supprecon_name=data/${mapnoext}-srecon.raw
-supp_radius=3
-supp_thresh=10
 
 if [ $skip -eq 0 ]
 then
