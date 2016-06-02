@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+import matplotlib
+matplotlib.use('TkAgg')
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
@@ -31,8 +33,8 @@ class GUI():
         self.resedge = Tk.StringVar()
         self.circleflag = Tk.IntVar()
         self.rangelock = Tk.IntVar()
-        self.map_image_exists = False
-        self.vol_image_exists = False
+        self.suppradstr = Tk.StringVar()
+        self.suppthreshstr = Tk.StringVar()
 
         self.merge_fname.set(merge_fname)
         self.map_fname.set(map_fname)
@@ -42,12 +44,16 @@ class GUI():
         self.radiusmax.set('0')
         self.circleflag.set(0)
         self.rangelock.set(0)
+        self.suppradstr.set('3.')
+        self.suppthreshstr.set('10.')
         self.size = None
         self.old_fname = None
         self.space = None
         self.rangeminstr.set("%.1e" % rangemin)
         self.rangemaxstr.set("%.1e" % rangemax)
         self.layernum.set(0)
+        self.map_image_exists = False
+        self.vol_image_exists = False
         self.zeroed = False
         self.calculated_scale = False
         self.processed_map = False
@@ -55,8 +61,8 @@ class GUI():
         self.master.tk.eval('source [file join themes plastik plastik.tcl]')
         self.master.tk.eval('source [file join themes clearlooks clearlooks8.5.tcl]')
         fstyle = ttk.Style()
-        #fstyle.theme_use('clearlooks')
-        fstyle.theme_use('plastik')
+        fstyle.theme_use('clearlooks')
+        #fstyle.theme_use('plastik')
         self.init_UI()
 
     def init_UI(self):
@@ -112,7 +118,9 @@ class GUI():
         ttk.Button(line,text="-",command=self.decrement_layer).pack(side=Tk.LEFT)
         self.slider = ttk.Scale(line,from_=0,to=0,orient=Tk.HORIZONTAL,length=300,variable=self.layernum)
         self.slider.pack(side=Tk.LEFT,fill=Tk.X,expand=1)
+        self.slider.bind('<ButtonRelease-1>', self.replot)
         ttk.Button(line,text="+",command=self.increment_layer).pack(side=Tk.LEFT)
+        ttk.Label(line,textvariable=self.layernum).pack(side=Tk.LEFT)
 
         line = ttk.Frame(config_frame)
         line.pack(fill=Tk.X)
@@ -198,12 +206,10 @@ class GUI():
         elif ext_string == '.bin':
             self.typestr = 'f8'
         elif ext_string == '.supp':
-            print "Support file"
             self.typestr = 'uint8'
             if self.rangelock.get() == 0:
                 self.rangemaxstr.set('%.1e' % 1)
         elif ext_string == '.cpx':
-            print "Complex file"
             self.typestr = 'complex64'
         else:
             print "Did not understand data type from extension. Defaulting to float."
@@ -345,26 +351,9 @@ class GUI():
             #ttk.Separator(self.merge_frame, orient=Tk.HORIZONTAL).pack(fill=Tk.X, padx=5, pady=5)
             line = ttk.Frame(self.merge_frame)
             line.pack(fill=Tk.X)
-            ttk.Label(line,text='Zero-ed volume: %s' % self.fname.get()).pack(side=Tk.LEFT,fill=Tk.X,expand=1)
-            ttk.Button(line,text='Plot',command=lambda: self.plot_vol(fname=os.path.splitext(self.merge_fname.get())[0] + '-zero.raw')).pack(side=Tk.LEFT)
+            ttk.Label(line,text='Zero-ed volume: ').pack(side=Tk.LEFT)
+            ttk.Button(line,text=self.fname.get(),command=lambda: self.plot_vol(fname=os.path.splitext(self.merge_fname.get())[0] + '-zero.raw')).pack(side=Tk.LEFT)
         self.zeroed = True
-
-    def process_map(self, event=None):
-        mapnoext = os.path.splitext(os.path.basename(self.map_fname.get()))[0]
-        if os.path.isfile('data/'+mapnoext+'.cpx'):
-            if not tkMessageBox.askyesno('Process Map', 'Found processed map output. Overwrite?', default=tkMessageBox.NO, icon=tkMessageBox.QUESTION, parent=self.merge_frame):
-                if self.processed_map:
-                    self.add_to_map_frame(mapnoext)
-                self.processed_map = True
-                return
-        if self.resedge.get() is '':
-            print 'Need resolution at edge of volume'
-            return
-        print '-'*80
-        os.system('./process_map.sh %s %d %f' % (self.map_fname.get(), self.vol_size, float(self.resedge.get())))
-        print '-'*80
-        self.processed_map = True
-        self.add_to_map_frame(mapnoext)
 
     def calc_scale(self, event=None):
         rmin = int(self.radiusmin.get())
@@ -380,26 +369,68 @@ class GUI():
             ttk.Label(line,text='Scale factor = %.6e'%self.scale_factor).pack(side=Tk.LEFT)
         self.calculated_scale = True
 
+    def process_map(self, event=None):
+        mapnoext = os.path.splitext(os.path.basename(self.map_fname.get()))[0]
+        if os.path.isfile('data/'+mapnoext+'.cpx'):
+            if not tkMessageBox.askyesno('Process Map', 'Found processed map output. Overwrite?', default=tkMessageBox.NO, icon=tkMessageBox.QUESTION, parent=self.merge_frame):
+                if not self.processed_map:
+                    self.add_to_map_frame(mapnoext)
+                with open('results/'+mapnoext+'.log', 'r') as f:
+                    words = f.read().split()
+                    self.resedge.set(float(words[words.index('./utils/read_map')+2])/(self.vol_size/2))
+                self.processed_map = True
+                return
+        if self.resedge.get() is '':
+            print 'Need resolution at edge of volume'
+            return
+        print '-'*80
+        os.system('./process_map.sh %s %d %f' % (self.map_fname.get(), self.vol_size, float(self.resedge.get())))
+        print '-'*80
+        self.processed_map = True
+        self.add_to_map_frame(mapnoext)
+
     def add_to_map_frame(self, mapnoext):
         line = ttk.Frame(self.map_frame)
         line.pack(fill=Tk.X)
-        ttk.Label(line,text='Complex: '+'data/'+mapnoext+'.cpx ').pack(side=Tk.LEFT,fill=Tk.X,expand=1)
-        ttk.Button(line,text='Plot',command=lambda: self.plot_vol(fname='data/'+mapnoext+'.cpx')).pack(side=Tk.LEFT)
+        ttk.Label(line,text='Complex: ').pack(side=Tk.LEFT)
+        ttk.Button(line,text='data/'+mapnoext+'.cpx',command=lambda: self.plot_vol(fname='data/'+mapnoext+'.cpx')).pack(side=Tk.LEFT)
         
         line = ttk.Frame(self.map_frame)
         line.pack(fill=Tk.X)
-        ttk.Label(line,text='Symmetrized: '+'data/'+mapnoext+'-sym.raw ').pack(side=Tk.LEFT,fill=Tk.X,expand=1)
-        ttk.Button(line,text='Plot',command=lambda: self.plot_vol(fname='data/'+mapnoext+'-sym.raw')).pack(side=Tk.LEFT)
+        ttk.Label(line,text='Symmetrized: ').pack(side=Tk.LEFT)
+        ttk.Button(line,text='data/'+mapnoext+'-sym.raw',command=lambda: self.plot_vol(fname='data/'+mapnoext+'-sym.raw')).pack(side=Tk.LEFT)
         
         line = ttk.Frame(self.map_frame)
         line.pack(fill=Tk.X)
-        ttk.Label(line,text='Density: '+'data/'+mapnoext+'-srecon.raw ').pack(side=Tk.LEFT,fill=Tk.X,expand=1)
-        ttk.Button(line,text='Plot',command=lambda: self.plot_vol(fname='data/'+mapnoext+'-srecon.raw', zoom=True)).pack(side=Tk.LEFT)
+        ttk.Label(line,text='Density: ').pack(side=Tk.LEFT)
+        ttk.Button(line,text='data/'+mapnoext+'-srecon.raw',command=lambda: self.plot_vol(fname='data/'+mapnoext+'-srecon.raw', zoom=True)).pack(side=Tk.LEFT)
         
         line = ttk.Frame(self.map_frame)
         line.pack(fill=Tk.X)
-        ttk.Label(line,text='Support: '+'data/'+mapnoext+'-3.supp ').pack(side=Tk.LEFT,fill=Tk.X,expand=1)
-        ttk.Button(line,text='Plot',command=lambda: self.plot_vol(fname='data/'+mapnoext+'-3.supp', zoom=True)).pack(side=Tk.LEFT)
+        ttk.Label(line,text='Support: ').pack(side=Tk.LEFT)
+        ttk.Button(line,text='data/'+mapnoext+'.supp ',command=lambda: self.plot_vol(fname='data/'+mapnoext+'.supp', zoom=True)).pack(side=Tk.LEFT)
+        
+        line = ttk.Frame(self.map_frame)
+        line.pack(fill=Tk.X)
+        ttk.Label(line,text='Support: Convolution radius = ').pack(side=Tk.LEFT)
+        ttk.Entry(line,textvariable=self.suppradstr,width=5).pack(side=Tk.LEFT)
+        ttk.Label(line,text='vox. Threshold = ').pack(side=Tk.LEFT)
+        ttk.Entry(line,textvariable=self.suppthreshstr,width=5).pack(side=Tk.LEFT)
+        
+        line = ttk.Frame(self.map_frame)
+        line.pack(fill=Tk.X)
+        ttk.Button(line,text='Update support',command=self.reprocess_map).pack(side=Tk.LEFT)
+
+    def reprocess_map(self, event=None):
+        if self.resedge.get() is '':
+            print 'Need resolution at edge of volume'
+            return
+        mapnoext = os.path.splitext(os.path.basename(self.map_fname.get()))[0]
+        supp_radius = float(self.suppradstr.get())
+        supp_thresh = float(self.suppthreshstr.get())
+        print '-'*80
+        os.system('./process_map.sh %s %d %f 1 %f %f' % (self.map_fname.get(), self.vol_size, float(self.resedge.get()), supp_radius, supp_thresh))
+        print '-'*80
 
     def increment_layer(self, event=None):
         self.layernum.set(min(self.layernum.get()+1, self.size))
