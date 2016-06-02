@@ -120,7 +120,6 @@ class GUI():
         self.slider.pack(side=Tk.LEFT,fill=Tk.X,expand=1)
         self.slider.bind('<ButtonRelease-1>', self.replot)
         ttk.Button(line,text="+",command=self.increment_layer).pack(side=Tk.LEFT)
-        ttk.Label(line,textvariable=self.layernum).pack(side=Tk.LEFT)
 
         line = ttk.Frame(config_frame)
         line.pack(fill=Tk.X)
