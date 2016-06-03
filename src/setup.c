@@ -8,7 +8,7 @@ void create_plans(char*) ;
 int gen_input(char*, int) ;
 int parse_quat(char*) ;
 
-int setup() {
+int setup(char *config_fname) {
 	char line[999], *token ;
 	char input_fname[999] ;
 	char intens_fname[999], bragg_fname[999], support_fname[999], wisdom_fname[999] ;
@@ -19,9 +19,9 @@ int setup() {
 	size = 0 ;
 	output_prefix[0] = '\0' ;
 	
-	FILE *fp = fopen("config.ini", "r") ;
+	FILE *fp = fopen(config_fname, "r") ;
 	if (fp == NULL) {
-		fprintf(stderr, "Config file not found.\n") ;
+		fprintf(stderr, "Config file, %s, not found.\n", config_fname) ;
 		return 1 ;
 	}
 	while (fgets(line, 999, fp) != NULL) {

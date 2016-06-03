@@ -1,30 +1,54 @@
 #include "brcont.h"
 
 int main(int argc, char *argv[]) {
-	int i, num_iter, start_ave ;
+	int c, i, num_iter = -1, start_ave = -1 ;
 	double error ;
 	float *average ;
 	struct timeval t1, t2 ;
 	FILE *fp ;
-	char fname[999] ;
+	char fname[999], config_fname[999] ;
 	
-	if (argc < 3) {
-//		fprintf(stderr, "Format: %s <num_iter> <start_ave>\n", argv[0]) ;
-		fprintf(stderr, "Format: %s <num_iter> <start_ER>\n", argv[0]) ;
+	extern char *optarg ;
+	extern int optind ;
+	
+	strcpy(config_fname, "config.ini") ;
+	
+	while (optind < argc) {
+		if ((c = getopt(argc, argv, "c:")) != -1) {
+			switch (c) {
+				case 'c':
+					strcpy(config_fname, optarg) ;
+					break ;
+			}
+		}
+		else {
+			num_iter = atoi(argv[optind++]) ;
+			if (optind >= argc) {
+				fprintf(stderr, "Missing start_ave\n") ;
+				break ;
+			}
+			start_ave = atoi(argv[optind++]) ;
+		}
+	}
+	
+	if (num_iter == -1)
+		fprintf(stderr, "Missing num_iter\n") ;
+	
+	if (num_iter == -1 || start_ave == -1) {
+		fprintf(stderr, "Format: %s [-c config_fname] num_iter start_ave\n", argv[0]) ;
+		fprintf(stderr, "Default: -c config.ini\n") ;
 		return 1 ;
 	}
-	num_iter = atoi(argv[1]) ;
-	start_ave = atoi(argv[2]) ;
 	
 	if (start_ave > num_iter) {
 		fprintf(stderr, "start_ave > num_iter, printing last iteration\n") ;
 		start_ave = num_iter ;
 	}
 	
-	if (setup())
+	if (setup(config_fname))
 		return 2 ;
 	
-	omp_set_num_threads(32) ;
+	omp_set_num_threads(omp_get_max_threads()) ;
 	
 	average = calloc(vol, sizeof(float)) ;
 	
