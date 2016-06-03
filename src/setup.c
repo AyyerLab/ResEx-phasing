@@ -19,7 +19,7 @@ int setup() {
 	size = 0 ;
 	output_prefix[0] = '\0' ;
 	
-	FILE *fp = fopen("src/config.ini", "r") ;
+	FILE *fp = fopen("config.ini", "r") ;
 	if (fp == NULL) {
 		fprintf(stderr, "Config file not found.\n") ;
 		return 1 ;

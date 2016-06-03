@@ -1,0 +1,23 @@
+[parameters]
+# 3D volume size
+size = 301
+# Fraction of radius to which Bragg model is valid
+bragg_qmax = 0.5
+# Relative scale factor between (Bragg model):(3D Merged intensities)
+scale_factor = 228.265696
+# Point group symmetry of continuous diffraction (currently can only do 222)
+point_group = 222
+# Number of threads to use for FFTW
+num_threads = 64
+
+[files]
+# 3D merge file
+intens_fname = data/phaser_full_2mFo-DFc-10-zero.raw
+# Complex Bragg model
+bragg_fname = data/phaser_full_2mFo-DFc.cpx
+# Support volume (uint8_t)
+support_fname = data/phaser_full_2mFo-DFc-3.supp
+# Starting guess
+#input_fname = data/phaser_full_2mFo-DFc-srecon.raw
+# Prefix to output files (one gets -recon.raw, -frecon.raw, -prtf.dat and -log.dat)
+output_prefix = data/test
