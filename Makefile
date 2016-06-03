@@ -8,7 +8,7 @@ objects = $(patsubst src/%.c,bin/%.o,$(src))
 
 utils_src = $(wildcard utils/src/*.c)
 utils = $(patsubst utils/src/%.c,utils/%,$(utils_src))
-directories = data bin images results
+directories = data bin images results data/maps
 
 all: mkdir recon $(utils)
 
