@@ -33,6 +33,7 @@ void gen_prtf(float *model) {
 	float *contrast = calloc(num_bins, sizeof(float)) ;
 	long *bin_count = calloc(num_bins, sizeof(long)) ;
 	FILE *fp ;
+	char fname[999] ;
 	
 	// Continuous part
 	for (x = 0 ; x < vol ; ++x)
@@ -62,11 +63,13 @@ void gen_prtf(float *model) {
 		}
 	}
 	
-	fp = fopen("data/frecon.raw", "wb") ;
+	sprintf(fname, "%s-frecon.raw", output_prefix) ;
+	fp = fopen(fname, "wb") ;
 	fwrite(model, sizeof(float), vol, fp) ;
 	fclose(fp) ;
 	
-	fp = fopen("prtf.dat", "w") ;
+	sprintf(fname, "%s-prtf.dat", output_prefix) ;
+	fp = fopen(fname, "w") ;
 	for (bin = 0 ; bin < num_bins ; ++bin)
 	if (bin_count[bin] > 0)
 		fprintf(fp, "%.4f\t%.6f\n", (bin + 1.) / num_bins, contrast[bin]/bin_count[bin]) ;

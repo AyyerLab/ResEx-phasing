@@ -10,13 +10,14 @@ int parse_quat(char*) ;
 
 int setup() {
 	char line[999], *token ;
-	char input_fname[500] ;
-	char intens_fname[500], bragg_fname[500], support_fname[500], wisdom_fname[500] ;
+	char input_fname[999] ;
+	char intens_fname[999], bragg_fname[999], support_fname[999], wisdom_fname[999] ;
 	double bragg_qmax = 0. ;
 	float scale_factor = 0. ;
 	int num_threads = -1 ;
 	
 	size = 0 ;
+	output_prefix[0] = '\0' ;
 	
 	FILE *fp = fopen("src/config.ini", "r") ;
 	if (fp == NULL) {
@@ -44,6 +45,8 @@ int setup() {
 			strcpy(support_fname, strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "num_threads") == 0)
 			num_threads = atoi(strtok(NULL, " =\n")) ;
+		else if (strcmp(token, "output_prefix") == 0)
+			strcpy(output_prefix, strtok(NULL, " =\n")) ;
 	}
 	
 	if (size == 0) {
@@ -52,6 +55,11 @@ int setup() {
 	}
 	else if (size%2 == 0)
 		fprintf(stderr, "size = %ld is even. An odd number is preferred.\n", size) ;
+	
+	if (output_prefix[0] == '\0') {
+		fprintf(stderr, "Using default output prefix data/\n") ;
+		strcpy(output_prefix, "data/") ;
+	}
 	
 	if (num_threads == -1)
 		num_threads = omp_get_max_threads() ;

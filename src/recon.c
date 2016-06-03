@@ -6,6 +6,7 @@ int main(int argc, char *argv[]) {
 	float *average ;
 	struct timeval t1, t2 ;
 	FILE *fp ;
+	char fname[999] ;
 	
 	if (argc < 3) {
 //		fprintf(stderr, "Format: %s <num_iter> <start_ave>\n", argv[0]) ;
@@ -27,7 +28,8 @@ int main(int argc, char *argv[]) {
 	
 	average = calloc(vol, sizeof(float)) ;
 	
-	fp = fopen("PHASING.log", "w") ;
+	sprintf(fname, "%s-log.dat", output_prefix) ;
+	fp = fopen(fname, "w") ;
 	fprintf(fp, "iter\ttime  \terror\n") ;
 	fprintf(fp, "-------------------------\n") ;
 	fclose(fp) ;
@@ -52,9 +54,10 @@ int main(int argc, char *argv[]) {
 			fprintf(stderr, "Now averaging. ") ;
 			average_model(p1, average) ;
 		}
-
+		
 		gettimeofday(&t2, NULL) ;
-		fp = fopen("PHASING.log", "a") ;
+		sprintf(fname, "%s-log.dat", output_prefix) ;
+		fp = fopen(fname, "a") ;
 		fprintf(fp, "%.4d\t%.2f s\t%f\n", 
 			iter,
 			(double)(t2.tv_sec - t1.tv_sec) + (t2.tv_usec - t1.tv_usec) / 1000000.,
@@ -68,7 +71,8 @@ int main(int argc, char *argv[]) {
 		average[i] /= (num_iter - start_ave + 1) ;
 //		average[i] = iterate[i] ;
 	
-	fp = fopen("data/recon.raw", "wb") ;
+	sprintf(fname, "%s-recon.raw", output_prefix) ;
+	fp = fopen(fname, "wb") ;
 	fwrite(average, sizeof(float), vol, fp) ;
 	fclose(fp) ;
 	
