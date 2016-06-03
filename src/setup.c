@@ -61,7 +61,7 @@ int setup() {
 	
 	vol = size*size*size ;
 	fftwf_init_threads() ;
-	fftwf_plan_with_nthreads(32) ;
+	fftwf_plan_with_nthreads(num_threads) ;
 	
 	if (allocate_memory(1))
 		return 1 ;
@@ -76,36 +76,6 @@ int setup() {
 	
 	return 0 ;
 }	
-
-int setup_gen() {
-	char var_name[500], input_fname[500] ;
-	char intens_fname[500], bragg_fname[500], support_fname[500], wisdom_fname[500] ;
-	
-	FILE *fp = fopen("src/config.conf", "r") ;
-	if (fp == NULL) {
-		fprintf(stderr, "Config file not found\n") ;
-		return 1 ;
-	}
-	fgets(var_name, 500, fp) ; fscanf(fp, "%ld\n", &size) ;
-	fgets(var_name, 500, fp) ; fscanf(fp, "%s\n", intens_fname) ;
-	fgets(var_name, 500, fp) ; fscanf(fp, "%s\n", bragg_fname) ;
-	fgets(var_name, 500, fp) ; fscanf(fp, "%s\n", support_fname) ;
-	fgets(var_name, 500, fp) ; fscanf(fp, "%s\n", input_fname) ;
-	fgets(var_name, 500, fp) ; fscanf(fp, "%s\n", wisdom_fname) ;
-	fclose(fp) ;
-	
-	vol = size*size*size ;
-	fftwf_init_threads() ;
-	fftwf_plan_with_nthreads(16) ;
-	
-	if (allocate_memory(0))
-		return 1 ;
-	if (gen_input(input_fname, 1))
-		return 1 ;
-	create_plans(wisdom_fname) ;
-	
-	return 0 ;
-}
 
 int allocate_memory(int flag) {
 	iterate = malloc(vol * sizeof(float)) ;

@@ -23,9 +23,6 @@ recon: $(filter-out bin/gen_data.o bin/hio.o, $(objects))
 $(objects): bin/%.o: src/%.c src/brcont.h
 	$(CC) -c $< -o $@ $(CFLAGS)
 
-gen_data: $(filter-out bin/recon.o, $(objects))
-	$(LINK.c) $^ -o $@
-
 $(utils): utils/%: utils/src/%.c
 	$(CC) $< -o $@ $(LDFLAGS) $(CFLAGS)
 
