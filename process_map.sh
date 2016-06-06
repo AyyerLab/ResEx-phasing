@@ -1,4 +1,5 @@
-#!/usr/bin/env zsh
+#!/usr/bin/env bash
+####!/usr/bin/env zsh
 
 if [ $# -lt 3 ]
 then
@@ -8,10 +9,19 @@ fi
 
 size=$2
 res_at_edge=$3
-rad=$(( size / 2 ))
-res=$(( 1. * res_at_edge * rad ))
+
+# If zsh 
+#rad=$(( size / 2 ))
+#res=$(( 1. * res_at_edge * rad ))
+
+# If bash
+export size
+rad=`echo|awk -v size=$size '{print int(size/2)}'`
+export rad res_at_edge
+res=`echo |awk '{print 1. * ENVIRON["res_at_edge"] * ENVIRON["rad"]}'`
+
 supp_radius=3
-supp_thresh=10
+supp_thresh=0.1
 
 skip=0
 if [ $# -gt 3 ]
@@ -30,7 +40,6 @@ map_name=`basename $1`
 mapnoext="${map_name%.*}"
 log_name=results/${mapnoext}.log
 echo Log file: $log_name
-echo $1 > $log_name
 
 strmodel=data/${mapnoext}-str.cpx
 lowresmodel_name=data/${mapnoext}-recon.raw
@@ -47,6 +56,7 @@ fi
 
 if [ $skip -eq 0 ]
 then
+	echo $1 > $log_name
 	echo ./utils/read_map $1 $res | tee $log_name
 	./utils/read_map $1 $res &>> $log_name
 	
@@ -90,7 +100,6 @@ then
 	./utils/gen_fdens $supprecon_name $size data/${mapnoext}.cpx &>> $log_name
 	
 	echo -------------------------------------------------------------------------------- >> $log_name
-	supp_name=data/${mapnoext}-$supp_radius.supp
 	echo ./utils/create_support $lowresmodel_name $size $supp_radius $supp_thresh $supp_name | tee -a $log_name
 	./utils/create_support $lowresmodel_name $size $supp_radius $supp_thresh $supp_name &>> $log_name
 fi
