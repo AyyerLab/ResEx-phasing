@@ -58,32 +58,32 @@ if [ $skip -eq 0 ]
 then
 	echo $1 > $log_name
 	echo ./utils/read_map $1 $res | tee $log_name
-	./utils/read_map $1 $res &>> $log_name
+	./utils/read_map $1 $res >> $log_name 2>&1
 	
 	padmodel=`grep "Saving padded" $log_name|awk '{print $5}'`
 	padsize=`grep "volume size" $log_name|awk '{print $5}'`
 	padnoext="${padmodel%.*}"
 	echo -------------------------------------------------------------------------------- >> $log_name
 	echo ./utils/gen_fdens $padmodel $padsize | tee -a $log_name
-	./utils/gen_fdens $padmodel $padsize &>> $log_name
+	./utils/gen_fdens $padmodel $padsize >> $log_name 2>&1
 	
 	sx=`grep Stretch $log_name|awk -F'[=,()]' '{print $3}'`
 	sy=`grep Stretch $log_name|awk -F'[=,()]' '{print $4}'`
 	sz=`grep Stretch $log_name|awk -F'[=,()]' '{print $5}'`
 	echo -------------------------------------------------------------------------------- >> $log_name
 	echo ./utils/fstretch ${padnoext}-fdens.cpx $padsize $size $sx $sy $sz $strmodel | tee -a $log_name
-	./utils/fstretch ${padnoext}-fdens.cpx $padsize $size $sx $sy $sz $strmodel &>> $log_name
+	./utils/fstretch ${padnoext}-fdens.cpx $padsize $size $sx $sy $sz $strmodel >> $log_name 2>&1
 	
 	echo -------------------------------------------------------------------------------- >> $log_name
 	echo ./utils/gen_dens $strmodel $size $lowresmodel_name | tee -a $log_name
-	./utils/gen_dens $strmodel $size $lowresmodel_name &>> $log_name
+	./utils/gen_dens $strmodel $size $lowresmodel_name >> $log_name 2>&1
 fi
 
 if [ $skip -lt 2 ]
 then
 	echo -------------------------------------------------------------------------------- >> $log_name
 	echo ./utils/create_support $lowresmodel_name $size $supp_radius $supp_thresh $supp_name | tee -a $log_name
-	./utils/create_support $lowresmodel_name $size $supp_radius $supp_thresh $supp_name &>> $log_name
+	./utils/create_support $lowresmodel_name $size $supp_radius $supp_thresh $supp_name >> $log_name 2>&1
 	
 	echo -------------------------------------------------------------------------------- >> $log_name
 	echo Constraining lowresmodel by support | tee -a $log_name
@@ -97,10 +97,10 @@ then
 	
 	echo -------------------------------------------------------------------------------- >> $log_name
 	echo ./utils/gen_fdens $supprecon_name $size data/${mapnoext}.cpx | tee -a $log_name
-	./utils/gen_fdens $supprecon_name $size data/${mapnoext}.cpx &>> $log_name
+	./utils/gen_fdens $supprecon_name $size data/${mapnoext}.cpx >> $log_name 2>&1
 	
 	echo -------------------------------------------------------------------------------- >> $log_name
 	echo ./utils/create_support $lowresmodel_name $size $supp_radius $supp_thresh $supp_name | tee -a $log_name
-	./utils/create_support $lowresmodel_name $size $supp_radius $supp_thresh $supp_name &>> $log_name
+	./utils/create_support $lowresmodel_name $size $supp_radius $supp_thresh $supp_name >> $log_name 2>&1
 fi
 
