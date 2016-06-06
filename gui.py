@@ -12,6 +12,7 @@ import os
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 import matplotlib.patches as patches
 import subprocess
+import multiprocessing
 
 class GUI():
     def __init__(self, master, merge_fname, map_fname):
@@ -35,6 +36,7 @@ class GUI():
         self.rangelock = Tk.IntVar()
         self.suppradstr = Tk.StringVar()
         self.suppthreshstr = Tk.StringVar()
+        self.output_prefix = Tk.StringVar()
 
         self.merge_fname.set(merge_fname)
         self.map_fname.set(map_fname)
@@ -46,6 +48,7 @@ class GUI():
         self.rangelock.set(0)
         self.suppradstr.set('3.')
         self.suppthreshstr.set('0.1')
+        self.output_prefix.set('data/recon')
         self.size = None
         self.old_fname = None
         self.space = None
@@ -58,13 +61,15 @@ class GUI():
         self.calculated_scale = False
         self.processed_map = False
         self.zoomed = False
+        self.added_recon_tab = False
 
-        self.master.tk.eval('source [file join themes plastik plastik.tcl]')
-        self.master.tk.eval('source [file join themes clearlooks clearlooks8.5.tcl]')
-        fstyle = ttk.Style()
         if sys.platform != 'darwin':
+            self.master.tk.eval('source [file join themes plastik plastik.tcl]')
+            self.master.tk.eval('source [file join themes clearlooks clearlooks8.5.tcl]')
+            fstyle = ttk.Style()
             #fstyle.theme_use('clearlooks')
             fstyle.theme_use('plastik')
+
         self.init_UI()
 
     def init_UI(self):
@@ -362,7 +367,7 @@ class GUI():
             ttk.Label(line,text='Zero-ed volume: ').pack(side=Tk.LEFT)
             ttk.Button(line,text=zero_fname,command=lambda: self.plot_vol(fname=zero_fname)).pack(side=Tk.LEFT)
         self.zeroed = True
-        if self.calculated_scale and self.processed_map:
+        if self.calculated_scale and self.processed_map and not self.added_recon_tab:
             self.add_recon_tab()
 
     def calc_scale(self, event=None):
@@ -376,9 +381,12 @@ class GUI():
         if not self.calculated_scale:
             line = ttk.Frame(self.merge_frame)
             line.pack(fill=Tk.X)
-            ttk.Label(line,text='Scale factor = %.6e'%self.scale_factor).pack(side=Tk.LEFT)
+            self.scale_label = ttk.Label(line,text='Scale factor = %.6e'%self.scale_factor)
+            self.scale_label.pack(side=Tk.LEFT)
+        else:
+            self.scale_label.config(text='Scale factor = %.6e' % self.scale_factor)
         self.calculated_scale = True
-        if self.zeroed and self.processed_map:
+        if self.zeroed and self.processed_map and not self.added_recon_tab:
             self.add_recon_tab()
 
     def process_map(self, event=None):
@@ -399,7 +407,7 @@ class GUI():
         if not self.processed_map:
             self.add_to_map_frame(mapnoext)
         self.processed_map = True
-        if self.zeroed and self.calculated_scale:
+        if self.zeroed and self.calculated_scale and not self.added_recon_tab:
             self.add_recon_tab()
 
     def add_to_map_frame(self, mapnoext):
@@ -449,13 +457,35 @@ class GUI():
     def add_recon_tab(self, event=None):
         self.recon_frame = ttk.Frame(self.notebook)
         self.notebook.add(self.recon_frame, text='Recon')
-
+        
+        line = ttk.Frame(self.recon_frame)
+        line.pack(fill=Tk.X)
+        ttk.Label(line, text='Output prefix: ').pack(side=Tk.LEFT)
+        ttk.Entry(line, textvariable=self.output_prefix).pack(side=Tk.LEFT,fill=Tk.X,expand=1)
+        
         line = ttk.Frame(self.recon_frame)
         line.pack(fill=Tk.X)
         ttk.Button(line, text='Gen. Config', command=self.gen_config).pack(side=Tk.LEFT)
-    
+        
+        self.added_recon_tab = True
+
     def gen_config(self, event=None):
-        pass
+        with open('config.ini', 'w') as f:
+            f.write('[parameters]\n')
+            f.write('size=%d\n' % self.vol_size)
+            f.write('bragg_qmax=%f\n' % (float(self.radiusmin.get())/(self.vol_size/2)))
+            f.write('scale=%f\n' % self.scale_factor)
+            f.write('num_threads=%d\n' % multiprocessing.cpu_count())
+            
+            mapnoext = os.path.splitext(os.path.basename(self.map_fname.get()))[0]
+            f.write('\n[files]\n')
+            f.write('intens_fname=%s\n' % (os.path.splitext(self.merge_fname.get())[0].rstrip()+'-zero.raw'))
+            f.write('bragg_fname=%s\n' % ('data/'+mapnoext+'.cpx'))
+            f.write('support_fname=%s\n' % ('data/'+mapnoext+'.supp'))
+            #f.write('input_fname=%s\n')
+            f.write('output_prefix=%s\n' % self.output_prefix.get())
+        print 'Generated config.ini:'
+        os.system('cat config.ini')
 
     def preprocess(self, event=None):
         self.zero_outer()
