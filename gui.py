@@ -62,8 +62,9 @@ class GUI():
         self.master.tk.eval('source [file join themes plastik plastik.tcl]')
         self.master.tk.eval('source [file join themes clearlooks clearlooks8.5.tcl]')
         fstyle = ttk.Style()
-        fstyle.theme_use('clearlooks')
-        #fstyle.theme_use('plastik')
+        if sys.platform != 'darwin':
+            #fstyle.theme_use('clearlooks')
+            fstyle.theme_use('plastik')
         self.init_UI()
 
     def init_UI(self):
