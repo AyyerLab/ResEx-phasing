@@ -45,7 +45,7 @@ class GUI():
         self.circleflag.set(0)
         self.rangelock.set(0)
         self.suppradstr.set('3.')
-        self.suppthreshstr.set('10.')
+        self.suppthreshstr.set('0.1')
         self.size = None
         self.old_fname = None
         self.space = None
@@ -57,6 +57,7 @@ class GUI():
         self.zeroed = False
         self.calculated_scale = False
         self.processed_map = False
+        self.zoomed = False
 
         self.master.tk.eval('source [file join themes plastik plastik.tcl]')
         self.master.tk.eval('source [file join themes clearlooks clearlooks8.5.tcl]')
@@ -66,8 +67,8 @@ class GUI():
         self.init_UI()
 
     def init_UI(self):
-        self.master.bind('<Return>', self.replot)
-        self.master.bind('<KP_Enter>', self.replot)
+        self.master.bind('<Return>', lambda event: self.replot(zoom='current'))
+        self.master.bind('<KP_Enter>', lambda event: self.replot(zoom='current'))
         self.master.bind('<Control-s>', self.save_plot)
         self.master.bind('<Control-q>', self.quit_)
         self.master.bind('<Right>', self.increment_layer)
@@ -189,14 +190,6 @@ class GUI():
         self.notebook.insert(0, self.merge_frame)
         self.notebook.select(self.notebook.tabs()[0])
 
-    def replot(self, event=None):
-        if self.map_image_exists:
-            self.plot_map()
-        elif self.vol_image_exists:
-            self.plot_vol(fname=self.fname.get())
-        else:
-            self.plot_vol() # Default plotting merge
-
     def parse_extension(self, filename):
         ext_string = os.path.splitext(os.path.basename(filename))[1]
         
@@ -261,6 +254,11 @@ class GUI():
         rangemax = float(self.rangemaxstr.get())
         rangemin = float(self.rangeminstr.get())
         
+        if zoom == 'current':
+            zoom = self.zoomed
+        else:
+            self.zoomed = zoom
+        
         if zoom:
             min = self.size/3
             max = 2*min
@@ -311,31 +309,39 @@ class GUI():
         self.space = space
         self.canvas.show()
 
-    def plot_vol(self, fname=None, zoom=False, event=None):
+    def replot(self, event=None, **kwargs):
+        if self.map_image_exists:
+            self.plot_map(**kwargs)
+        elif self.vol_image_exists:
+            self.plot_vol(fname=self.fname.get(), **kwargs)
+        else:
+            self.plot_vol(fname=self.fname.get(), **kwargs) # Default plotting merge
+
+    def plot_vol(self, fname=None, event=None, force=False, **kwargs):
         if fname is None:
             self.fname.set(self.merge_fname.get())
         else:
             self.fname.set(fname)
         if not self.vol_image_exists:
             self.parse_vol()
-        elif self.old_fname != self.fname.get(): 
+        elif self.old_fname != self.fname.get() or force == True: 
             print "Reparsing volume:", self.fname.get()
             self.parse_vol()
         
-        self.plot_slices(self.layernum.get(), space='fourier', zoom=zoom)
+        self.plot_slices(self.layernum.get(), space='fourier', **kwargs)
         self.vol_image_exists = True
         self.map_image_exists = False
 
-    def plot_map(self, event=None):
+    def plot_map(self, event=None, force=False, **kwargs):
         self.fname.set(self.map_fname.get())
         if not self.map_image_exists:
             self.parse_map()
             if self.rangelock.get() == 0:
                 self.rangemaxstr.set('%.1e' % 10)
-        elif self.old_fname != self.fname.get():
+        elif self.old_fname != self.fname.get() or force == True:
             print "Reparsing map:", self.fname.get()
             self.parse_map()
-        self.plot_slices(self.layernum.get(), space='real')
+        self.plot_slices(self.layernum.get(), space='real', **kwargs)
         self.map_image_exists = True
         self.vol_image_exists = False
 
@@ -348,10 +354,11 @@ class GUI():
         
         if not self.zeroed:
             #ttk.Separator(self.merge_frame, orient=Tk.HORIZONTAL).pack(fill=Tk.X, padx=5, pady=5)
+            zero_fname = os.path.splitext(self.merge_fname.get())[0] + '-zero.raw'
             line = ttk.Frame(self.merge_frame)
             line.pack(fill=Tk.X)
             ttk.Label(line,text='Zero-ed volume: ').pack(side=Tk.LEFT)
-            ttk.Button(line,text=self.fname.get(),command=lambda: self.plot_vol(fname=os.path.splitext(self.merge_fname.get())[0] + '-zero.raw')).pack(side=Tk.LEFT)
+            ttk.Button(line,text=zero_fname,command=lambda: self.plot_vol(fname=zero_fname)).pack(side=Tk.LEFT)
         self.zeroed = True
 
     def calc_scale(self, event=None):
@@ -371,7 +378,7 @@ class GUI():
     def process_map(self, event=None):
         mapnoext = os.path.splitext(os.path.basename(self.map_fname.get()))[0]
         if os.path.isfile('data/'+mapnoext+'.cpx'):
-            if not tkMessageBox.askyesno('Process Map', 'Found processed map output. Overwrite?', default=tkMessageBox.NO, icon=tkMessageBox.QUESTION, parent=self.merge_frame):
+            if not tkMessageBox.askyesno('Process Map', 'Found processed map output. Overwrite?', default=tkMessageBox.NO, icon=tkMessageBox.QUESTION, parent=self.master):
                 if not self.processed_map:
                     self.add_to_map_frame(mapnoext)
                 with open('results/'+mapnoext+'.log', 'r') as f:
@@ -430,14 +437,15 @@ class GUI():
         print '-'*80
         os.system('./process_map.sh %s %d %f 1 %f %f' % (self.map_fname.get(), self.vol_size, float(self.resedge.get()), supp_radius, supp_thresh))
         print '-'*80
+        self.replot(force=True, zoom='current')
 
     def increment_layer(self, event=None):
         self.layernum.set(min(self.layernum.get()+1, self.size))
-        self.plot_slices(self.layernum.get())
+        self.plot_slices(self.layernum.get(), zoom='current')
 
     def decrement_layer(self, event=None):
         self.layernum.set(max(self.layernum.get()-1, 0))
-        self.plot_slices(self.layernum.get())
+        self.plot_slices(self.layernum.get(), zoom='current')
 
     def save_plot(self, event=None):
         self.fig.savefig(self.imagename.get(), bbox_inches='tight', dpi=150)
