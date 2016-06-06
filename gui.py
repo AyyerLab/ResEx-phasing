@@ -131,6 +131,7 @@ class GUI():
 
         line = ttk.Frame(config_frame)
         line.pack(fill=Tk.X)
+        ttk.Button(line,text="Preprocess",command=self.preprocess).pack(side=Tk.LEFT)
         ttk.Button(line,text="Quit",command=self.master.quit).pack(side=Tk.LEFT)
 
         self.plot_vol()
@@ -360,6 +361,8 @@ class GUI():
             ttk.Label(line,text='Zero-ed volume: ').pack(side=Tk.LEFT)
             ttk.Button(line,text=zero_fname,command=lambda: self.plot_vol(fname=zero_fname)).pack(side=Tk.LEFT)
         self.zeroed = True
+        if self.calculated_scale and self.processed_map:
+            self.add_recon_tab()
 
     def calc_scale(self, event=None):
         rmin = int(self.radiusmin.get())
@@ -374,26 +377,29 @@ class GUI():
             line.pack(fill=Tk.X)
             ttk.Label(line,text='Scale factor = %.6e'%self.scale_factor).pack(side=Tk.LEFT)
         self.calculated_scale = True
+        if self.zeroed and self.processed_map:
+            self.add_recon_tab()
 
     def process_map(self, event=None):
         mapnoext = os.path.splitext(os.path.basename(self.map_fname.get()))[0]
         if os.path.isfile('data/'+mapnoext+'.cpx'):
             if not tkMessageBox.askyesno('Process Map', 'Found processed map output. Overwrite?', default=tkMessageBox.NO, icon=tkMessageBox.QUESTION, parent=self.master):
-                if not self.processed_map:
-                    self.add_to_map_frame(mapnoext)
                 with open('results/'+mapnoext+'.log', 'r') as f:
                     words = f.read().split()
                     self.resedge.set(float(words[words.index('./utils/read_map')+2])/(self.vol_size/2))
-                self.processed_map = True
+        else:
+            if self.resedge.get() is '':
+                print 'Need resolution at edge of volume'
                 return
-        if self.resedge.get() is '':
-            print 'Need resolution at edge of volume'
-            return
-        print '-'*80
-        os.system('./process_map.sh %s %d %f' % (self.map_fname.get(), self.vol_size, float(self.resedge.get())))
-        print '-'*80
+            print '-'*80
+            os.system('./process_map.sh %s %d %f' % (self.map_fname.get(), self.vol_size, float(self.resedge.get())))
+            print '-'*80
+        
+        if not self.processed_map:
+            self.add_to_map_frame(mapnoext)
         self.processed_map = True
-        self.add_to_map_frame(mapnoext)
+        if self.zeroed and self.calculated_scale:
+            self.add_recon_tab()
 
     def add_to_map_frame(self, mapnoext):
         line = ttk.Frame(self.map_frame)
@@ -438,6 +444,22 @@ class GUI():
         os.system('./process_map.sh %s %d %f 1 %f %f' % (self.map_fname.get(), self.vol_size, float(self.resedge.get()), supp_radius, supp_thresh))
         print '-'*80
         self.replot(force=True, zoom='current')
+
+    def add_recon_tab(self, event=None):
+        self.recon_frame = ttk.Frame(self.notebook)
+        self.notebook.add(self.recon_frame, text='Recon')
+
+        line = ttk.Frame(self.recon_frame)
+        line.pack(fill=Tk.X)
+        ttk.Button(line, text='Gen. Config', command=self.gen_config).pack(side=Tk.LEFT)
+    
+    def gen_config(self, event=None):
+        pass
+
+    def preprocess(self, event=None):
+        self.zero_outer()
+        self.calc_scale()
+        self.process_map()
 
     def increment_layer(self, event=None):
         self.layernum.set(min(self.layernum.get()+1, self.size))
