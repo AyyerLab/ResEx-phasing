@@ -18,7 +18,7 @@ res_at_edge=$3
 export size
 rad=`echo|awk -v size=$size '{print int(size/2)}'`
 export rad res_at_edge
-res=`echo |awk '{print 1. * ENVIRON["res_at_edge"] * ENVIRON["rad"]}'`
+res=`echo |awk '{print ENVIRON["res_at_edge"] * ENVIRON["rad"]}'`
 
 supp_radius=3
 supp_thresh=0.1
