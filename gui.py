@@ -125,7 +125,7 @@ class GUI():
         ttk.Button(line,text="-",command=self.decrement_layer).pack(side=Tk.LEFT)
         self.slider = ttk.Scale(line,from_=0,to=0,orient=Tk.HORIZONTAL,length=300,variable=self.layernum)
         self.slider.pack(side=Tk.LEFT,fill=Tk.X,expand=1)
-        self.slider.bind('<ButtonRelease-1>', self.replot)
+        self.slider.bind('<ButtonRelease-1>', lambda event: self.replot(zoom='current'))
         ttk.Button(line,text="+",command=self.increment_layer).pack(side=Tk.LEFT)
 
         line = ttk.Frame(config_frame)
@@ -181,7 +181,7 @@ class GUI():
         ttk.Label(line,text='Cutoff radii:').pack(side=Tk.LEFT)
         ttk.Entry(line,textvariable=self.radiusmin,width=5).pack(side=Tk.LEFT)
         ttk.Entry(line,textvariable=self.radiusmax,width=5).pack(side=Tk.LEFT)
-        ttk.Checkbutton(line,text="Show",variable=self.circleflag,command=self.replot).pack(side=Tk.LEFT)
+        ttk.Checkbutton(line,text="Show",variable=self.circleflag,command=lambda event: self.replot(zoom=False)).pack(side=Tk.LEFT)
 
         line = ttk.Frame(self.merge_frame)
         line.pack(fill=Tk.X)
@@ -474,7 +474,7 @@ class GUI():
             f.write('[parameters]\n')
             f.write('size=%d\n' % self.vol_size)
             f.write('bragg_qmax=%f\n' % (float(self.radiusmin.get())/(self.vol_size/2)))
-            f.write('scale=%f\n' % self.scale_factor)
+            f.write('scale_factor=%f\n' % self.scale_factor)
             f.write('num_threads=%d\n' % multiprocessing.cpu_count())
             
             mapnoext = os.path.splitext(os.path.basename(self.map_fname.get()))[0]
