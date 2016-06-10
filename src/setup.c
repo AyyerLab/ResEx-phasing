@@ -57,8 +57,8 @@ int setup(char *config_fname) {
 		fprintf(stderr, "size = %ld is even. An odd number is preferred.\n", size) ;
 	
 	if (output_prefix[0] == '\0') {
-		fprintf(stderr, "Using default output prefix data/\n") ;
-		strcpy(output_prefix, "data/") ;
+		fprintf(stderr, "Using default output prefix data/output\n") ;
+		strcpy(output_prefix, "data/output") ;
 	}
 	
 	if (num_threads == -1)
