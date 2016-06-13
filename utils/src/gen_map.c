@@ -109,8 +109,8 @@ int main(int argc, char *argv[]) {
 	for (x = 0 ; x < ms_x ; ++x)
 	for (y = 0 ; y < ms_y ; ++y)
 	for (z = 0 ; z < ms_z ; ++z)
-		mmodel[((z+ms_z/2)%ms_z)*ms_y*ms_x + ((y+ms_y/2)%ms_y)*ms_x + ((x+ms_x/2)%ms_x)] // ms_x*ms_y*ms_z, translated
-//		mmodel[z*ms_y*ms_x + y*ms_x + x] // ms_x*ms_y*ms_z
+//		mmodel[((z+ms_z/2)%ms_z)*ms_y*ms_x + ((y+ms_y/2)%ms_y)*ms_x + ((x+ms_x/2)%ms_x)] // ms_x*ms_y*ms_z, translated
+		mmodel[z*ms_y*ms_x + y*ms_x + x] // ms_x*ms_y*ms_z
 			= model[(x+mmin_x)*s*s + (y+mmin_y)*s + (z+mmin_z)] ; // s*s*s
 	free(model) ;
 
