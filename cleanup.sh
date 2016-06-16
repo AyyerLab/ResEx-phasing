@@ -13,17 +13,22 @@ do
 done
 
 set -e
+voxres=360.
 if [ $# -gt 0 ]
 then
 	if [ $1 = '-v' ]
 	then
 		set -x
+	else
+		voxres=$1
 	fi
 fi
 
 
 prefix=`grep output_prefix config.ini|awk -F"[ =]" '{print $2}'`
-voxsize=$((400. / 350.))
+size=`grep size config.ini|awk -F"[ =]" '{print $2}'`
+center=$((size/2))
+voxsize=$((voxres / 2. / center))
 
 echo Cleaning to number $j with data from $prefix
 cp ${prefix}-recon.raw results/output_${j}.raw
@@ -34,7 +39,8 @@ cp config.ini results/conf_${j}.ini
 echo Generating map
 supp_fname=`grep support_fname config.ini|awk -F"[ =]" '{print $2}'`
 echo support = $supp_fname
-./utils/gen_map results/output_${j}.raw 701 $voxsize $voxsize $voxsize $supp_fname
+echo ./utils/gen_map results/output_${j}.raw 481 $voxsize $voxsize $voxsize $supp_fname
+./utils/gen_map results/output_${j}.raw 481 $voxsize $voxsize $voxsize $supp_fname
 cd data/maps
 rm -f output_${j}.mtz
 phenix.map_to_structure_factors output_${j}.map.ccp4 box=True output_file_name=output_${j}.mtz
