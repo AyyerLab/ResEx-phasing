@@ -5,7 +5,7 @@ size = 301
 bragg_qmax = 0.5
 # Relative scale factor between (Bragg model):(3D Merged intensities)
 scale_factor = 1
-# Point group symmetry of continuous diffraction (currently can only do 222)
+# Point group symmetry of continuous diffraction (currently can do 1,4,222)
 point_group = 222
 # Number of threads to use for FFTW
 num_threads = 64
