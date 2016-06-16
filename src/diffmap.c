@@ -5,7 +5,6 @@
 void proj_data(float *in, float *out) {
 	long i ;
 	float norm_factor = 1.f / (float) vol ;
-//	float mean ; long num_vox ;
 	
 	// Fourier transform to get structure factors
 	for (i = 0 ; i < vol ; ++i)
@@ -13,33 +12,23 @@ void proj_data(float *in, float *out) {
 	
 	fftwf_execute(forward) ;
 	
-//	mean = 0., num_vox = 0 ;
 	// Replace with known Bragg magnitudes and phases
 	for (i = 0 ; i < vol ; ++i)
-	if (bragg_calc[i] != FLT_MAX) {
-//		mean += powf(cabs(bragg_calc[i]/fdensity[i]), 2.f) ;
-//		num_vox++ ;
+	if (bragg_calc[i] != FLT_MAX)
 		fdensity[i] = bragg_calc[i] ;
-	}
 //	else                                               // Only when doing Bragg-only reconstruction 
-//	fdensity[i] = 0.f ;
-//	fprintf(stderr, "Mean ratio deviation for bragg_calc:fdensity = %e\n", sqrtf(mean/num_vox) - 1.) ;
+//		fdensity[i] = 0.f ;
 	
 	// Symmetrize to get intensities to compare
 	symmetrize_incoherent(fdensity, exp_mag) ;
 	
-//	mean = 0., num_vox = 0 ;
 	// Scale using measured modulus at high resolution
 	for (i = 0 ; i < vol ; ++i) {
-		if (obs_mag[i] > 0.) {
-//			mean += powf(obs_mag[i] / exp_mag[i], 2.f) ;
-//			num_vox++ ;
+		if (obs_mag[i] > 0.)
 			fdensity[i] *= obs_mag[i] / exp_mag[i] ;
-		}
 		else if (obs_mag[i] == 0.)
 			fdensity[i] = 0. ;
 	}
-//	fprintf(stderr, "Mean ratio deviation for obs_mag:exp_mag = %e\n", sqrtf(mean/num_vox) - 1.) ;
 	
 	// Inverse Fourier transform
 	fftwf_execute(inverse) ;
