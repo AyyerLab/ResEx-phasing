@@ -67,11 +67,17 @@ int main(int argc, char *argv[]) {
 			error = diffmap(iterate) ;
 //			error = modified_hio(iterate) ;
 //		else {
-//			fprintf(stderr, "Doing error-reduction. ") ;
 //			error = error_red(iterate) ;
 //		}
 		
 		fprintf(stderr, "\rFinished %d/%d iterations. ", iter, num_iter) ;
+		
+		if (iter == start_ave) {
+			sprintf(fname, "%s-last.raw", output_prefix) ;
+			fp = fopen(fname, "w") ;
+			fwrite(iterate, sizeof(float), vol, fp) ;
+			fclose(fp) ;
+		}
 		
 		if (iter >= start_ave) {
 //			fprintf(stderr, "Doing ER. ") ;
