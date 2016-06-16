@@ -37,6 +37,8 @@ class GUI():
         self.suppradstr = Tk.StringVar()
         self.suppthreshstr = Tk.StringVar()
         self.output_prefix = Tk.StringVar()
+        self.point_group = Tk.StringVar()
+        self.config_fname = Tk.StringVar()
 
         self.merge_fname.set(merge_fname)
         self.map_fname.set(map_fname)
@@ -49,6 +51,8 @@ class GUI():
         self.suppradstr.set('3.')
         self.suppthreshstr.set('0.1')
         self.output_prefix.set('data/recon')
+        self.point_group.set('222')
+        self.config_fname.set('config.ini')
         self.size = None
         self.old_fname = None
         self.space = None
@@ -77,8 +81,8 @@ class GUI():
         self.master.bind('<KP_Enter>', lambda event: self.replot(zoom='current'))
         self.master.bind('<Control-s>', self.save_plot)
         self.master.bind('<Control-q>', self.quit_)
-        self.master.bind('<Right>', self.increment_layer)
-        self.master.bind('<Left>', self.decrement_layer)
+        #self.master.bind('<Right>', self.increment_layer)
+        #self.master.bind('<Left>', self.decrement_layer)
         self.master.bind('<Up>', self.increment_layer)
         self.master.bind('<Down>', self.decrement_layer)
         self.master.bind('<Control-m>', lambda event: self.plot_vol(fname=self.merge_fname.get()))
@@ -156,6 +160,8 @@ class GUI():
         line.pack(fill=Tk.X)
         ttk.Label(line,text="Res. at edge (A):").pack(side=Tk.LEFT)
         ttk.Entry(line,textvariable=self.resedge,width=5).pack(side=Tk.LEFT)
+        ttk.Label(line,text='Point group:').pack(side=Tk.LEFT)
+        ttk.Entry(line,textvariable=self.point_group,width=5).pack(side=Tk.LEFT)
         ttk.Button(line,text="Process Map",command=self.process_map).pack(side=Tk.LEFT)
         ttk.Button(line,text='Reset',command=self.reset_map_tab).pack(side=Tk.LEFT)
 
@@ -181,7 +187,7 @@ class GUI():
         ttk.Label(line,text='Cutoff radii:').pack(side=Tk.LEFT)
         ttk.Entry(line,textvariable=self.radiusmin,width=5).pack(side=Tk.LEFT)
         ttk.Entry(line,textvariable=self.radiusmax,width=5).pack(side=Tk.LEFT)
-        ttk.Checkbutton(line,text="Show",variable=self.circleflag,command=lambda event: self.replot(zoom=False)).pack(side=Tk.LEFT)
+        ttk.Checkbutton(line,text="Show",variable=self.circleflag,command=lambda: self.replot(zoom=False)).pack(side=Tk.LEFT)
 
         line = ttk.Frame(self.merge_frame)
         line.pack(fill=Tk.X)
@@ -229,7 +235,7 @@ class GUI():
             self.vol = np.square(np.absolute(self.vol))
         self.slider.configure(from_=0,to=self.size-1)
         if self.rangelock.get() == 0:
-            self.rangemaxstr.set('%.1e' % (5*self.vol[self.vol>0].mean()))
+            self.rangemaxstr.set('%.1e' % (10*self.vol[self.vol>0].mean()))
         if not self.vol_image_exists:
             self.layernum.set(self.size/2)
             self.radiusmin.set('%d' % (self.size/2/2))
@@ -391,17 +397,22 @@ class GUI():
 
     def process_map(self, event=None):
         mapnoext = os.path.splitext(os.path.basename(self.map_fname.get()))[0]
-        if os.path.isfile('data/'+mapnoext+'.cpx'):
-            if not tkMessageBox.askyesno('Process Map', 'Found processed map output. Overwrite?', default=tkMessageBox.NO, icon=tkMessageBox.QUESTION, parent=self.master):
-                with open('results/'+mapnoext+'.log', 'r') as f:
-                    words = f.read().split()
-                    self.resedge.set(float(words[words.index('./utils/read_map')+2])/(self.vol_size/2))
+        if os.path.isfile('data/'+mapnoext+'.cpx') and not tkMessageBox.askyesno('Process Map', 'Found processed map output. Overwrite?', default=tkMessageBox.NO, icon=tkMessageBox.QUESTION, parent=self.master):
+            with open('results/'+mapnoext+'.log', 'r') as f:
+                words = f.read().split()
+                self.resedge.set(float(words[words.index('./utils/read_map')+2])/(self.vol_size/2))
+                self.point_group.set(words[words.index('data/'+mapnoext+'-srecon.raw')+2])
         else:
             if self.resedge.get() is '':
                 print 'Need resolution at edge of volume'
                 return
             print '-'*80
-            os.system('./process_map.sh %s %d %f' % (self.map_fname.get(), self.vol_size, float(self.resedge.get())))
+            resedge = float(self.resedge.get())
+            supp_rad = float(self.suppradstr.get())
+            supp_thresh = float(self.suppthreshstr.get())
+            command = './process_map.sh %s %d %f 0 %f %f %s' % (self.map_fname.get(), self.vol_size, resedge, supp_rad, supp_thresh, self.point_group.get())
+            print command
+            os.system(command)
             print '-'*80
         
         if not self.processed_map:
@@ -450,7 +461,7 @@ class GUI():
         supp_radius = float(self.suppradstr.get())
         supp_thresh = float(self.suppthreshstr.get())
         print '-'*80
-        os.system('./process_map.sh %s %d %f 1 %f %f' % (self.map_fname.get(), self.vol_size, float(self.resedge.get()), supp_radius, supp_thresh))
+        os.system('./process_map.sh %s %d %f 1 %f %f %s' % (self.map_fname.get(), self.vol_size, float(self.resedge.get()), supp_radius, supp_thresh, self.point_group.get()))
         print '-'*80
         self.replot(force=True, zoom='current')
 
@@ -465,12 +476,17 @@ class GUI():
         
         line = ttk.Frame(self.recon_frame)
         line.pack(fill=Tk.X)
+        ttk.Label(line, text='Config filename: ').pack(side=Tk.LEFT)
+        ttk.Entry(line, textvariable=self.config_fname).pack(side=Tk.LEFT,fill=Tk.X,expand=1)
+        
+        line = ttk.Frame(self.recon_frame)
+        line.pack(fill=Tk.X)
         ttk.Button(line, text='Gen. Config', command=self.gen_config).pack(side=Tk.LEFT)
         
         self.added_recon_tab = True
 
     def gen_config(self, event=None):
-        with open('config.ini', 'w') as f:
+        with open(self.config_fname.get(), 'w') as f:
             f.write('[parameters]\n')
             f.write('size=%d\n' % self.vol_size)
             f.write('bragg_qmax=%f\n' % (float(self.radiusmin.get())/(self.vol_size/2)))
@@ -484,8 +500,8 @@ class GUI():
             f.write('support_fname=%s\n' % ('data/'+mapnoext+'.supp'))
             #f.write('input_fname=%s\n')
             f.write('output_prefix=%s\n' % self.output_prefix.get())
-        print 'Generated config.ini:'
-        os.system('cat config.ini')
+        print 'Generated %s:' % self.config_fname.get()
+        os.system('cat %s' % self.config_fname.get())
 
     def preprocess(self, event=None):
         self.zero_outer()

@@ -18,6 +18,7 @@ int setup(char *config_fname) {
 	
 	size = 0 ;
 	output_prefix[0] = '\0' ;
+	strcpy(point_group, "222") ;
 	
 	FILE *fp = fopen(config_fname, "r") ;
 	if (fp == NULL) {
@@ -35,6 +36,8 @@ int setup(char *config_fname) {
 			bragg_qmax = atof(strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "scale_factor") == 0)
 			scale_factor = atof(strtok(NULL, " =\n")) ;
+		else if (strcmp(token, "point_group") == 0)
+			strcpy(point_group, strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "intens_fname") == 0)
 			strcpy(intens_fname, strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "bragg_fname") == 0)
@@ -56,6 +59,11 @@ int setup(char *config_fname) {
 	else if (size%2 == 0)
 		fprintf(stderr, "size = %ld is even. An odd number is preferred.\n", size) ;
 	
+	if (strcmp(point_group, "222")*strcmp(point_group, "4")*strcmp(point_group, "1") != 0) {
+		fprintf(stderr, "Point group needs to be either 1, 222 or 4 for now\n") ;
+		return 1 ;
+	}
+	
 	if (output_prefix[0] == '\0') {
 		fprintf(stderr, "Using default output prefix data/output\n") ;
 		strcpy(output_prefix, "data/output") ;
@@ -66,6 +74,7 @@ int setup(char *config_fname) {
 	sprintf(wisdom_fname, "data/wisdom_%ld_%d", size, num_threads) ;
 	
 	fprintf(stderr, "Scale factor = %f\n", scale_factor) ;
+	fprintf(stderr, "Symmetrizing with point group: %s\n", point_group) ;
 	
 	vol = size*size*size ;
 	fftwf_init_threads() ;

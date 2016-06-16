@@ -20,7 +20,7 @@ long *support ;
 fftwf_complex *fdensity, *rdensity ;
 float complex *bragg_calc ;
 fftwf_plan forward, inverse ;
-char output_prefix[999] ;
+char output_prefix[999], point_group[999] ;
 
 // diffmap.c
 double diffmap(float*) ;

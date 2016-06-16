@@ -22,8 +22,10 @@ res=`echo |awk '{print ENVIRON["res_at_edge"] * ENVIRON["rad"]}'`
 
 supp_radius=3
 supp_thresh=0.1
-
 skip=0
+point_group=222
+
+# Parse optional arguments
 if [ $# -gt 3 ]
 then
 	skip=$4
@@ -36,15 +38,11 @@ then
 	echo supp_radius = $supp_radius supp_thresh = $supp_thresh
 fi
 
-map_name=`basename $1`
-mapnoext="${map_name%.*}"
-log_name=results/${mapnoext}.log
-echo Log file: $log_name
-
-strmodel=data/${mapnoext}-str.cpx
-lowresmodel_name=data/${mapnoext}-recon.raw
-supp_name=data/${mapnoext}.supp
-supprecon_name=data/${mapnoext}-srecon.raw
+if [ $# -gt 6 ]
+then
+	point_group=$7
+	echo point_group = $point_group
+fi
 
 if [ $skip -eq 0 ]
 then
@@ -54,6 +52,17 @@ then
 	echo Only doing support wrapping
 fi
 
+# Calculate filenames
+map_name=`basename $1`
+mapnoext="${map_name%.*}"
+log_name=results/${mapnoext}.log
+echo Log file: $log_name
+strmodel=data/${mapnoext}-str.cpx
+lowresmodel_name=data/${mapnoext}-recon.raw
+supp_name=data/${mapnoext}.supp
+supprecon_name=data/${mapnoext}-srecon.raw
+
+# Read map and generate 3D model
 if [ $skip -eq 0 ]
 then
 	echo $1 > $log_name
@@ -64,8 +73,8 @@ then
 	padsize=`grep "volume size" $log_name|awk '{print $5}'`
 	padnoext="${padmodel%.*}"
 	echo -------------------------------------------------------------------------------- >> $log_name
-	echo ./utils/gen_fdens $padmodel $padsize | tee -a $log_name
-	./utils/gen_fdens $padmodel $padsize >> $log_name 2>&1
+	echo ./utils/gen_fdens $padmodel $padsize 1| tee -a $log_name
+	./utils/gen_fdens $padmodel $padsize 1 >> $log_name 2>&1
 	
 	sx=`grep Stretch $log_name|awk -F'[=,()]' '{print $3}'`
 	sy=`grep Stretch $log_name|awk -F'[=,()]' '{print $4}'`
@@ -79,6 +88,7 @@ then
 	./utils/gen_dens $strmodel $size $lowresmodel_name >> $log_name 2>&1
 fi
 
+# Calculate support and constrain model by support
 if [ $skip -lt 2 ]
 then
 	echo -------------------------------------------------------------------------------- >> $log_name
@@ -96,8 +106,8 @@ then
 	EOF
 	
 	echo -------------------------------------------------------------------------------- >> $log_name
-	echo ./utils/gen_fdens $supprecon_name $size data/${mapnoext}.cpx | tee -a $log_name
-	./utils/gen_fdens $supprecon_name $size data/${mapnoext}.cpx >> $log_name 2>&1
+	echo ./utils/gen_fdens $supprecon_name $size $point_group data/${mapnoext}.cpx | tee -a $log_name
+	./utils/gen_fdens $supprecon_name $size data/${mapnoext}.cpx $point_group >> $log_name 2>&1
 	
 	echo -------------------------------------------------------------------------------- >> $log_name
 	echo ./utils/create_support $lowresmodel_name $size $supp_radius $supp_thresh $supp_name | tee -a $log_name

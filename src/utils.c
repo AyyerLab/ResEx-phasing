@@ -81,62 +81,114 @@ void gen_prtf(float *model) {
 	free(bin_count) ;
 }
 
-// Symmetrize intensity incoherently according to P(2_1)(2_1)(2_1) space group
-// (size)
+// Symmetrize intensity incoherently according to 222 point group
+// The array is assumed to have q=0 at (0,0,0) instead of in the center of the array
+// (size, point_group)
 void symmetrize_incoherent(fftwf_complex *in, float *out) {
-	long hs, ks, ls, kc, lc ;
+	long hs, ks, ls, hc, kc, lc ;
 	
 	hs = size ;
 	ks = size ;
 	ls = size ;
+	hc = hs / 2 ;
 	kc = ks / 2 ;
 	lc = ls / 2 ;
 	
-	#pragma omp parallel default(shared)
-	{
-		long x, y, z ;
-		float ave_intens ;
-		
-		#pragma omp for schedule(static,1)
-		for (x = 0 ; x < hs ; ++x) {
-			for (y = 1 ; y <= kc ; ++y)
-			for (z = 1 ; z <= lc ; ++z) {
-				ave_intens = 0.25 * (
-					powf(cabsf(in[x*ks*ls + y*ls + z]), 2.) +
-					powf(cabsf(in[x*ks*ls + y*ls + (ls-z)]), 2.) +
-					powf(cabsf(in[x*ks*ls + (ks-y)*ls + z]), 2.) +
-					powf(cabsf(in[x*ks*ls + (ks-y)*ls + (ls-z)]), 2.)) ;
+	if (strcmp(point_group, "222") == 0) {
+		#pragma omp parallel default(shared)
+		{
+			long x, y, z ;
+			float ave_intens ;
+			
+			#pragma omp for schedule(static,1)
+			for (x = 0 ; x < hs ; ++x) {
+				for (y = 1 ; y <= kc ; ++y)
+				for (z = 1 ; z <= lc ; ++z) {
+					ave_intens = 0.25 * (
+						powf(cabsf(in[x*ks*ls + y*ls + z]), 2.) +
+						powf(cabsf(in[x*ks*ls + y*ls + (ls-z)]), 2.) +
+						powf(cabsf(in[x*ks*ls + (ks-y)*ls + z]), 2.) +
+						powf(cabsf(in[x*ks*ls + (ks-y)*ls + (ls-z)]), 2.)) ;
+					
+					out[x*ks*ls + y*ls + z] = ave_intens ;
+					out[x*ks*ls + y*ls + (ls-z)] = ave_intens ;
+					out[x*ks*ls + (ks-y)*ls + z] = ave_intens ;
+					out[x*ks*ls + (ks-y)*ls + (ls-z)] = ave_intens ;
+				}
 				
-				out[x*ks*ls + y*ls + z] = ave_intens ;
-				out[x*ks*ls + y*ls + (ls-z)] = ave_intens ;
-				out[x*ks*ls + (ks-y)*ls + z] = ave_intens ;
-				out[x*ks*ls + (ks-y)*ls + (ls-z)] = ave_intens ;
-			}
-			
-			for (z = 1 ; z <= lc ; ++z) {
-				ave_intens = 0.5 * (
-					powf(cabsf(in[x*ks*ls + z]), 2.) + 
-					powf(cabsf(in[x*ks*ls + (ls-z)]), 2.)) ;
+				for (z = 1 ; z <= lc ; ++z) {
+					ave_intens = 0.5 * (
+						powf(cabsf(in[x*ks*ls + z]), 2.) + 
+						powf(cabsf(in[x*ks*ls + (ls-z)]), 2.)) ;
+					
+					out[x*ks*ls + z] = ave_intens ;
+					out[x*ks*ls + (ls-z)] = ave_intens ;
+				}
 				
-				out[x*ks*ls + z] = ave_intens ;
-				out[x*ks*ls + (ls-z)] = ave_intens ;
-			}
-			
-			for (y = 1 ; y <= kc ; ++y) {
-				ave_intens = 0.5 * (
-					powf(cabsf(in[x*ks*ls + y*ls]), 2.) + 
-					powf(cabsf(in[x*ks*ls + (ks-y)*ls]), 2.)) ;
+				for (y = 1 ; y <= kc ; ++y) {
+					ave_intens = 0.5 * (
+						powf(cabsf(in[x*ks*ls + y*ls]), 2.) + 
+						powf(cabsf(in[x*ks*ls + (ks-y)*ls]), 2.)) ;
+					
+					out[x*ks*ls + y*ls] = ave_intens ;
+					out[x*ks*ls + (ks-y)*ls] = ave_intens ;
+				}
 				
-				out[x*ks*ls + y*ls] = ave_intens ;
-				out[x*ks*ls + (ks-y)*ls] = ave_intens ;
+				out[x*ks*ls] = powf(cabsf(in[x*ks*ls]), 2.) ;
+				
+				for (y = 0 ; y < ks ; ++y)
+				for (z = 0 ; z < ls ; ++z)
+					out[x*ks*ls + y*ls + z] = sqrtf(out[x*ks*ls + y*ls + z]) ;
 			}
-			
-			out[x*ks*ls] = powf(cabsf(in[x*ks*ls]), 2.) ;
-			
-			for (y = 0 ; y < ks ; ++y)
-			for (z = 0 ; z < ls ; ++z)
-				out[x*ks*ls + y*ls + z] = sqrtf(out[x*ks*ls + y*ls + z]) ;
 		}
+	}
+	else if (strcmp(point_group, "4") == 0) {
+		#pragma omp parallel default(shared)
+		{
+			long x, y, z ;
+			float ave_intens ;
+			
+			#pragma omp for schedule(static)
+			for (z = 0 ; z < size ; ++z) {
+				for (x = 1 ; x <= hc ; ++x)
+				for (y = 1 ; y <= hc ; ++y) {	
+					ave_intens = 0.25 * (
+						powf(cabsf(in[x*ks*ls + y*ls + z]), 2.) +
+						powf(cabsf(in[(ks-y)*ks*ls + x*ls + z]), 2.) +
+						powf(cabsf(in[y*ks*ls + (hs-x)*ls + z]), 2.) +
+						powf(cabsf(in[(hs-x)*ks*ls + (ks-y)*ls + z]), 2.)) ;
+					
+					out[x*ks*ls + y*ls + z] = ave_intens ;
+					out[(ks-y)*ks*ls + x*ls + z] = ave_intens ;
+					out[y*ks*ls + (hs-x)*ls + z] = ave_intens ;
+					out[(hs-x)*ks*ls + (ks-y)*ls + z] = ave_intens ;
+				}
+				
+				for (x = 1 ; x <= hc ; ++x) {
+					ave_intens = 0.25 * (
+						powf(cabsf(in[x*ks*ls + z]), 2.) +
+						powf(cabsf(in[x*ls + z]), 2.) +
+						powf(cabsf(in[(hs-x)*ls + z]), 2.) +
+						powf(cabsf(in[(hs-x)*ks*ls + z]), 2.)) ;
+					
+					out[x*ks*ls + z] = ave_intens ;
+					out[x*ls + z] = ave_intens ;
+					out[(hs-x)*ls + z] = ave_intens ;
+					out[(hs-x)*ks*ls + z] = ave_intens ;
+				}
+				
+				out[z] = powf(cabsf(in[z]), 2.f) ;
+				
+				for (x = 0 ; x < hs ; ++x)
+				for (y = 0 ; y < ks ; ++y)
+					out[x*ks*ls + y*ls + z] = sqrtf(out[x*ks*ls + y*ls + z]) ;
+			}
+		}
+	}
+	else if (strcmp(point_group, "1") == 0) {
+		long x ;
+		for (x = 0 ; x < vol ; ++x)
+			out[x] = cabsf(in[x]) ;
 	}
 }
 
