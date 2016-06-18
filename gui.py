@@ -31,8 +31,11 @@ class GUI():
         self.layernum = Tk.IntVar()
         self.radiusmin = Tk.StringVar()
         self.radiusmax = Tk.StringVar()
+        self.scaleradmin = Tk.StringVar()
+        self.scaleradmax = Tk.StringVar()
         self.resedge = Tk.StringVar()
         self.circleflag = Tk.IntVar()
+        self.scaleradflag = Tk.IntVar()
         self.rangelock = Tk.IntVar()
         self.suppradstr = Tk.StringVar()
         self.suppthreshstr = Tk.StringVar()
@@ -46,7 +49,10 @@ class GUI():
         self.imagename.set('images/' + os.path.splitext(os.path.basename(self.fname.get()))[0] + '.png')
         self.radiusmin.set('0')
         self.radiusmax.set('0')
+        self.scaleradmin.set('0')
+        self.scaleradmax.set('0')
         self.circleflag.set(0)
+        self.scaleradflag.set(0)
         self.rangelock.set(0)
         self.suppradstr.set('3.')
         self.suppthreshstr.set('0.1')
@@ -191,6 +197,13 @@ class GUI():
 
         line = ttk.Frame(self.merge_frame)
         line.pack(fill=Tk.X)
+        ttk.Label(line,text='Scale radii:').pack(side=Tk.LEFT)
+        ttk.Entry(line,textvariable=self.scaleradmin,width=5).pack(side=Tk.LEFT)
+        ttk.Entry(line,textvariable=self.scaleradmax,width=5).pack(side=Tk.LEFT)
+        ttk.Checkbutton(line,text="Show",variable=self.scaleradflag,command=lambda: self.replot(zoom=False)).pack(side=Tk.LEFT)
+        
+        line = ttk.Frame(self.merge_frame)
+        line.pack(fill=Tk.X)
         ttk.Button(line,text='Zero Outer',command=self.zero_outer).pack(side=Tk.LEFT)
         ttk.Button(line,text='Calc. Scale',command=self.calc_scale).pack(side=Tk.LEFT)
         ttk.Button(line,text='Reset',command=self.reset_merge_tab).pack(side=Tk.LEFT)
@@ -240,6 +253,8 @@ class GUI():
             self.layernum.set(self.size/2)
             self.radiusmin.set('%d' % (self.size/2/2))
             self.radiusmax.set('%d' % (self.size/2))
+            self.scaleradmin.set('%d' % (self.size/2/2*0.9))
+            self.scaleradmax.set('%d' % (self.size/2/2*1.1))
         self.old_fname = self.fname.get()
 
     def parse_map(self):
@@ -319,6 +334,16 @@ class GUI():
             s3.add_artist(patches.Circle((self.size/2,self.size/2), rmin, ec='white', fc='none'))
             s3.add_artist(patches.Circle((self.size/2,self.size/2), rmax, ec='white', fc='none'))
         
+        if self.scaleradflag.get() is 1: 
+            rmin = float(self.scaleradmin.get())
+            rmax = float(self.scaleradmax.get())
+            s1.add_artist(patches.Circle((self.size/2,self.size/2), rmin, ec='white', fc='none', ls='--'))
+            s1.add_artist(patches.Circle((self.size/2,self.size/2), rmax, ec='white', fc='none', ls='--'))
+            s2.add_artist(patches.Circle((self.size/2,self.size/2), rmin, ec='white', fc='none', ls='--'))
+            s2.add_artist(patches.Circle((self.size/2,self.size/2), rmax, ec='white', fc='none', ls='--'))
+            s3.add_artist(patches.Circle((self.size/2,self.size/2), rmin, ec='white', fc='none', ls='--'))
+            s3.add_artist(patches.Circle((self.size/2,self.size/2), rmax, ec='white', fc='none', ls='--'))
+        
         self.space = space
         self.canvas.show()
 
@@ -377,8 +402,8 @@ class GUI():
             self.add_recon_tab()
 
     def calc_scale(self, event=None):
-        rmin = int(self.radiusmin.get())
-        rmax = int(self.radiusmax.get())
+        rmin = int(self.scaleradmin.get())
+        rmax = int(self.scaleradmax.get())
         mapnoext = os.path.splitext(os.path.basename(self.map_fname.get()))[0]
         sym_model = 'data/'+mapnoext+'-sym.raw'
         cmd = './utils/calc_scale %s %s %d %d %d' % (sym_model, self.merge_fname.get(), self.size, rmin, rmax)
@@ -400,8 +425,11 @@ class GUI():
         if os.path.isfile('data/'+mapnoext+'.cpx') and not tkMessageBox.askyesno('Process Map', 'Found processed map output. Overwrite?', default=tkMessageBox.NO, icon=tkMessageBox.QUESTION, parent=self.master):
             with open('results/'+mapnoext+'.log', 'r') as f:
                 words = f.read().split()
+                warray = np.array(words)
                 self.resedge.set(float(words[words.index('./utils/read_map')+2])/(self.vol_size/2))
                 self.point_group.set(words[words.index('data/'+mapnoext+'-srecon.raw')+2])
+                self.suppradstr.set('%.1f'%float(words[np.where(warray=='./utils/create_support')[0][-1]+3]))
+                self.suppthreshstr.set('%.1f'%float(words[np.where(warray=='./utils/create_support')[0][-1]+4]))
         else:
             if self.resedge.get() is '':
                 print 'Need resolution at edge of volume'
