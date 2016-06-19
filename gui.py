@@ -15,7 +15,7 @@ import subprocess
 import multiprocessing
 
 class GUI():
-    def __init__(self, master, merge_fname, map_fname):
+    def __init__(self, master, merge_fname='', map_fname=''):
         self.master = master
         master.title('ResEx Phasing GUI')
 
@@ -60,6 +60,7 @@ class GUI():
         self.point_group.set('222')
         self.config_fname.set('config.ini')
         self.size = None
+        self.vol = None
         self.old_fname = None
         self.space = None
         self.rangeminstr.set("%.1e" % rangemin)
@@ -235,7 +236,8 @@ class GUI():
 
     def parse_vol(self):
         if not os.path.isfile(self.fname.get()):
-            print "Unable to open", self.fname.get()
+            if self.fname.get() != '':
+                print "Unable to open", self.fname.get()
             return
         self.parse_extension(self.fname.get())
         self.vol = np.fromfile(self.fname.get(), dtype=self.typestr)
@@ -281,6 +283,8 @@ class GUI():
         self.imagename.set('images/' + os.path.splitext(os.path.basename(self.fname.get()))[0] + '.png')
         rangemax = float(self.rangemaxstr.get())
         rangemin = float(self.rangeminstr.get())
+        if self.vol is None:
+            return
         
         if zoom == 'current':
             zoom = self.zoomed
@@ -552,10 +556,9 @@ class GUI():
         self.master.quit()
 
 if __name__ == '__main__':
-    if len(sys.argv) < 3:
-        print("Need merge name and map name")
-        sys.exit()
-
     root = Tk.Tk()
-    gui = GUI(root, sys.argv[1], sys.argv[2])
+    if len(sys.argv) < 3:
+        gui = GUI(root)
+    else:
+        gui = GUI(root, sys.argv[1], sys.argv[2])
     root.mainloop()
