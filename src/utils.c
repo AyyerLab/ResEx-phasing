@@ -14,8 +14,9 @@ void init_model(float *model) {
 	
 	memset(model, 0, vol*sizeof(float)) ;
 	
-	for (i = 0 ; i < num_supp ; ++i)
-		model[support[i]] = gsl_rng_uniform(r) ;
+	for (i = 0 ; i < vol ; ++i)
+	if (support[i])
+		model[i] = gsl_rng_uniform(r) ;
 	
 	gsl_rng_free(r) ;
 }
@@ -201,7 +202,6 @@ void symmetrize_incoherent(fftwf_complex *in, float *out) {
 void apply_shrinkwrap(float *model, float blur, float threshold) {
 	long x, y, z, c = size/2 ;
 	float rsq, fblur ;
-	uint8_t *supvol = calloc(vol, sizeof(uint8_t)) ;
 	
 	for (x = 0 ; x < vol ; ++x) {
 		rdensity[x] = model[x] ;
@@ -222,8 +222,6 @@ void apply_shrinkwrap(float *model, float blur, float threshold) {
 	fftwf_execute(inverse) ;
 	
 	// Apply threshold
-	num_supp = 0 ;
-	
 	float max = -1.f ;
 	for (x = 0 ; x < vol ; ++x)
 //	if (crealf(rdensity[x]) > max)
@@ -234,21 +232,38 @@ void apply_shrinkwrap(float *model, float blur, float threshold) {
 //	threshold *= max ;
 	
 	for (x = 0 ; x < vol ; ++x)
-//	if (crealf(rdensity[x]) > threshold) {
-	if (crealf(rdensity[x]) > threshold) { // Absolute support
-		support[num_supp++] = x ;
-		supvol[x] = 1 ;
-	}
+//	if (crealf(rdensity[x]) > threshold)
+	if (crealf(rdensity[x]) > threshold) // Absolute support
+		support[x] = 1 ;
 	
 	char fname[999] ;
 	sprintf(fname, "data/shrinkwrap_501_%d.supp", iter) ;
 	FILE *fp = fopen(fname, "wb") ;
-	fwrite(supvol, sizeof(uint8_t), vol, fp) ;
+	fwrite(support, sizeof(uint8_t), vol, fp) ;
 	fclose(fp) ;
 	
 /*	fp = fopen("data/smoothed.raw", "wb") ;
 	fwrite(model, sizeof(float), vol, fp) ;
 	fclose(fp) ;
 */	
-	free(supvol) ;
 }
+
+void dump_slices(float *vol, char *fname) {
+	long x, y, c = size/2 ;
+	FILE *fp ;
+	float *slices = malloc(3*size*size*sizeof(float)) ;
+	
+	for (x = 0 ; x < size ; ++x)
+	for (y = 0 ; y < size ; ++y) {
+		slices[x*size + y] = vol[c*size*size + x*size + y] ;
+		slices[size*size + x*size + y] = vol[x*size*size + y*size + c] ;
+		slices[2*size*size + x*size + y] = vol[y*size*size + c*size + x] ;
+	}
+	
+	fp = fopen(fname, "wb") ;
+	fwrite(slices, sizeof(float), 3*size*size, fp) ;
+	fclose(fp) ;
+	
+	free(slices) ;
+}
+	
