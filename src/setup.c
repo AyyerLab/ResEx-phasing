@@ -184,8 +184,6 @@ int parse_bragg(char *fname, double braggqmax) {
 }
 
 int parse_support(char *fname) {
-	long x ;
-	
 	FILE *fp = fopen(fname, "rb") ;
 	if (fp == NULL) {
 		fprintf(stderr, "%s not found.\n", fname) ;
