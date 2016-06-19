@@ -337,12 +337,12 @@ class GUI():
         if self.scaleradflag.get() is 1: 
             rmin = float(self.scaleradmin.get())
             rmax = float(self.scaleradmax.get())
-            s1.add_artist(patches.Circle((self.size/2,self.size/2), rmin, ec='white', fc='none', ls='--'))
-            s1.add_artist(patches.Circle((self.size/2,self.size/2), rmax, ec='white', fc='none', ls='--'))
-            s2.add_artist(patches.Circle((self.size/2,self.size/2), rmin, ec='white', fc='none', ls='--'))
-            s2.add_artist(patches.Circle((self.size/2,self.size/2), rmax, ec='white', fc='none', ls='--'))
-            s3.add_artist(patches.Circle((self.size/2,self.size/2), rmin, ec='white', fc='none', ls='--'))
-            s3.add_artist(patches.Circle((self.size/2,self.size/2), rmax, ec='white', fc='none', ls='--'))
+            s1.add_artist(patches.Circle((self.size/2,self.size/2), rmin, ec='white', fc='none', ls='dashed'))
+            s1.add_artist(patches.Circle((self.size/2,self.size/2), rmax, ec='white', fc='none', ls='dashed'))
+            s2.add_artist(patches.Circle((self.size/2,self.size/2), rmin, ec='white', fc='none', ls='dashed'))
+            s2.add_artist(patches.Circle((self.size/2,self.size/2), rmax, ec='white', fc='none', ls='dashed'))
+            s3.add_artist(patches.Circle((self.size/2,self.size/2), rmin, ec='white', fc='none', ls='dashed'))
+            s3.add_artist(patches.Circle((self.size/2,self.size/2), rmax, ec='white', fc='none', ls='dashed'))
         
         self.space = space
         self.canvas.show()
