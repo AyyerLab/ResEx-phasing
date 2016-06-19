@@ -4,6 +4,7 @@
 #include <math.h>
 #include <complex.h>
 #include <fftw3.h>
+#include <omp.h>
 
 char* remove_ext(char *fullName) {
 	char *out = malloc(500 * sizeof(char)) ;
@@ -23,6 +24,7 @@ int main(int argc, char *argv[]) {
 	
 	if (argc < 3) {
 		fprintf(stderr, "Format: %s <raw_model> <size>\n", argv[0]) ;
+		fprintf(stderr, "Optional: <out_fname> <point_group>\n") ;
 		return 1 ;
 	}
 	size = atoi(argv[2]) ;
@@ -30,7 +32,7 @@ int main(int argc, char *argv[]) {
 	vol = size*size*size ;
 	
 	fftwf_init_threads() ;
-	fftwf_plan_with_nthreads(16) ;
+	fftwf_plan_with_nthreads(omp_get_max_threads()) ;
 	
 	// Allocate memory
 	rdensity = fftwf_malloc(vol * sizeof(fftwf_complex)) ;
@@ -87,6 +89,7 @@ int main(int argc, char *argv[]) {
 	// Symmetrize intensities
 	memset(temp, 0, vol * sizeof(float)) ;
 	if (argc > 4 && strcmp(argv[4], "4") == 0) { // '4' Point group
+		fprintf(stderr, "Symmetrizing by point group '4'\n") ;
 		for (x = 0 ; x < size ; ++x)
 		for (y = 0 ; y < size ; ++y)
 		for (z = 0 ; z < size ; ++z)
@@ -96,12 +99,14 @@ int main(int argc, char *argv[]) {
 													 powf(cabsf(rdensity[y*size*size + (2*c-x)*size + z]), 2.f)) ;
 	}
 	else if (argc > 4 && strcmp(argv[4], "1") == 0) { // '1' Point group
+		fprintf(stderr, "Symmetrizing by point group '1'\n") ;
 		for (x = 0 ; x < size ; ++x)
 		for (y = 0 ; y < size ; ++y)
 		for (z = 0 ; z < size ; ++z)
 			temp[x*size*size + y*size + z] = powf(cabsf(rdensity[x*size*size + y*size + z]), 2.f) ;
 	}
 	else { // '222' Point group
+		fprintf(stderr, "Symmetrizing by point group '222'\n") ;
 		for (x = 0 ; x < size ; ++x)
 		for (y = 0 ; y < size ; ++y)
 		for (z = 0 ; z < size ; ++z)
