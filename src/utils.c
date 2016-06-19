@@ -30,7 +30,7 @@ void average_model(float *current, float *sum) {
 void gen_prtf(float *model) {
 	long x, y, z, bin, num_bins = 50 ;
 	long dx, dy, dz, c = size/2, c1 = size/2+1 ;
-	float *contrast = calloc(num_bins, sizeof(float)) ;
+	float obs_val, *contrast = calloc(num_bins, sizeof(float)) ;
 	long *bin_count = calloc(num_bins, sizeof(long)) ;
 	FILE *fp ;
 	char fname[999] ;
@@ -54,13 +54,16 @@ void gen_prtf(float *model) {
 		dz = (z + c1) % size - c1 ;
 		
 		bin = sqrt(dx*dx + dy*dy + dz*dz) / c1 * num_bins + 0.5 ;
+		obs_val = obs_mag[x*size*size + y*size + z] ;
 		
-		if (bin < num_bins && obs_mag[x*size*size + y*size + z] > 0.) {
+		if (bin < num_bins && obs_val > 0.) {
 //			contrast[bin] += cabs(fdensity[x*size*size + y*size + z]) / 
 			contrast[bin] += exp_mag[x*size*size + y*size + z]
 			                 / obs_mag[x*size*size + y*size + z] ;
 			bin_count[bin]++ ;
 		}
+		else if (bin < num_bins && obs_val == 0.)
+			bin_count[bin]++ ;
 	}
 	
 	sprintf(fname, "%s-frecon.raw", output_prefix) ;
