@@ -1,7 +1,7 @@
 .PHONY: mkdir
 CC=gcc
 LDFLAGS=-lgsl -lgslcblas -lfftw3f_threads -lfftw3f -lm
-CFLAGS=-fopenmp -O3 -Wall -g
+CFLAGS=-std=gnu99 -fopenmp -O3 -Wall -g
 
 src = $(wildcard src/*.c)
 objects = $(patsubst src/%.c,bin/%.o,$(src)) 
