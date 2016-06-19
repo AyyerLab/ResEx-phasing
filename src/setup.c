@@ -109,7 +109,7 @@ int allocate_memory(int flag) {
 	
 	rdensity = fftwf_malloc(vol * sizeof(fftwf_complex)) ;
 	fdensity = fftwf_malloc(vol * sizeof(fftwf_complex)) ;
-	support = malloc(vol * sizeof(long)) ;
+	support = malloc(vol * sizeof(uint8_t)) ;
 	
 	return 0 ;
 }
@@ -185,21 +185,14 @@ int parse_bragg(char *fname, double braggqmax) {
 
 int parse_support(char *fname) {
 	long x ;
-	uint8_t *supvol = malloc(vol * sizeof(uint8_t)) ;
 	
 	FILE *fp = fopen(fname, "rb") ;
 	if (fp == NULL) {
 		fprintf(stderr, "%s not found.\n", fname) ;
 		return 1 ;
 	}
-	fread(supvol, sizeof(uint8_t), vol, fp) ;
+	fread(support, sizeof(uint8_t), vol, fp) ;
 	fclose(fp) ;
-	
-	for (x = 0 ; x < vol ; ++x)
-	if (supvol[x] == 1)
-		support[num_supp++] = x ;
-	
-	free(supvol) ;
 	
 	return 0 ;
 }
