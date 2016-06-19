@@ -14,10 +14,7 @@ gen_data
 /phenix
 
 # Config file
-src/config.ini
-
-# Run script
-rscript.sh
+config.ini
 
 # Data files
 *.log
