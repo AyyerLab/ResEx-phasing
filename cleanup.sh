@@ -35,6 +35,7 @@ cp ${prefix}-recon.raw results/output_${j}.raw
 cp ${prefix}-frecon.raw results/foutput_${j}.raw
 cp ${prefix}-log.dat results/log_${j}.dat
 cp ${prefix}-prtf.dat results/prtf_${j}.dat
+cp ${prefix}-last.raw results/last_${j}.raw
 cp config.ini results/conf_${j}.ini
 echo Generating map
 supp_fname=`grep support_fname config.ini|awk -F"[ =]" '{print $2}'`
