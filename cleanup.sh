@@ -13,7 +13,7 @@ do
 done
 
 set -e
-voxres=360.
+voxres=800.
 if [ $# -gt 0 ]
 then
 	if [ $1 = '-v' ]
@@ -39,8 +39,8 @@ cp config.ini results/conf_${j}.ini
 echo Generating map
 supp_fname=`grep support_fname config.ini|awk -F"[ =]" '{print $2}'`
 echo support = $supp_fname
-echo ./utils/gen_map results/output_${j}.raw 481 $voxsize $voxsize $voxsize $supp_fname
-./utils/gen_map results/output_${j}.raw 481 $voxsize $voxsize $voxsize $supp_fname
+echo ./utils/gen_map results/output_${j}.raw $size $voxsize $voxsize $voxsize $supp_fname
+./utils/gen_map results/output_${j}.raw $size $voxsize $voxsize $voxsize $supp_fname
 cd data/maps
 rm -f output_${j}.mtz
 phenix.map_to_structure_factors output_${j}.map.ccp4 box=True output_file_name=output_${j}.mtz
