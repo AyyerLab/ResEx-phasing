@@ -14,11 +14,12 @@
 #include <omp.h>
 
 int iter ;
-long size, vol, num_supp ;
-float *iterate, *obs_mag, *exp_mag, *p1, *p2, *r1, *r2 ;
-long *support ;
-fftwf_complex *fdensity, *rdensity ;
-float complex *bragg_calc ;
+long size, vol ;
+float * restrict iterate, * restrict obs_mag, * restrict exp_mag, * restrict p1 ;
+float *restrict p2, *restrict r1, *restrict r2 ;
+uint8_t * restrict support ;
+fftwf_complex * restrict fdensity, * restrict rdensity ;
+float complex * restrict bragg_calc ;
 fftwf_plan forward, inverse ;
 char output_prefix[999], point_group[999] ;
 
@@ -38,3 +39,4 @@ void gen_prtf(float*) ;
 void symmetrize_incoherent(fftwf_complex*, float*) ;
 void blur_intens(float*, float*) ;
 void apply_shrinkwrap(float*, float, float) ;
+void dump_slices(float*, char*) ;

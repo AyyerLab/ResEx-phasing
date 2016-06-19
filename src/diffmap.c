@@ -40,16 +40,11 @@ void proj_data(float *in, float *out) {
 // Support projection
 // (vol,num_supp,support)
 // Cannot set out = in
-void proj_supp(float *in, float *out) {
-	long i, pixel ;
+void proj_supp(float * restrict in, float * restrict out) {
+	long i ;
 	
-	memset(out, 0, vol*sizeof(float)) ;
-	
-	for (i = 0 ; i < num_supp ; ++i) {
-		pixel = support[i] ;
-//		if (in[pixel] > 0.)                            // Positivity
-			out[pixel] = in[pixel] ;
-	}
+	for (i = 0 ; i < vol ; ++i)
+		out[i] = in[i] * support[i] ;
 }
 
 double diffmap(float *x) {
