@@ -35,6 +35,7 @@ class GUI():
         self.scaleradmax = Tk.StringVar()
         self.resedge = Tk.StringVar()
         self.circleflag = Tk.IntVar()
+        self.checkflag = Tk.IntVar()
         self.scaleradflag = Tk.IntVar()
         self.rangelock = Tk.IntVar()
         self.suppradstr = Tk.StringVar()
@@ -52,6 +53,7 @@ class GUI():
         self.scaleradmin.set('0')
         self.scaleradmax.set('0')
         self.circleflag.set(0)
+        self.checkflag.set(0)
         self.scaleradflag.set(0)
         self.rangelock.set(0)
         self.suppradstr.set('3.')
@@ -121,6 +123,7 @@ class GUI():
         self.notebook.enable_traversal()
         self.gen_merge_tab()
         self.gen_map_tab()
+        self.gen_recon_tab()
 
         line = ttk.Frame(config_frame)
         line.pack(fill=Tk.X, expand=1)
@@ -277,7 +280,7 @@ class GUI():
             self.layernum.set(self.size/2)
         self.old_fname = self.fname.get()
 
-    def plot_slices(self, layernum, space=None, zoom=False):
+    def plot_slices(self, layernum, space=None, zoom=False, slices=None):
         if space is None:
             space = self.space
         self.imagename.set('images/' + os.path.splitext(os.path.basename(self.fname.get()))[0] + '.png')
@@ -291,16 +294,28 @@ class GUI():
         else:
             self.zoomed = zoom
         
-        if zoom:
-            min = self.size/3
-            max = 2*min
-            a = self.vol[layernum,min:max,min:max]
-            b = self.vol[min:max,layernum,min:max]
-            c = self.vol[min:max,min:max,layernum]
+        if slices is not None:
+            if zoom:
+                min = self.size/3
+                max = 2*min
+                a = slices[0,min:max,min:max]
+                b = slices[1,min:max,min:max]
+                c = slices[2,min:max,min:max]
+            else:
+                a = slices[0]
+                b = slices[1]
+                c = slices[2]
         else:
-            a = self.vol[layernum,:,:]	
-            b = self.vol[:,layernum,:]	
-            c = self.vol[:,:,layernum]
+            if zoom:
+                min = self.size/3
+                max = 2*min
+                a = self.vol[layernum,min:max,min:max]
+                b = self.vol[min:max,layernum,min:max]
+                c = self.vol[min:max,min:max,layernum]
+            else:
+                a = self.vol[layernum,:,:]	
+                b = self.vol[:,layernum,:]	
+                c = self.vol[:,:,layernum]
             
         s1 = self.fig.add_subplot(131)
         s1.matshow(a, vmin=rangemin, vmax=rangemax, cmap='jet')
@@ -402,8 +417,8 @@ class GUI():
             ttk.Label(line,text='Zero-ed volume: ').pack(side=Tk.LEFT)
             ttk.Button(line,text=zero_fname,command=lambda: self.plot_vol(fname=zero_fname)).pack(side=Tk.LEFT)
         self.zeroed = True
-        if self.calculated_scale and self.processed_map and not self.added_recon_tab:
-            self.add_recon_tab()
+        #if self.calculated_scale and self.processed_map and not self.added_recon_tab:
+        #    self.gen_recon_tab()
 
     def calc_scale(self, event=None):
         rmin = int(self.scaleradmin.get())
@@ -421,8 +436,8 @@ class GUI():
         else:
             self.scale_label.config(text='Scale factor = %.6e' % self.scale_factor)
         self.calculated_scale = True
-        if self.zeroed and self.processed_map and not self.added_recon_tab:
-            self.add_recon_tab()
+        #if self.zeroed and self.processed_map and not self.added_recon_tab:
+        #    self.gen_recon_tab()
 
     def process_map(self, event=None):
         mapnoext = os.path.splitext(os.path.basename(self.map_fname.get()))[0]
@@ -450,8 +465,8 @@ class GUI():
         if not self.processed_map:
             self.add_to_map_frame(mapnoext)
         self.processed_map = True
-        if self.zeroed and self.calculated_scale and not self.added_recon_tab:
-            self.add_recon_tab()
+        #if self.zeroed and self.calculated_scale and not self.added_recon_tab:
+        #    self.gen_recon_tab()
 
     def add_to_map_frame(self, mapnoext):
         line = ttk.Frame(self.map_frame)
@@ -497,7 +512,7 @@ class GUI():
         print '-'*80
         self.replot(force=True, zoom='current')
 
-    def add_recon_tab(self, event=None):
+    def gen_recon_tab(self, event=None):
         self.recon_frame = ttk.Frame(self.notebook)
         self.notebook.add(self.recon_frame, text='Recon')
         
@@ -514,6 +529,8 @@ class GUI():
         line = ttk.Frame(self.recon_frame)
         line.pack(fill=Tk.X)
         ttk.Button(line, text='Gen. Config', command=self.gen_config).pack(side=Tk.LEFT)
+        ttk.Button(line, text='Launch Recon', command=self.launch_recon).pack(side=Tk.LEFT)
+        ttk.Checkbutton(line,text='Keep Checking',variable=self.checkflag,command=self.keep_checking).pack(side=Tk.LEFT)
         
         self.added_recon_tab = True
 
@@ -534,6 +551,15 @@ class GUI():
             f.write('output_prefix=%s\n' % self.output_prefix.get())
         print 'Generated %s:' % self.config_fname.get()
         os.system('cat %s' % self.config_fname.get())
+    
+    def launch_recon(self, event=None):
+        pass
+
+    def keep_checking(self, event=None):
+        if self.checkflag.get() == 1:
+            s = np.fromfile(self.output_prefix.get()+'slices.raw', '=f4').reshape(3,size,size)
+            self.plot_slices(slices=s, zoom=True)
+            self.master.after(5000, self.keep_checking)
 
     def preprocess(self, event=None):
         self.zero_outer()
