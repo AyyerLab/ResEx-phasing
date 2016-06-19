@@ -74,7 +74,7 @@ then
 	padnoext="${padmodel%.*}"
 	echo -------------------------------------------------------------------------------- >> $log_name
 	echo ./utils/gen_fdens $padmodel $padsize 1| tee -a $log_name
-	./utils/gen_fdens $padmodel $padsize 1 >> $log_name 2>&1
+	./utils/gen_fdens $padmodel $padsize ${padnoext}-fdens.cpx 1 >> $log_name 2>&1
 	
 	sx=`grep Stretch $log_name|awk -F'[=,()]' '{print $3}'`
 	sy=`grep Stretch $log_name|awk -F'[=,()]' '{print $4}'`
@@ -110,7 +110,7 @@ then
 	./utils/gen_fdens $supprecon_name $size data/${mapnoext}.cpx $point_group >> $log_name 2>&1
 	
 	echo -------------------------------------------------------------------------------- >> $log_name
-	echo ./utils/create_support $lowresmodel_name $size $supp_radius $supp_thresh $supp_name | tee -a $log_name
-	./utils/create_support $lowresmodel_name $size $supp_radius $supp_thresh $supp_name >> $log_name 2>&1
+	echo ./utils/create_support $supprecon_name $size $supp_radius $supp_thresh $supp_name | tee -a $log_name
+	./utils/create_support $supprecon_name $size $supp_radius $supp_thresh $supp_name >> $log_name 2>&1
 fi
 
