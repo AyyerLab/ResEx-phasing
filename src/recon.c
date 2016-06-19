@@ -58,8 +58,6 @@ int main(int argc, char *argv[]) {
 	fprintf(fp, "-------------------------\n") ;
 	fclose(fp) ;
 	
-	fprintf(stderr, "num_supp = %ld\n", num_supp) ; 
-	
 	for (iter = 1 ; iter <= num_iter ; ++iter) {
 		gettimeofday(&t1, NULL) ;
 		
@@ -93,6 +91,13 @@ int main(int argc, char *argv[]) {
 			(double)(t2.tv_sec - t1.tv_sec) + (t2.tv_usec - t1.tv_usec) / 1000000.,
 			error) ;
 		fclose(fp) ;
+		
+		if (iter%2 == 0) {
+			sprintf(fname, "%s-slices.raw", output_prefix) ;
+			dump_slices(p1, fname) ;
+			sprintf(fname, "%s-fslices.raw", output_prefix) ;
+			dump_slices(exp_mag, fname) ;
+		}
 	}
 	
 	fprintf(stderr, "\nCalculating prtf and writing to file.\n") ;
