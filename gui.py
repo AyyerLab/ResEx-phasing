@@ -286,7 +286,7 @@ class GUI():
         self.imagename.set('images/' + os.path.splitext(os.path.basename(self.fname.get()))[0] + '.png')
         rangemax = float(self.rangemaxstr.get())
         rangemin = float(self.rangeminstr.get())
-        if self.vol is None:
+        if self.vol is None and slices is None:
             return
         
         if zoom == 'current':
@@ -557,8 +557,12 @@ class GUI():
 
     def keep_checking(self, event=None):
         if self.checkflag.get() == 1:
-            s = np.fromfile(self.output_prefix.get()+'slices.raw', '=f4').reshape(3,size,size)
-            self.plot_slices(slices=s, zoom=True)
+            self.fname.set(self.output_prefix.get()+'-slices.raw')
+            if os.path.isfile(self.fname.get()):
+                s = np.fromfile(self.fname.get(), '=f4')
+                self.size = int((s.shape[0]/3)**0.5)
+                s = s.reshape(3,self.size,self.size) 
+                self.plot_slices(0, slices=s, zoom=True)
             self.master.after(5000, self.keep_checking)
 
     def preprocess(self, event=None):
