@@ -543,6 +543,7 @@ class GUI():
             f.write('bragg_qmax=%f\n' % (float(self.radiusmin.get())/(self.vol_size/2)))
             f.write('scale_factor=%f\n' % self.scale_factor)
             f.write('num_threads=%d\n' % multiprocessing.cpu_count())
+            f.write('point_group=%s\n' % self.point_group.get())
             
             mapnoext = os.path.splitext(os.path.basename(self.map_fname.get()))[0]
             f.write('\n[files]\n')
