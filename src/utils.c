@@ -14,9 +14,11 @@ void init_model(float *model) {
 	
 	memset(model, 0, vol*sizeof(float)) ;
 	
-	for (i = 0 ; i < vol ; ++i)
-	if (support[i])
-		model[i] = gsl_rng_uniform(r) ;
+	for (i = 0 ; i < vol ; ++i) {
+		bg[i] = gsl_rng_uniform(r) ;
+		if (support[i])
+			model[i] = gsl_rng_uniform(r) ;
+	}
 	
 	gsl_rng_free(r) ;
 }
