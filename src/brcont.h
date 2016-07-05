@@ -15,8 +15,9 @@
 
 int iter ;
 long size, vol ;
-float * restrict iterate, * restrict obs_mag, * restrict exp_mag, * restrict p1 ;
+float *restrict iterate, *restrict obs_mag, *restrict exp_mag, *restrict p1 ;
 float *restrict p2, *restrict r1, *restrict r2 ;
+float *bg ;
 uint8_t * restrict support ;
 fftwf_complex * restrict fdensity, * restrict rdensity ;
 float complex * restrict bragg_calc ;

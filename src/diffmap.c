@@ -24,10 +24,16 @@ void proj_data(float *in, float *out) {
 	
 	// Scale using measured modulus at high resolution
 	for (i = 0 ; i < vol ; ++i) {
-		if (obs_mag[i] > 0.)
+		if (obs_mag[i] > 0.) {
 			fdensity[i] *= obs_mag[i] / exp_mag[i] ;
-		else if (obs_mag[i] == 0.)
+			bg[i] *= obs_mag[i] / exp_mag[i] ;
+		}
+		else if (obs_mag[i] == 0.) {
 			fdensity[i] = 0. ;
+			bg[i] = 0. ;
+		}
+		else if (obs_mag[i] < 0.)
+			bg[i] = 0. ;
 	}
 	
 	// Inverse Fourier transform
@@ -45,6 +51,7 @@ void proj_supp(float * restrict in, float * restrict out) {
 	
 	for (i = 0 ; i < vol ; ++i)
 		out[i] = in[i] * support[i] ;
+	radial_average(bg) ;
 }
 
 double diffmap(float *x) {

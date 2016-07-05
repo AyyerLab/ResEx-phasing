@@ -105,6 +105,7 @@ int allocate_memory(int flag) {
 		p2 = malloc(vol * sizeof(float)) ;
 		r1 = malloc(vol * sizeof(float)) ;
 		r2 = malloc(vol * sizeof(float)) ; // for beta != 1
+		bg = malloc(vol * sizeof(float)) ;
 	}
 	
 	rdensity = fftwf_malloc(vol * sizeof(fftwf_complex)) ;
