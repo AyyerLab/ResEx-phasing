@@ -93,10 +93,14 @@ int main(int argc, char *argv[]) {
 		for (x = 0 ; x < size ; ++x)
 		for (y = 0 ; y < size ; ++y)
 		for (z = 0 ; z < size ; ++z)
-			temp[x*size*size + y*size + z] = 0.25 * (powf(cabsf(rdensity[x*size*size + y*size + z]), 2.f) +
+/*			temp[x*size*size + y*size + z] = 0.25 * (powf(cabsf(rdensity[x*size*size + y*size + z]), 2.f) +
 													 powf(cabsf(rdensity[(2*c-y)*size*size + x*size + z]), 2.f) +
 													 powf(cabsf(rdensity[(2*c-x)*size*size + (2*c-y)*size + z]), 2.f) +
 													 powf(cabsf(rdensity[y*size*size + (2*c-x)*size + z]), 2.f)) ;
+*/			temp[x*size*size + y*size + z] = 0.25 * (powf(cabsf(rdensity[x*size*size + y*size + z]), 2.f) +
+													 powf(cabsf(rdensity[x*size*size + (2*c-z)*size + y]), 2.f) +
+													 powf(cabsf(rdensity[x*size*size + (2*c-y)*size + (2*c-z)]), 2.f) +
+													 powf(cabsf(rdensity[x*size*size + z*size + (2*c-y)]), 2.f)) ;
 	}
 	else if (argc > 4 && strcmp(argv[4], "1") == 0) { // '1' Point group
 		fprintf(stderr, "Symmetrizing by point group '1'\n") ;
