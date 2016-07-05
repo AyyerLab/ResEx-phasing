@@ -253,7 +253,9 @@ class GUI():
             self.vol = np.square(np.absolute(self.vol))
         self.slider.configure(from_=0,to=self.size-1)
         if self.rangelock.get() == 0:
-            self.rangemaxstr.set('%.1e' % (10*self.vol[self.vol>0].mean()))
+            rmax = self.vol[self.vol>0].mean()
+            rmax = 10*self.vol[(self.vol>0.01*rmax) & (self.vol<100*rmax)].mean()
+            self.rangemaxstr.set('%.1e' % rmax)
         if not self.vol_image_exists:
             self.layernum.set(self.size/2)
             self.radiusmin.set('%d' % (self.size/2/2))
