@@ -90,6 +90,7 @@ int setup(char *config_fname) {
 		return 1 ;
 	gen_input(input_fname, 0) ;
 	create_plans(wisdom_fname) ;
+	init_radavg() ;
 	
 	return 0 ;
 }	
@@ -106,6 +107,9 @@ int allocate_memory(int flag) {
 		r1 = malloc(vol * sizeof(float)) ;
 		r2 = malloc(vol * sizeof(float)) ; // for beta != 1
 		bg = malloc(vol * sizeof(float)) ;
+		p1bg = malloc(vol * sizeof(float)) ;
+		p2bg = malloc(vol * sizeof(float)) ;
+		r1bg = malloc(vol * sizeof(float)) ;
 	}
 	
 	rdensity = fftwf_malloc(vol * sizeof(fftwf_complex)) ;

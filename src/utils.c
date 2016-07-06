@@ -1,5 +1,9 @@
 #include "brcont.h"
 
+/* Initial guess for model and background
+ * Model is white noise inside support volume
+ * Background is white noise
+*/
 void init_model(float *model) {
 	long i ;
 	struct timeval t1 ;
@@ -30,6 +34,8 @@ void average_model(float *current, float *sum) {
 		sum[i] += current[i] ;
 }
 
+/* Calculate PRTF and save estimated intensities due to
+*/
 void gen_prtf(float *model) {
 	long x, y, z, bin, num_bins = 50 ;
 	long dx, dy, dz, c = size/2, c1 = size/2+1 ;
@@ -87,9 +93,10 @@ void gen_prtf(float *model) {
 	free(bin_count) ;
 }
 
-// Symmetrize intensity incoherently according to 222 point group
-// The array is assumed to have q=0 at (0,0,0) instead of in the center of the array
-// (size, point_group)
+/* Symmetrize intensity incoherently according to 222 point group
+ * The array is assumed to have q=0 at (0,0,0) instead of in the center of the array
+ * Global variables: (size, point_group)
+*/
 void symmetrize_incoherent(fftwf_complex *in, float *out) {
 	long hs, ks, ls, kc, lc ;
 	
@@ -143,7 +150,7 @@ void symmetrize_incoherent(fftwf_complex *in, float *out) {
 				
 				for (y = 0 ; y < ks ; ++y)
 				for (z = 0 ; z < ls ; ++z)
-					out[x*ks*ls + y*ls + z] = sqrtf(out[x*ks*ls + y*ls + z]) ;
+					out[x*ks*ls + y*ls + z] = sqrtf(out[x*ks*ls + y*ls + z] + powf(bg[x*ks*ls + y*ls + z], 2.f)) ;
 			}
 		}
 	}
@@ -160,12 +167,12 @@ void symmetrize_incoherent(fftwf_complex *in, float *out) {
 					ave_intens = 0.25 * (
 						powf(cabsf(in[x*ks*ls + y*ls + z]), 2.f) +
 						powf(cabsf(in[x*ks*ls + (ks-z)*ls + y]), 2.f) +
-						powf(cabsf(in[x*ks*ls + z*ls + (ls-z)]), 2.f) + 
+						powf(cabsf(in[x*ks*ls + z*ls + (ls-y)]), 2.f) + 
 						powf(cabsf(in[x*ks*ls + (ks-y)*ls + (ls-z)]), 2.f)) ;
 					
 					out[x*ks*ls + y*ls + z] = ave_intens ;
 					out[x*ks*ls + (ks-z)*ls + y] = ave_intens ;
-					out[x*ks*ls + z*ls + (ls-z)] = ave_intens ;
+					out[x*ks*ls + z*ls + (ls-y)] = ave_intens ;
 					out[x*ks*ls + (ks-y)*ls + (ls-z)] = ave_intens ;
 				}
 				
@@ -186,20 +193,21 @@ void symmetrize_incoherent(fftwf_complex *in, float *out) {
 				
 				for (y = 0 ; y < ks ; ++y)
 				for (z = 0 ; z < ls ; ++z)
-					out[x*ks*ls + y*ls + z] = sqrtf(out[x*ks*ls + y*ls + z]) ;
+					out[x*ks*ls + y*ls + z] = sqrtf(out[x*ks*ls + y*ls + z] + powf(bg[x*ks*ls + y*ls + z], 2.f)) ;
 			}
 		}
 	}
 	else if (strcmp(point_group, "1") == 0) {
 		long x ;
 		for (x = 0 ; x < vol ; ++x)
-			out[x] = cabsf(in[x]) ;
+			out[x] = cabsf(in[x] + powf(bg[x], 2.f)) ;
 	}
 }
 
-// Recalculate support
-// 'blur' gives width of Gaussian used to convolve with density
-// 'threshold' gives cutoff value as a fraction of maximum
+/* Recalculate support
+ * 'blur' gives width of Gaussian used to convolve with density
+ * 'threshold' gives cutoff value as a fraction of maximum
+*/
 void apply_shrinkwrap(float *model, float blur, float threshold) {
 	long x, y, z, c = size/2 ;
 	float rsq, fblur ;
@@ -238,7 +246,7 @@ void apply_shrinkwrap(float *model, float blur, float threshold) {
 		support[x] = 1 ;
 	
 	char fname[999] ;
-	sprintf(fname, "data/shrinkwrap_501_%d.supp", iter) ;
+	sprintf(fname, "%s-shrink%d.supp", output_prefix, iter) ;
 	FILE *fp = fopen(fname, "wb") ;
 	fwrite(support, sizeof(uint8_t), vol, fp) ;
 	fclose(fp) ;
@@ -249,16 +257,28 @@ void apply_shrinkwrap(float *model, float blur, float threshold) {
 */	
 }
 
-void dump_slices(float *vol, char *fname) {
+/* Save orthogonal central slices to file
+*/
+void dump_slices(float *vol, char *fname, int flag) {
 	long x, y, c = size/2 ;
 	FILE *fp ;
 	float *slices = malloc(3*size*size*sizeof(float)) ;
 	
-	for (x = 0 ; x < size ; ++x)
-	for (y = 0 ; y < size ; ++y) {
-		slices[x*size + y] = vol[c*size*size + x*size + y] ;
-		slices[size*size + x*size + y] = vol[x*size*size + y*size + c] ;
-		slices[2*size*size + x*size + y] = vol[y*size*size + c*size + x] ;
+	if (flag == 0) {
+		for (x = 0 ; x < size ; ++x)
+		for (y = 0 ; y < size ; ++y) {
+			slices[x*size + y] = vol[x*size + y] ;
+			slices[size*size + x*size + y] = vol[x*size*size + y*size] ;
+			slices[2*size*size + x*size + y] = vol[y*size*size + x] ;
+		}
+	}
+	else if (flag == 1) {
+		for (x = 0 ; x < size ; ++x)
+		for (y = 0 ; y < size ; ++y) {
+			slices[x*size + y] = vol[c*size*size + x*size + y] ;
+			slices[size*size + x*size + y] = vol[x*size*size + y*size + c] ;
+			slices[2*size*size + x*size + y] = vol[y*size*size + c*size + x] ;
+		}
 	}
 	
 	fp = fopen(fname, "wb") ;
@@ -267,4 +287,51 @@ void dump_slices(float *vol, char *fname) {
 	
 	free(slices) ;
 }
+
+/* Radial average initialization
+ * Calculate bin for each voxel and bin occupancy
+ * Note that q=0 is at (0,0,0) and not in the center of the array
+*/
+void init_radavg() {
+	long x, y, z, c = size/2 ;
+	long dx, dy, dz ;
+	double dist ;
 	
+	intrad = malloc(vol * sizeof(int)) ;
+	radavg = calloc(size, sizeof(float)) ;
+	radcount = calloc(size, sizeof(int)) ;
+	
+	for (x = 0 ; x < size ; ++x)
+	for (y = 0 ; y < size ; ++y)
+	for (z = 0 ; z < size ; ++z) {
+		dx = x <= c ? x : size-x ; 
+		dy = y <= c ? y : size-y ; 
+		dz = z <= c ? z : size-z ; 
+		dist = sqrt(dx*dx + dy*dy + dz*dz) ;
+		intrad[x*size*size + y*size + z] = (int) dist ;
+		radcount[intrad[x*size*size + y*size + z]]++ ;
+	}
+	
+	for (x = 0 ; x < size ; ++x)
+	if (radcount[x] == 0)
+		radcount[x] = 1 ;
+}
+
+/* Radial average calculation
+ * Using previously calculated bins and bin occupancies
+ * Note that q=0 is at (0,0,0) and not in the center of the array
+*/
+void radial_average(float *in, float *out) {
+	long i ;
+	
+	memset(radavg, 0, size*sizeof(float)) ;
+	for (i = 0 ; i < vol ; ++i)
+		radavg[intrad[i]] += in[i] ;
+	
+	for (i = 0 ; i < size ; ++i)
+		radavg[i] /= (float) radcount[i] ;
+	
+	for (i = 0 ; i < vol ; ++i)
+		out[i] = radavg[intrad[i]] ;
+}
+

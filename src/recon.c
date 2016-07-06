@@ -94,9 +94,9 @@ int main(int argc, char *argv[]) {
 		
 		if (iter%2 == 0) {
 			sprintf(fname, "%s-slices.raw", output_prefix) ;
-			dump_slices(p1, fname) ;
+			dump_slices(p1, fname, 1) ;
 			sprintf(fname, "%s-fslices.raw", output_prefix) ;
-			dump_slices(exp_mag, fname) ;
+			dump_slices(exp_mag, fname, 0) ;
 		}
 	}
 	
@@ -109,6 +109,16 @@ int main(int argc, char *argv[]) {
 	sprintf(fname, "%s-recon.raw", output_prefix) ;
 	fp = fopen(fname, "wb") ;
 	fwrite(average, sizeof(float), vol, fp) ;
+	fclose(fp) ;
+	
+	sprintf(fname, "%s-bg.raw", output_prefix) ;
+	fp = fopen(fname, "wb") ;
+	fwrite(p1bg, sizeof(float), vol, fp) ;
+	fclose(fp) ;
+	
+	sprintf(fname, "%s-radav.raw", output_prefix) ;
+	fp = fopen(fname, "wb") ;
+	fwrite(radavg, sizeof(float), size/2, fp) ;
 	fclose(fp) ;
 	
 	gen_prtf(average) ;
