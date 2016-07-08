@@ -37,6 +37,7 @@ class GUI():
         self.circleflag = Tk.IntVar()
         self.checkflag = Tk.IntVar()
         self.scaleradflag = Tk.IntVar()
+        self.suppressflag = Tk.IntVar()
         self.rangelock = Tk.IntVar()
         self.suppradstr = Tk.StringVar()
         self.suppthreshstr = Tk.StringVar()
@@ -55,6 +56,7 @@ class GUI():
         self.circleflag.set(0)
         self.checkflag.set(0)
         self.scaleradflag.set(0)
+        self.suppressflag.set(0)
         self.rangelock.set(0)
         self.suppradstr.set('3.')
         self.suppthreshstr.set('0.1')
@@ -63,6 +65,7 @@ class GUI():
         self.config_fname.set('config.ini')
         self.size = None
         self.vol = None
+        self.rad = None
         self.old_fname = None
         self.space = None
         self.rangeminstr.set("%.1e" % rangemin)
@@ -376,7 +379,7 @@ class GUI():
         else:
             self.plot_vol(fname=self.fname.get(), **kwargs) # Default plotting merge
 
-    def plot_vol(self, fname=None, event=None, force=False, **kwargs):
+    def plot_vol(self, fname=None, event=None, force=False, sigma=False, **kwargs):
         if fname is None:
             self.fname.set(self.merge_fname.get())
         else:
@@ -387,11 +390,29 @@ class GUI():
             print "Reparsing volume:", self.fname.get()
             self.parse_vol()
         
+        if sigma and self.suppressflag.get() == 1:
+            c = self.vol.shape[0] / 2
+            if self.rad is None:
+                if os.path.isfile('data/sigma_%d.bin' % self.size):
+                    self.rad = np.fromfile('data/rad_%d.bin' % self.size, '=f8').reshape(self.size,self.size,self.size)
+                    self.sigma = np.fromfile('data/sigma_%d.bin' % self.size, '=f8').reshape(self.size,self.size,self.size)
+                else:
+                    x, y, z = np.indices(self.vol.shape)
+                    x -= c
+                    y -= c
+                    z -= c
+                    self.rad = np.sqrt(x*x + y*y + z*z)
+                    print 'Calculated self.rad'
+                    self.sigma = np.exp(-8 * self.rad**2 / (c**2))
+                    print 'Calculated self.sigma'
+                    self.rad.tofile('data/rad_%d.bin' % self.size)
+                    self.sigma.tofile('data/sigma_%d.bin' % self.size)
+            self.vol *= (1. - self.sigma)
         self.plot_slices(self.layernum.get(), space='fourier', **kwargs)
         self.vol_image_exists = True
         self.map_image_exists = False
 
-    def plot_map(self, event=None, force=False, **kwargs):
+    def plot_map(self, event=None, force=False, sigma=False, **kwargs):
         self.fname.set(self.map_fname.get())
         if not self.map_image_exists:
             self.parse_map()
@@ -479,7 +500,8 @@ class GUI():
         line = ttk.Frame(self.map_frame)
         line.pack(fill=Tk.X)
         ttk.Label(line,text='Symmetrized: ').pack(side=Tk.LEFT)
-        ttk.Button(line,text='data/'+mapnoext+'-sym.raw',command=lambda: self.plot_vol(fname='data/'+mapnoext+'-sym.raw')).pack(side=Tk.LEFT)
+        ttk.Button(line,text='data/'+mapnoext+'-sym.raw',command=lambda: self.plot_vol(fname='data/'+mapnoext+'-sym.raw', sigma=True)).pack(side=Tk.LEFT)
+        ttk.Checkbutton(line,text='Suppress low-q',variable=self.suppressflag,command=lambda: self.replot(zoom='current', sigma=True)).pack(side=Tk.LEFT)
         
         line = ttk.Frame(self.map_frame)
         line.pack(fill=Tk.X)
@@ -563,10 +585,10 @@ class GUI():
             self.fname.set(self.output_prefix.get()+'-slices.raw')
             if os.path.isfile(self.fname.get()):
                 s = np.fromfile(self.fname.get(), '=f4')
-                self.size = int((s.shape[0]/3)**0.5)
+                self.size = int(np.round((s.shape[0]/3)**0.5))
                 s = s.reshape(3,self.size,self.size) 
                 self.plot_slices(0, slices=s, zoom=True)
-            self.master.after(5000, self.keep_checking)
+            self.master.after(1000, self.keep_checking)
 
     def preprocess(self, event=None):
         self.zero_outer()
