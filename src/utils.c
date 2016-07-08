@@ -255,8 +255,8 @@ void dump_slices(float *vol, char *fname) {
 	for (x = 0 ; x < size ; ++x)
 	for (y = 0 ; y < size ; ++y) {
 		slices[x*size + y] = vol[c*size*size + x*size + y] ;
-		slices[size*size + x*size + y] = vol[x*size*size + y*size + c] ;
-		slices[2*size*size + x*size + y] = vol[y*size*size + c*size + x] ;
+		slices[size*size + x*size + y] = vol[x*size*size + c*size + y] ;
+		slices[2*size*size + x*size + y] = vol[x*size*size + y*size + c] ;
 	}
 	
 	fp = fopen(fname, "wb") ;
