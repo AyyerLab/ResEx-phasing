@@ -24,9 +24,11 @@ then
 	fi
 fi
 
+config=config.ini
 
-prefix=`grep output_prefix config.ini|awk -F"[ =]" '{print $2}'`
-size=`grep size config.ini|awk -F"[ =]" '{print $2}'`
+
+prefix=`grep output_prefix $config |awk -F"[ =]" '{print $2}'`
+size=`grep size $config |awk -F"[ =]" '{print $2}'`
 center=$((size/2))
 voxsize=$((voxres / 2. / center))
 
@@ -36,7 +38,7 @@ cp ${prefix}-frecon.raw results/foutput_${j}.raw
 cp ${prefix}-log.dat results/log_${j}.dat
 cp ${prefix}-prtf.dat results/prtf_${j}.dat
 cp ${prefix}-last.raw results/last_${j}.raw
-cp config.ini results/conf_${j}.ini
+cp $config results/conf_${j}.ini
 echo Generating map
 supp_fname=`grep support_fname config.ini|awk -F"[ =]" '{print $2}'`
 echo support = $supp_fname
