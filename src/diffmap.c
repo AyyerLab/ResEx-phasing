@@ -39,12 +39,9 @@ void proj_data(float *in, float *out) {
 
 // Support projection
 // (vol,num_supp,support)
-// Cannot set out = in
+// Can set out = in
 void proj_supp(float * restrict in, float * restrict out) {
-	long i ;
-	
-	for (i = 0 ; i < vol ; ++i)
-		out[i] = in[i] * support[i] ;
+	match_histogram(in, out) ;
 }
 
 double diffmap(float *x) {

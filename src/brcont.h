@@ -23,6 +23,10 @@ float complex * restrict bragg_calc ;
 fftwf_plan forward, inverse ;
 char output_prefix[999], point_group[999] ;
 
+// Histogram matching
+long num_supp, *supp_loc, *supp_index ;
+float *supp_val, *inverse_cdf ;
+
 // diffmap.c
 double diffmap(float*) ;
 double error_red(float*) ;
@@ -40,3 +44,4 @@ void symmetrize_incoherent(fftwf_complex*, float*) ;
 void blur_intens(float*, float*) ;
 void apply_shrinkwrap(float*, float, float) ;
 void dump_slices(float*, char*) ;
+void match_histogram(float*, float*) ;

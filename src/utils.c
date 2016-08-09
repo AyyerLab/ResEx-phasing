@@ -265,4 +265,24 @@ void dump_slices(float *vol, char *fname) {
 	
 	free(slices) ;
 }
+
+int compare_indices(void *a, void *b) {
+	int ia = *(int*) a ;
+	int ib = *(int*) b ;
+	return supp_val[ia] < supp_val[ib] ? -1 : supp_val[ia] > supp_val[ib] ;
+}
+
+void match_histogram(float *in, float *out) {
+	long i ; 
 	
+	for (i = 0 ; i < num_supp ; ++i) {
+		supp_index[i] = i ;
+		supp_val[i] = in[supp_loc[i]] ;
+	}
+	
+	qsort(supp_index, num_supp, sizeof(long), compare_indices) ;
+	
+	memset(out, 0, vol*sizeof(float)) ;
+	for (i = 0 ; i < num_supp ; ++i)
+		out[supp_loc[supp_index[i]]] = inverse_cdf[i] ;
+}

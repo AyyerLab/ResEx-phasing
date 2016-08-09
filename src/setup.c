@@ -7,11 +7,13 @@ int parse_support(char*) ;
 void create_plans(char*) ;
 int gen_input(char*, int) ;
 int parse_quat(char*) ;
+int read_histogram(char*, long) ;
 
 int setup(char *config_fname) {
 	char line[999], *token ;
-	char input_fname[999] ;
-	char intens_fname[999], bragg_fname[999], support_fname[999], wisdom_fname[999] ;
+	char input_fname[999], hist_fname[999] ;
+	char intens_fname[999], bragg_fname[999] ;
+	char support_fname[999], wisdom_fname[999] ;
 	double bragg_qmax = 0. ;
 	float scale_factor = 0. ;
 	int num_threads = -1 ;
@@ -40,6 +42,8 @@ int setup(char *config_fname) {
 			strcpy(point_group, strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "intens_fname") == 0)
 			strcpy(intens_fname, strtok(NULL, " =\n")) ;
+		else if (strcmp(token, "hist_fname") == 0)
+			strcpy(hist_fname, strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "bragg_fname") == 0)
 			strcpy(bragg_fname, strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "input_fname") == 0)
@@ -88,6 +92,8 @@ int setup(char *config_fname) {
 		return 1 ;
 	if (parse_support(support_fname))
 		return 1 ;
+	if (read_histogram(hist_fname, num_supp))
+		return 1 ;
 	gen_input(input_fname, 0) ;
 	create_plans(wisdom_fname) ;
 	
@@ -105,6 +111,7 @@ int allocate_memory(int flag) {
 		p2 = malloc(vol * sizeof(float)) ;
 		r1 = malloc(vol * sizeof(float)) ;
 		r2 = malloc(vol * sizeof(float)) ; // for beta != 1
+		supp_loc = malloc(vol / 8 * sizeof(long)) ;
 	}
 	
 	rdensity = fftwf_malloc(vol * sizeof(fftwf_complex)) ;
@@ -133,12 +140,6 @@ int parse_intens(char *fname, float scale) {
 	for (k = 0 ; k < s ; ++k)
 		if (intens[i*s*s + j*s + k] > 0.)
 			obs_mag[((i+c+1)%s)*s*s + ((j+c+1)%s)*s + ((k+c+1)%s)]
-//				= sqrt(intens[i*s*s + j*s + k]) * 370.67506 ; // anton_50pr_subt
-//				= sqrt(intens[i*s*s + j*s + k]) * 157.19 ; // lorenzo_2848_hard
-//				= sqrt(intens[i*s*s + j*s + k]) * 421.17 ; // lorenzo_hard_iso_sym
-//				= sqrt(intens[i*s*s + j*s + k]) * 343.06 ; // lorenzo_hard_iso_sym w/ dominik-3
-//				= sqrt(intens[i*s*s + j*s + k]) * 341.33 ; // lorenzo_hard_iso_sym w/ dominik-3-test
-//				= sqrt(intens[i*s*s + j*s + k]) * 336.16 ; // lorenzo_hard_iso_sym w/ dominik-4
 				= sqrt(intens[i*s*s + j*s + k]) * scale ;
 		else
 			obs_mag[((i+c+1)%s)*s*s + ((j+c+1)%s)*s + ((k+c+1)%s)]
@@ -184,6 +185,7 @@ int parse_bragg(char *fname, double braggqmax) {
 }
 
 int parse_support(char *fname) {
+	long i ;
 	FILE *fp = fopen(fname, "rb") ;
 	if (fp == NULL) {
 		fprintf(stderr, "%s not found.\n", fname) ;
@@ -191,6 +193,15 @@ int parse_support(char *fname) {
 	}
 	fread(support, sizeof(uint8_t), vol, fp) ;
 	fclose(fp) ;
+	
+	num_supp = 0 ;
+	for (i = 0 ; i < vol ; ++i)
+	if (support[i])
+		supp_loc[num_supp++] = i ;
+	
+	fprintf(stderr, "num_supp = %ld\n", num_supp) ;
+	supp_index = malloc(num_supp * sizeof(long)) ;
+	supp_val = malloc(num_supp * sizeof(float)) ;
 	
 	return 0 ;
 }
@@ -234,6 +245,63 @@ int gen_input(char *fname, int flag) {
 		fread(iterate, sizeof(float), vol, fp) ;
 		fclose(fp) ;
 	}
+	
+	return 0 ;
+}
+
+int read_histogram(char *fname, long num) {
+	long m, i, num_hist ;
+	double frac, sum_hist ;
+	
+	FILE *fp = fopen(fname, "r") ;
+	if (fp == NULL) {
+		fprintf(stderr, "Cannot find histogram file %s\n", fname) ;
+		return 1 ;
+	}
+	fscanf(fp, "%ld", &num_hist) ;
+	double *hist = malloc(num_hist * sizeof(double)) ;
+	float *val = malloc(num_hist * sizeof(float)) ;
+	double *cdf = malloc((num_hist+1) * sizeof(double)) ;
+	for (i = 0 ; i < num_hist ; ++i)
+		fscanf(fp, "%f %lf", &val[i], &hist[i]) ;
+	fclose(fp) ;
+	
+	cdf[0] = 0. ;
+	cdf[1] = hist[0] ;
+	sum_hist = hist[0] ;
+	for (i = 2 ; i <= num_hist ; ++i) {
+		sum_hist += hist[i-1] ;
+		cdf[i] = hist[i-1] + cdf[i-1] ;
+	}
+	for (i = 0 ; i <= num_hist ; ++i)
+		cdf[i] /= sum_hist ;
+	
+	inverse_cdf = malloc(num * sizeof(float)) ;
+	inverse_cdf[0] = val[0] ;
+	
+	i = 1 ;
+	for (m = 1 ; m < num ; ++m) {
+		frac = (double) m / num ;
+		if (i == num_hist - 1)
+			inverse_cdf[m] = val[i] ;
+		else if (frac <= cdf[i])
+			inverse_cdf[m] = val[i-1] + (frac-cdf[i-1]) * (val[i] - val[i-1]) / (cdf[i] - cdf[i-1]) ;
+		else {
+			i++ ;
+			while (frac > cdf[i])
+				i++ ;
+			inverse_cdf[m] = val[i-1] ;
+		}
+	}
+	
+	
+	fp = fopen("data/inverse_cdf.raw", "wb") ;
+	fwrite(inverse_cdf, sizeof(float), num, fp) ;
+	fclose(fp) ;
+	
+	free(hist) ;
+	free(val) ;
+	free(cdf) ;
 	
 	return 0 ;
 }
