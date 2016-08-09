@@ -274,9 +274,12 @@ class GUI():
         nx, ny, nz = tuple(grid)
         f.seek(1024, 0)
         vol = np.fromfile(f, '=f4').reshape(nx, ny, nz)
-        vol = np.roll(vol, nx/2, axis=0)
-        vol = np.roll(vol, ny/2, axis=1)
-        vol = np.roll(vol, nz/2, axis=2)
+        edgesum = (np.abs(vol[:,:,0]).sum() + np.abs(vol[:,:,-1]).sum() + np.abs(vol[:,0]).sum() + np.abs(vol[:,-1]).sum() + np.abs(vol[0]).sum() + np.abs(vol[-1]).sum()) / 6.
+        centralsum = (np.abs(vol[:,:,nz/2]).sum() + np.abs(vol[:,ny/2]).sum() + np.abs(vol[nx/2]).sum())/ 3.
+        if edgesum > centralsum:
+            vol = np.roll(vol, nx/2, axis=0)
+            vol = np.roll(vol, ny/2, axis=1)
+            vol = np.roll(vol, nz/2, axis=2)
         s = max(nx, ny, nz)
         self.size = s
         self.vol = np.pad(vol, (((s-nx)/2,s-nx-(s-nx)/2),((s-ny)/2,s-ny-(s-ny)/2),((s-nz)/2,s-nz-(s-nz)/2)), mode='constant', constant_values=0)

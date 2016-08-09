@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 char* extract_fname(char* fullName) {
 	return 
@@ -122,6 +123,19 @@ int main(int argc, char *argv[]) {
 	fclose(fp) ;
 	// --------------------------------------------------------------------------------
 
+	// Comparing edge slices to central slices
+	float central_sum = 0.f, edge_sum= 0.f ;
+	
+	for (y = 0 ; y < ny ; ++y)
+	for (z = 0 ; z < nz ; ++z) {
+		edge_sum += fabsf(model[y*nz + z]) ;
+		central_sum += fabsf(model[(nx/2)*ny*nz + y*nz + z]) ;
+	}
+	
+	int section_flag = edge_sum > central_sum ? 0 : 1 ;
+	fprintf(stderr, "sums: (%e, %e)\n", edge_sum, central_sum) ;
+	// --------------------------------------------------------------------------------
+	 
 	sprintf(fname, "data/%s-map.raw", remove_ext(extract_fname(argv[1]))) ;
 	fprintf(stderr, "Saving model to %s\n", fname) ;
 	fp = fopen(fname, "wb") ;
@@ -147,21 +161,39 @@ int main(int argc, char *argv[]) {
 	shz = (psize - nz) / 2 ;
 	
 	padmodel = calloc(pvol, sizeof(float)) ;
-	if (mapx == 1) {
-		for (x = 0 ; x < nx ; ++x)
-		for (y = 0 ; y < ny ; ++y)
-		for (z = 0 ; z < nz ; ++z)
-			padmodel[(x+shx)*psize*psize + (y+shy)*psize + (z+shz)]
-//			 = model[x*ny*nz + y*nz + z] ;
-			 = model[((x+nx/2)%nx)*ny*nz + ((y+ny/2)%ny)*nz + ((z+nz/2)%nz)] ;
+	if (section_flag == 0) {
+		fprintf(stderr, "Rotating array by half its size\n") ;
+		if (mapx == 1) {
+			for (x = 0 ; x < nx ; ++x)
+			for (y = 0 ; y < ny ; ++y)
+			for (z = 0 ; z < nz ; ++z)
+				padmodel[(x+shx)*psize*psize + (y+shy)*psize + (z+shz)]
+				 = model[((x+nx/2)%nx)*ny*nz + ((y+ny/2)%ny)*nz + ((z+nz/2)%nz)] ;
+		}
+		else {
+			for (x = 0 ; x < nx ; ++x)
+			for (y = 0 ; y < ny ; ++y)
+			for (z = 0 ; z < nz ; ++z)
+				padmodel[(x+shx)*psize*psize + (y+shy)*psize + (z+shz)]
+				 = model[((z+nz/2)%nz)*ny*nx + ((y+ny/2)%ny)*nx + ((x+nx/2)%nx)] ;
+		}
 	}
 	else {
-		for (x = 0 ; x < nx ; ++x)
-		for (y = 0 ; y < ny ; ++y)
-		for (z = 0 ; z < nz ; ++z)
-			padmodel[(x+shx)*psize*psize + (y+shy)*psize + (z+shz)]
-//			 = model[z*ny*nx + y*nx + x] ;
-			 = model[((z+nz/2)%nz)*ny*nx + ((y+ny/2)%ny)*nx + ((x+nx/2)%nx)] ;
+		fprintf(stderr, "Saving array without rotation\n") ;
+		if (mapx == 1) {
+			for (x = 0 ; x < nx ; ++x)
+			for (y = 0 ; y < ny ; ++y)
+			for (z = 0 ; z < nz ; ++z)
+				padmodel[(x+shx)*psize*psize + (y+shy)*psize + (z+shz)]
+				 = model[x*ny*nz + y*nz + z] ;
+		}
+		else {
+			for (x = 0 ; x < nx ; ++x)
+			for (y = 0 ; y < ny ; ++y)
+			for (z = 0 ; z < nz ; ++z)
+				padmodel[(x+shx)*psize*psize + (y+shy)*psize + (z+shz)]
+				 = model[z*ny*nx + y*nx + x] ;
+		}
 	}
 	
 	sprintf(fname, "data/%s-%ld.raw", remove_ext(extract_fname(argv[1])), psize) ;
