@@ -27,6 +27,7 @@ int main(int argc, char *argv[]) {
 	
 	if (argc < 5) {
 		fprintf(stderr, "Format: %s <model1> <model2> <size> <res_at_edge>\n", argv[0]) ;
+		fprintf(stderr, "Optional: <fsc_fname>\n") ;
 		return 1 ;
 	}
 	size = atoi(argv[3]) ;
@@ -143,15 +144,20 @@ int main(int argc, char *argv[]) {
 		fsc[bin] /= sqrtf(norm1[bin] * norm2[bin]) ;
 
 	// Write to file
-	sprintf(fname, "%s", extract_fname(argv[1])) ;
-	strtok(fname, "_.") ;
-	int num1 = atoi(strtok(NULL, "_.")) ;
-	sprintf(fname, "%s", extract_fname(argv[2])) ;
-	strtok(fname, "_.") ;
-	int num2 = atoi(strtok(NULL, "_.")) ;
-	sprintf(fname, "fsc-%d-%d.dat", num1, num2) ;
-	fprintf(stderr, "Writing to %s\n", fname) ;
+	if (argc > 5) {
+		strcpy(fname, argv[5]) ;
+	}
+	else {
+		sprintf(fname, "%s", extract_fname(argv[1])) ;
+		strtok(fname, "_.") ;
+		int num1 = atoi(strtok(NULL, "_.")) ;
+		sprintf(fname, "%s", extract_fname(argv[2])) ;
+		strtok(fname, "_.") ;
+		int num2 = atoi(strtok(NULL, "_.")) ;
+		sprintf(fname, "fsc-%d-%d.dat", num1, num2) ;
+	}
 	
+	fprintf(stderr, "Writing to %s\n", fname) ;
 	fp = fopen(fname, "w") ;
 	for (bin = 0 ; bin < num_bins ; ++bin)
 		fprintf(fp, "%.3f\t%.3f\t%.6f\t%.8ld\n", (bin+1)/d_min/num_bins, num_bins*d_min/(bin+1), cabsf(fsc[bin]), numvox[bin]) ;
