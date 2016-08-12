@@ -15,21 +15,31 @@
 
 int iter ;
 long size, vol ;
-float * restrict iterate, * restrict obs_mag, * restrict exp_mag, * restrict p1 ;
-float *restrict p2, *restrict r1, *restrict r2 ;
+float * restrict obs_mag, * restrict exp_mag ;
 uint8_t * restrict support ;
 fftwf_complex * restrict fdensity, * restrict rdensity ;
 float complex * restrict bragg_calc ;
-fftwf_plan forward, inverse ;
+fftwf_plan forward_plan, inverse_plan ;
 char output_prefix[999], point_group[999] ;
+
+// Algorithm parameters
+char algorithm_name[999], avg_algorithm_name[999] ;
+float algorithm_beta ;
+float * restrict algorithm_iterate,  * restrict algorithm_p1 ;
+float * restrict algorithm_p2, *restrict algorithm_r1, *restrict algorithm_r2 ;
+int do_histogram, do_positivity ;
 
 // Histogram matching
 long num_supp, *supp_loc, *supp_index ;
 float *supp_val, *inverse_cdf ;
 
+// Functions
 // diffmap.c
-double diffmap(float*) ;
-double error_red(float*) ;
+double DM_algorithm(float*) ;
+double HIO_algorithm(float*) ;
+double RAAR_algorithm(float*) ;
+double mod_DM_algorithm(float*) ;
+double ER_algorithm(float*) ;
 double modified_hio(float*) ;
 
 // setup.c

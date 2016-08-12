@@ -40,7 +40,7 @@ void gen_prtf(float *model) {
 	for (x = 0 ; x < vol ; ++x)
 		rdensity[x] = model[x] ;
 	
-	fftwf_execute(forward) ;
+	fftwf_execute(forward_plan) ;
 	
 	symmetrize_incoherent(fdensity, exp_mag) ;
 	
@@ -207,7 +207,7 @@ void apply_shrinkwrap(float *model, float blur, float threshold) {
 	}
 	
 	// Blur density
-	fftwf_execute(forward) ;
+	fftwf_execute(forward_plan) ;
 	
 	fblur = size / (2. * M_PI * blur) ;
 	
@@ -218,7 +218,7 @@ void apply_shrinkwrap(float *model, float blur, float threshold) {
 		fdensity[x*size*size + y*size + z] *= expf(-rsq / 2. / fblur / fblur) ;
 	}
 	
-	fftwf_execute(inverse) ;
+	fftwf_execute(inverse_plan) ;
 	
 	// Apply threshold
 	float max = -1.f ;
@@ -266,7 +266,7 @@ void dump_slices(float *vol, char *fname) {
 	free(slices) ;
 }
 
-int compare_indices(void *a, void *b) {
+int compare_indices(const void *a, const void *b) {
 	int ia = *(int*) a ;
 	int ib = *(int*) b ;
 	return supp_val[ia] < supp_val[ib] ? -1 : supp_val[ia] > supp_val[ib] ;

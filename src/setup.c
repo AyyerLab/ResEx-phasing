@@ -21,6 +21,10 @@ int setup(char *config_fname) {
 	size = 0 ;
 	output_prefix[0] = '\0' ;
 	strcpy(point_group, "222") ;
+	do_histogram = 0 ;
+	do_positivity = 0 ;
+	strcpy(algorithm_name, "DM") ;
+	strcpy(avg_algorithm_name, "DM") ;
 	
 	FILE *fp = fopen(config_fname, "r") ;
 	if (fp == NULL) {
@@ -32,28 +36,41 @@ int setup(char *config_fname) {
 		if (token[0] == '#' || token[0] == '\n' || token[0] == '[')
 			continue ;
 		
+		// Parameters
 		if (strcmp(token, "size") == 0)
 			size = atoi(strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "bragg_qmax") == 0)
 			bragg_qmax = atof(strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "scale_factor") == 0)
 			scale_factor = atof(strtok(NULL, " =\n")) ;
+		else if (strcmp(token, "num_threads") == 0)
+			num_threads = atoi(strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "point_group") == 0)
 			strcpy(point_group, strtok(NULL, " =\n")) ;
+		// Files
 		else if (strcmp(token, "intens_fname") == 0)
 			strcpy(intens_fname, strtok(NULL, " =\n")) ;
-		else if (strcmp(token, "hist_fname") == 0)
-			strcpy(hist_fname, strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "bragg_fname") == 0)
 			strcpy(bragg_fname, strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "input_fname") == 0)
 			strcpy(input_fname, strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "support_fname") == 0)
 			strcpy(support_fname, strtok(NULL, " =\n")) ;
-		else if (strcmp(token, "num_threads") == 0)
-			num_threads = atoi(strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "output_prefix") == 0)
 			strcpy(output_prefix, strtok(NULL, " =\n")) ;
+		// Algorithm
+		else if (strcmp(token, "algorithm") == 0)
+			strcpy(algorithm_name, strtok(NULL, " =\n")) ;
+		else if (strcmp(token, "avg_algorithm") == 0)
+			strcpy(avg_algorithm_name, strtok(NULL, " =\n")) ;
+		else if (strcmp(token, "beta") == 0)
+			algorithm_beta = atof(strtok(NULL, " =\n")) ;
+		else if (strcmp(token, "histogram") == 0)
+			do_histogram = atoi(strtok(NULL, " =\n")) ;
+		else if (strcmp(token, "positivity") == 0)
+			do_positivity = atoi(strtok(NULL, " =\n")) ;
+		else if (strcmp(token, "hist_fname") == 0)
+			strcpy(hist_fname, strtok(NULL, " =\n")) ;
 	}
 	
 	if (size == 0) {
@@ -92,8 +109,10 @@ int setup(char *config_fname) {
 		return 1 ;
 	if (parse_support(support_fname))
 		return 1 ;
-	if (read_histogram(hist_fname, num_supp))
-		return 1 ;
+	if (do_histogram) {
+		if (read_histogram(hist_fname, num_supp))
+			return 1 ;
+	}
 	gen_input(input_fname, 0) ;
 	create_plans(wisdom_fname) ;
 	
@@ -101,16 +120,17 @@ int setup(char *config_fname) {
 }	
 
 int allocate_memory(int flag) {
-	iterate = malloc(vol * sizeof(float)) ;
+	algorithm_iterate = malloc(vol * sizeof(float)) ;
 	exp_mag = malloc(vol * sizeof(float)) ;
 	
 	if (flag == 1) {
 		obs_mag = malloc(vol * sizeof(float)) ;
 		bragg_calc = fftwf_malloc(vol * sizeof(fftwf_complex)) ;
-		p1 = malloc(vol * sizeof(float)) ;
-		p2 = malloc(vol * sizeof(float)) ;
-		r1 = malloc(vol * sizeof(float)) ;
-		r2 = malloc(vol * sizeof(float)) ; // for beta != 1
+		algorithm_p1 = malloc(vol * sizeof(float)) ;
+		algorithm_p2 = malloc(vol * sizeof(float)) ;
+		algorithm_r1 = malloc(vol * sizeof(float)) ;
+		if (algorithm_beta != 1.)
+			algorithm_r2 = malloc(vol * sizeof(float)) ; // for beta != 1
 		supp_loc = malloc(vol / 8 * sizeof(long)) ;
 	}
 	
@@ -210,8 +230,8 @@ void create_plans(char *fname) {
 	FILE *fp = fopen(fname, "rb") ;
 	if (fp == NULL) {
 		fprintf(stderr, "Measuring plans\n") ;
-		forward = fftwf_plan_dft_3d(size, size, size, rdensity, fdensity, FFTW_FORWARD, FFTW_MEASURE) ;
-		inverse = fftwf_plan_dft_3d(size, size, size, fdensity, rdensity, FFTW_BACKWARD, FFTW_MEASURE) ;
+		forward_plan = fftwf_plan_dft_3d(size, size, size, rdensity, fdensity, FFTW_FORWARD, FFTW_MEASURE) ;
+		inverse_plan = fftwf_plan_dft_3d(size, size, size, fdensity, rdensity, FFTW_BACKWARD, FFTW_MEASURE) ;
 		
 		fp = fopen(fname, "wb") ;
 		fftwf_export_wisdom_to_file(fp) ;
@@ -223,8 +243,8 @@ void create_plans(char *fname) {
 		fftwf_import_wisdom_from_file(fp) ;
 		fclose(fp) ;
 		
-		forward = fftwf_plan_dft_3d(size, size, size, rdensity, fdensity, FFTW_FORWARD, FFTW_MEASURE) ;
-		inverse = fftwf_plan_dft_3d(size, size, size, fdensity, rdensity, FFTW_BACKWARD, FFTW_MEASURE) ;
+		forward_plan = fftwf_plan_dft_3d(size, size, size, rdensity, fdensity, FFTW_FORWARD, FFTW_MEASURE) ;
+		inverse_plan = fftwf_plan_dft_3d(size, size, size, fdensity, rdensity, FFTW_BACKWARD, FFTW_MEASURE) ;
 	}
 }
 
@@ -233,7 +253,7 @@ int gen_input(char *fname, int flag) {
 	if (fp == NULL) {
 		if (flag == 0) {
 			fprintf(stderr, "Random start\n") ;
-			init_model(iterate) ;
+			init_model(algorithm_iterate) ;
 		}
 		else {
 			fprintf(stderr, "Cannot find input %s\n", fname) ;
@@ -242,7 +262,7 @@ int gen_input(char *fname, int flag) {
 	}
 	else {
 		fprintf(stderr, "Starting from %s\n", fname) ;
-		fread(iterate, sizeof(float), vol, fp) ;
+		fread(algorithm_iterate, sizeof(float), vol, fp) ;
 		fclose(fp) ;
 	}
 	
