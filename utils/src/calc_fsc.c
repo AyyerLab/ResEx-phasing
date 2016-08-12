@@ -53,10 +53,22 @@ int main(int argc, char *argv[]) {
 	
 	// Parse fftwf plan
 	fftwf_init_threads() ;
-	fftwf_plan_with_nthreads(omp_get_max_threads()) ;
+	fftwf_plan_with_nthreads(32) ;
 	
-	forward = fftwf_plan_dft_3d(size, size, size, rdensity, fdensity, FFTW_FORWARD, FFTW_ESTIMATE) ;
-
+	sprintf(fname, "data/wisdom_%ld_32", size) ;
+	fp = fopen(fname, "rb") ;
+	if (fp == NULL) {
+		fprintf(stderr, "No wisdom file found. Estimating FFTW plan.\n") ;
+		forward = fftwf_plan_dft_3d(size, size, size, rdensity, fdensity, FFTW_FORWARD, FFTW_ESTIMATE) ;
+	}
+	else {
+		fprintf(stderr, "Using wisdom from %s to generate FFTW plan\n", fname) ;
+		fftwf_import_wisdom_from_file(fp) ;
+		fclose(fp) ;
+		
+		forward = fftwf_plan_dft_3d(size, size, size, rdensity, fdensity, FFTW_FORWARD, FFTW_MEASURE) ;
+	}
+	
 	// Parse first model
 	fp = fopen(argv[1], "rb") ;
 	fread(temp, sizeof(float), vol, fp) ;
