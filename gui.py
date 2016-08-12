@@ -60,7 +60,7 @@ class GUI():
         self.rangelock.set(0)
         self.suppradstr.set('3.')
         self.suppthreshstr.set('0.1')
-        self.output_prefix.set('data/recon')
+        self.output_prefix.set('data/recon/test')
         self.point_group.set('222')
         self.config_fname.set('config.ini')
         self.size = None
@@ -564,19 +564,28 @@ class GUI():
     def gen_config(self, event=None):
         with open(self.config_fname.get(), 'w') as f:
             f.write('[parameters]\n')
-            f.write('size=%d\n' % self.vol_size)
-            f.write('bragg_qmax=%f\n' % (float(self.radiusmin.get())/(self.vol_size/2)))
-            f.write('scale_factor=%f\n' % self.scale_factor)
-            f.write('num_threads=%d\n' % multiprocessing.cpu_count())
-            f.write('point_group=%s\n' % self.point_group.get())
+            f.write('size = %d\n' % self.vol_size)
+            f.write('bragg_qmax = %f\n' % (float(self.radiusmin.get())/(self.vol_size/2)))
+            f.write('scale_factor = %f\n' % self.scale_factor)
+            f.write('num_threads = %d\n' % multiprocessing.cpu_count())
+            f.write('point_group = %s\n' % self.point_group.get())
             
             mapnoext = os.path.splitext(os.path.basename(self.map_fname.get()))[0]
             f.write('\n[files]\n')
-            f.write('intens_fname=%s\n' % (os.path.splitext(self.merge_fname.get())[0].rstrip()+'-zero.raw'))
-            f.write('bragg_fname=%s\n' % ('data/'+mapnoext+'.cpx'))
-            f.write('support_fname=%s\n' % ('data/'+mapnoext+'.supp'))
-            #f.write('input_fname=%s\n')
-            f.write('output_prefix=%s\n' % self.output_prefix.get())
+            f.write('intens_fname = %s\n' % (os.path.splitext(self.merge_fname.get())[0].rstrip()+'-zero.raw'))
+            f.write('bragg_fname = %s\n' % ('data/'+mapnoext+'.cpx'))
+            f.write('support_fname = %s\n' % ('data/'+mapnoext+'.supp'))
+            #f.write('input_fname = %s\n')
+            f.write('output_prefix = %s\n' % self.output_prefix.get())
+            
+            f.write('\n[algorithm]\n')
+            f.write('# Algorithm choices: DM, HIO, RAAR, mod-DM\n')
+            f.write('# With beta = 1, all algorithms are equivalent\n')
+            f.write('# By default, the end iterations are averaged. To use ER set avg_algorithm_name = ER\n')
+            f.write('algorithm = DM\n')
+            f.write('beta = 1.\n')
+            f.write('histogram = 1\n')
+            f.write('hist_fname = data/3wu2_hist.dat\n')
         print 'Generated %s:' % self.config_fname.get()
         os.system('cat %s' % self.config_fname.get())
     
