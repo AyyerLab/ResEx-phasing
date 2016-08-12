@@ -50,6 +50,9 @@ int main(int argc, char *argv[]) {
 			case 3:
 				error = mod_DM_algorithm(algorithm_iterate) ;
 				break ;
+			case 4:
+				error = ER_algorithm(algorithm_iterate) ;
+				break ;
 			default:
 				fprintf(stderr, "Could not understand algorithm name: %s\n", algorithm_name) ;
 				return 1 ;
@@ -182,6 +185,8 @@ int get_algorithm_type(char *base, char *avg) {
 		return 2*num_avg + avg_val ;
 	else if (strcmp(base, "mod-DM") == 0)
 		return 3*num_avg + avg_val ;
+	else if (strcmp(base, "ER") == 0)
+		return 4*num_avg + avg_val ;
 	else
 		return -1 ;
 }

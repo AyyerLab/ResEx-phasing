@@ -579,8 +579,8 @@ class GUI():
             f.write('output_prefix = %s\n' % self.output_prefix.get())
             
             f.write('\n[algorithm]\n')
-            f.write('# Algorithm choices: DM, HIO, RAAR, mod-DM\n')
-            f.write('# With beta = 1, all algorithms are equivalent\n')
+            f.write('# Algorithm choices: DM, HIO, RAAR, mod-DM, ER\n')
+            f.write('# With beta = 1, all algorithms except ER are equivalent\n')
             f.write('# By default, the end iterations are averaged. To use ER set avg_algorithm_name = ER\n')
             f.write('algorithm = DM\n')
             f.write('beta = 1.\n')

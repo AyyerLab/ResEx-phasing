@@ -34,7 +34,6 @@ center=$((size/2))
 voxsize=$((voxres / 2. / center))
 
 echo Cleaning to number $j with data from $prefix
-echo support = $supp_fname
 cp ${prefix}-p1.raw results/output_p1_${j}.raw
 cp ${prefix}-p2.raw results/output_${j}.raw
 cp ${prefix}-frecon.raw results/foutput_${j}.raw

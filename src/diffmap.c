@@ -63,7 +63,7 @@ void proj_direct(float * restrict in, float * restrict out) {
 
 /* Difference Map algorithm
  * Update rule (LaTeX syntax)
- * x_{n+1} = x_n + \beta \left{P_S\left[\left(1+\frac{1}{\beta}\right)P_D(x_n) - \frac{x_n}{\beta}\right] - P_D\left[\left(1-\frac{1}{\beta}\right)P_S(x_n) + \frac{x_n}{\beta}\right]\right}
+ * x_{n+1} = x_n + \beta \left\{P_D\left[\left(1+\frac{1}{\beta}\right)P_F(x_n) - \frac{x_n}{\beta}\right] - P_F\left[\left(1-\frac{1}{\beta}\right)P_D(x_n) + \frac{x_n}{\beta}\right]\right\}
  * Same as all other algorithms for beta = 1
  */
 double DM_algorithm(float *x) {
@@ -95,8 +95,8 @@ double DM_algorithm(float *x) {
 
 /* Modified Difference Map algorithm
  * Update rule (LaTeX syntax)
- * x_n' = \beta x_n + (1-\beta) P_D(x_n)
- * x_{n+1} = x_n' + P_S\left[2 P_D(x_n) - x_n\right] - P_D(x_n)
+ * x_n' = \beta x_n + (1-\beta) P_F(x_n)
+ * x_{n+1} = x_n' + P_D\left[2 P_F(x_n) - x_n\right] - P_F(x_n)
  * Same as all other algorithms for beta = 1
  */
 double mod_DM_algorithm(float *x) {
@@ -128,7 +128,7 @@ double mod_DM_algorithm(float *x) {
 
 /* RAAR algorithm
  * Update rule (LaTeX syntax)
- * x_{n+1} = \beta \left{x_n + P_S\left[2 P_D(x_n) - x_n\right] - P_D(x_n)\right} + (1-\beta) P_S(x_n)
+ * x_{n+1} = \beta \left\{x_n + P_D\left[2 P_F(x_n) - x_n\right] - P_F(x_n)\right\} + (1-\beta) P_D(x_n)
  * Same as all other algorithms for beta = 1
  */
 double RAAR_algorithm(float *x) {
@@ -158,7 +158,7 @@ double RAAR_algorithm(float *x) {
 
 /* HIO algorithm
  * Update rule (LaTeX syntax)
- * x_{n+1} = x_n + \beta \left{P_S\left[2 P_D(x_n) - x_n\right] - P_D(x_n)\right}
+ * x_{n+1} = x_n + \beta \left\{P_D\left[\left(1+\frac{1}{\beta}\right) P_F(x_n) - \frac{x_n}{\beta}\right] - P_F(x_n)\right\}
  * Same as all other algorithms for beta = 1
  */
 double HIO_algorithm(float *x) {
@@ -183,7 +183,7 @@ double HIO_algorithm(float *x) {
 
 /* Error Reduction algorithm
  * Update rule (LaTeX style)
- * x_{n+1} = P_S[P_D(x_n)]
+ * x_{n+1} = P_D[P_F(x_n)]
  * Obviously different from others. Use only in averaging phase.
  */
 double ER_algorithm(float *x) {
