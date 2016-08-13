@@ -268,12 +268,12 @@ class GUI():
         self.old_fname = self.fname.get()
 
     def parse_map(self):
-        f = open(self.fname.get(), 'rb')
-        f.seek(28, 0)
-        grid = np.fromfile(f, '=i4', count=3)
-        nx, ny, nz = tuple(grid)
-        f.seek(1024, 0)
-        vol = np.fromfile(f, '=f4').reshape(nx, ny, nz)
+        with open(self.fname.get(), 'rb') as f:
+            f.seek(28, 0)
+            grid = np.fromfile(f, '=i4', count=3)
+            nx, ny, nz = tuple(grid)
+            f.seek(1024, 0)
+            vol = np.fromfile(f, '=f4', count=nx*ny*nz).reshape(nx, ny, nz)
         edgesum = (np.abs(vol[:,:,0]).sum() + np.abs(vol[:,:,-1]).sum() + np.abs(vol[:,0]).sum() + np.abs(vol[:,-1]).sum() + np.abs(vol[0]).sum() + np.abs(vol[-1]).sum()) / 6.
         centralsum = (np.abs(vol[:,:,nz/2]).sum() + np.abs(vol[:,ny/2]).sum() + np.abs(vol[nx/2]).sum())/ 3.
         if edgesum > centralsum:
@@ -450,7 +450,7 @@ class GUI():
         rmin = int(self.scaleradmin.get())
         rmax = int(self.scaleradmax.get())
         mapnoext = os.path.splitext(os.path.basename(self.map_fname.get()))[0]
-        sym_model = 'data/'+mapnoext+'-sym.raw'
+        sym_model = 'data/convert/'+mapnoext+'-sym.raw'
         cmd = './utils/calc_scale %s %s %d %d %d' % (sym_model, self.merge_fname.get(), self.size, rmin, rmax)
         output = subprocess.check_output(cmd.split(), shell=False)
         self.scale_factor = float(output.split()[4])
@@ -467,12 +467,12 @@ class GUI():
 
     def process_map(self, event=None):
         mapnoext = os.path.splitext(os.path.basename(self.map_fname.get()))[0]
-        if os.path.isfile('data/'+mapnoext+'.cpx') and not tkMessageBox.askyesno('Process Map', 'Found processed map output. Overwrite?', default=tkMessageBox.NO, icon=tkMessageBox.QUESTION, parent=self.master):
+        if os.path.isfile('data/convert/'+mapnoext+'.cpx') and not tkMessageBox.askyesno('Process Map', 'Found processed map output. Overwrite?', default=tkMessageBox.NO, icon=tkMessageBox.QUESTION, parent=self.master):
             with open('results/'+mapnoext+'.log', 'r') as f:
                 words = f.read().split()
                 warray = np.array(words)
                 self.resedge.set(float(words[words.index('./utils/read_map')+2])/(self.vol_size/2))
-                self.point_group.set(words[words.index('data/'+mapnoext+'-srecon.raw')+2])
+                self.point_group.set(words[words.index('data/convert/'+mapnoext+'-srecon.raw')+2])
                 self.suppradstr.set('%.1f'%float(words[np.where(warray=='./utils/create_support')[0][-1]+3]))
                 self.suppthreshstr.set('%.1f'%float(words[np.where(warray=='./utils/create_support')[0][-1]+4]))
         else:
@@ -498,23 +498,27 @@ class GUI():
         line = ttk.Frame(self.map_frame)
         line.pack(fill=Tk.X)
         ttk.Label(line,text='Complex: ').pack(side=Tk.LEFT)
-        ttk.Button(line,text='data/'+mapnoext+'.cpx',command=lambda: self.plot_vol(fname='data/'+mapnoext+'.cpx')).pack(side=Tk.LEFT)
+        b_fname = 'data/convert/'+mapnoext+'.cpx'
+        ttk.Button(line,text=b_fname,command=lambda: self.plot_vol(fname=b_fname)).pack(side=Tk.LEFT)
         
         line = ttk.Frame(self.map_frame)
         line.pack(fill=Tk.X)
         ttk.Label(line,text='Symmetrized: ').pack(side=Tk.LEFT)
-        ttk.Button(line,text='data/'+mapnoext+'-sym.raw',command=lambda: self.plot_vol(fname='data/'+mapnoext+'-sym.raw', sigma=True)).pack(side=Tk.LEFT)
+        b_fname = 'data/convert/'+mapnoext+'-sym.raw'
+        ttk.Button(line,text=b_fname,command=lambda: self.plot_vol(fname=b_fname, sigma=True)).pack(side=Tk.LEFT)
         ttk.Checkbutton(line,text='Suppress low-q',variable=self.suppressflag,command=lambda: self.replot(zoom='current', sigma=True)).pack(side=Tk.LEFT)
         
         line = ttk.Frame(self.map_frame)
         line.pack(fill=Tk.X)
         ttk.Label(line,text='Density: ').pack(side=Tk.LEFT)
-        ttk.Button(line,text='data/'+mapnoext+'-srecon.raw',command=lambda: self.plot_vol(fname='data/'+mapnoext+'-srecon.raw', zoom=True)).pack(side=Tk.LEFT)
+        b_fname = 'data/convert/'+mapnoext+'-srecon.raw'
+        ttk.Button(line,text=b_fname,command=lambda: self.plot_vol(fname=b_fname, zoom=True)).pack(side=Tk.LEFT)
         
         line = ttk.Frame(self.map_frame)
         line.pack(fill=Tk.X)
         ttk.Label(line,text='Support: ').pack(side=Tk.LEFT)
-        ttk.Button(line,text='data/'+mapnoext+'.supp ',command=lambda: self.plot_vol(fname='data/'+mapnoext+'.supp', zoom=True)).pack(side=Tk.LEFT)
+        b_fname = 'data/convert/'+mapnoext+'.supp'
+        ttk.Button(line,text=b_fname,command=lambda: self.plot_vol(fname=b_fname, zoom=True)).pack(side=Tk.LEFT)
         
         line = ttk.Frame(self.map_frame)
         line.pack(fill=Tk.X)
@@ -573,8 +577,8 @@ class GUI():
             mapnoext = os.path.splitext(os.path.basename(self.map_fname.get()))[0]
             f.write('\n[files]\n')
             f.write('intens_fname = %s\n' % (os.path.splitext(self.merge_fname.get())[0].rstrip()+'-zero.raw'))
-            f.write('bragg_fname = %s\n' % ('data/'+mapnoext+'.cpx'))
-            f.write('support_fname = %s\n' % ('data/'+mapnoext+'.supp'))
+            f.write('bragg_fname = %s\n' % ('data/convert/'+mapnoext+'.cpx'))
+            f.write('support_fname = %s\n' % ('data/convert/'+mapnoext+'.supp'))
             #f.write('input_fname = %s\n')
             f.write('output_prefix = %s\n' % self.output_prefix.get())
             
