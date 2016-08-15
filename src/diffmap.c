@@ -96,7 +96,7 @@ double DM_algorithm(float *x) {
 /* Modified Difference Map algorithm
  * Update rule (LaTeX syntax)
  * x_n' = \beta x_n + (1-\beta) P_F(x_n)
- * x_{n+1} = x_n' + P_D\left[2 P_F(x_n) - x_n\right] - P_F(x_n)
+ * x_{n+1} = x_n' + P_D\left[2 P_F(x_n') - x_n'\right] - P_F(x_n')
  * Same as all other algorithms for beta = 1
  */
 double mod_DM_algorithm(float *x) {
@@ -115,7 +115,7 @@ double mod_DM_algorithm(float *x) {
 	for (i = 0 ; i < vol ; ++i)
 		algorithm_r1[i] = 2. * algorithm_p1[i] - x[i] ;
 	
-	proj_fourier(algorithm_r1, algorithm_p2) ;
+	proj_direct(algorithm_r1, algorithm_p2) ;
 	
 	for (i = 0 ; i < vol ; ++i) {
 		diff = algorithm_p2[i] - algorithm_p1[i] ;
