@@ -1,7 +1,7 @@
 #!/bin/zsh
 
 i=1
-while [ $i -lt 200 ]
+while [ $i -lt 400 ]
 do
 	j=`printf "%.2d" $i`
 	if [ -f results/output_${j}.raw ]
