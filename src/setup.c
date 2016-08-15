@@ -121,14 +121,15 @@ int setup(char *config_fname) {
 	fprintf(fp, "Resolution extension iterative phasing\n") ;
 	fprintf(fp, "Data: %s %s\n", bragg_fname, intens_fname) ;
 	fprintf(fp, "Support: %s (%ld)\n", support_fname, num_supp) ;
-	fprintf(fp, "Algorithm: %s, %.2f\n", algorithm_name, algorithm_beta) ;
+	fprintf(fp, "Algorithm: %s with beta = %.2f\n", algorithm_name, algorithm_beta) ;
 	fprintf(fp, "Averaging algorithm: %s\n", avg_algorithm_name) ;
 	if (do_histogram)
 		fprintf(fp, "Applying histogram constraint: %s\n", hist_fname) ;
 	else
 		fprintf(fp, "No histogram constraint\n") ;
 	fprintf(fp, "Output prefix: %s\n", output_prefix) ;
-	fprintf(fp, "iter\ttime  \terror\n") ;
+	fprintf(fp, "-------------------------\n") ;
+	fprintf(fp, "iter    time    error\n") ;
 	fprintf(fp, "-------------------------\n") ;
 	fclose(fp) ;
 	
