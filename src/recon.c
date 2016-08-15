@@ -19,12 +19,6 @@ int main(int argc, char *argv[]) {
 	
 	omp_set_num_threads(omp_get_max_threads()) ;
 	
-	sprintf(fname, "%s-log.dat", output_prefix) ;
-	fp = fopen(fname, "w") ;
-	fprintf(fp, "iter\ttime  \terror\n") ;
-	fprintf(fp, "-------------------------\n") ;
-	fclose(fp) ;
-	
 	average_p1 = calloc(vol, sizeof(float)) ;
 	average_p2 = calloc(vol, sizeof(float)) ;
 	alg_type = get_algorithm_type(algorithm_name, avg_algorithm_name) ;
