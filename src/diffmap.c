@@ -128,7 +128,7 @@ double mod_DM_algorithm(float *x) {
 
 /* RAAR algorithm
  * Update rule (LaTeX syntax)
- * x_{n+1} = \beta \left\{x_n + P_D\left[2 P_F(x_n) - x_n\right] - P_F(x_n)\right\} + (1-\beta) P_D(x_n)
+ * x_{n+1} = \beta \left\{x_n + P_D\left[2 P_F(x_n) - x_n\right] - P_F(x_n)\right\} + (1-\beta) P_F(x_n)
  * Same as all other algorithms for beta = 1
  */
 double RAAR_algorithm(float *x) {
@@ -136,19 +136,14 @@ double RAAR_algorithm(float *x) {
 	float diff, change = 0.f ;
 	
 	proj_fourier(x, algorithm_p1) ;
-	if (algorithm_beta != 1.)
-		proj_direct(x, algorithm_r2) ;
 	
-	for (i = 0 ; i < vol ; ++i) {
+	for (i = 0 ; i < vol ; ++i)
 		algorithm_r1[i] = 2. * algorithm_p1[i] - x[i] ;
-	}
 	
 	proj_direct(algorithm_r1, algorithm_p2) ;
 	
 	for (i = 0 ; i < vol ; ++i) {
-		diff = algorithm_beta * (x[i] + algorithm_p2[i] - algorithm_p1[i]) - x[i] ;
-		if (algorithm_beta != 1.)
-			diff += (1. - algorithm_beta) * algorithm_r2[i] ;
+		diff = (algorithm_beta - 1.) * x[i] + algorithm_beta * algorithm_p2[i] + (1. - 2. * algorithm_beta) * algorithm_p1[i] ;
 		x[i] += diff ;
 		change += diff*diff ;
 	}
