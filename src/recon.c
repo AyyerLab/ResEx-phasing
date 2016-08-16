@@ -105,12 +105,12 @@ int main(int argc, char *argv[]) {
 		}
 	}
 	
-	sprintf(fname, "%s-p1.raw", output_prefix) ;
+	sprintf(fname, "%s-pf.raw", output_prefix) ;
 	fp = fopen(fname, "wb") ;
 	fwrite(average_p1, sizeof(float), vol, fp) ;
 	fclose(fp) ;
 	
-	sprintf(fname, "%s-p2.raw", output_prefix) ;
+	sprintf(fname, "%s-pd.raw", output_prefix) ;
 	fp = fopen(fname, "wb") ;
 	fwrite(average_p2, sizeof(float), vol, fp) ;
 	fclose(fp) ;

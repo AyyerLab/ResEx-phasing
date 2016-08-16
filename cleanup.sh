@@ -34,8 +34,8 @@ center=$((size/2))
 voxsize=$((voxres / 2. / center))
 
 echo Cleaning to number $j with data from $prefix
-cp ${prefix}-p1.raw results/output_p1_${j}.raw
-cp ${prefix}-p2.raw results/output_${j}.raw
+cp ${prefix}-pf.raw results/output_pf_${j}.raw
+cp ${prefix}-pd.raw results/output_${j}.raw
 cp ${prefix}-frecon.raw results/foutput_${j}.raw
 cp ${prefix}-log.dat results/log_${j}.dat
 cp ${prefix}-prtf.dat results/prtf_${j}.dat

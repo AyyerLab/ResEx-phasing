@@ -110,15 +110,15 @@ double mod_DM_algorithm(float *x) {
 			x[i] = algorithm_beta*x[i] + (1. - algorithm_beta) * algorithm_p1[i] ;
 	}
 	
-	proj_direct(x, algorithm_p1) ;
+	proj_direct(x, algorithm_p2) ;
 	
 	for (i = 0 ; i < vol ; ++i)
-		algorithm_r1[i] = 2. * algorithm_p1[i] - x[i] ;
+		algorithm_r1[i] = 2. * algorithm_p2[i] - x[i] ;
 	
-	proj_fourier(algorithm_r1, algorithm_p2) ;
+	proj_fourier(algorithm_r1, algorithm_p1) ;
 	
 	for (i = 0 ; i < vol ; ++i) {
-		diff = algorithm_p2[i] - algorithm_p1[i] ;
+		diff = algorithm_p1[i] - algorithm_p2[i] ;
 		x[i] += diff ;
 		change += diff*diff ;
 	}
