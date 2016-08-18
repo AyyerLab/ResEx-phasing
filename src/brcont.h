@@ -53,5 +53,5 @@ void gen_prtf(float*) ;
 void symmetrize_incoherent(fftwf_complex*, float*) ;
 void blur_intens(float*, float*) ;
 void apply_shrinkwrap(float*, float, float) ;
-void dump_slices(float*, char*) ;
+void dump_slices(float*, char*, int) ;
 void match_histogram(float*, float*) ;

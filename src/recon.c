@@ -80,9 +80,9 @@ int main(int argc, char *argv[]) {
 		
 		if (iter%2 == 0) {
 			sprintf(fname, "%s-slices.raw", output_prefix) ;
-			dump_slices(algorithm_p1, fname) ;
+			dump_slices(algorithm_p2, fname, 0) ;
 			sprintf(fname, "%s-fslices.raw", output_prefix) ;
-			dump_slices(exp_mag, fname) ;
+			dump_slices(exp_mag, fname, 1) ;
 		}
 		 
 		fprintf(stderr, "\rFinished %d/%d iterations. ", iter, num_iter) ;

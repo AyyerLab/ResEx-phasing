@@ -247,16 +247,26 @@ void apply_shrinkwrap(float *model, float blur, float threshold) {
 */	
 }
 
-void dump_slices(float *vol, char *fname) {
+void dump_slices(float *vol, char *fname, int is_fourier) {
 	long x, y, c = size/2 ;
 	FILE *fp ;
 	float *slices = malloc(3*size*size*sizeof(float)) ;
 	
-	for (x = 0 ; x < size ; ++x)
-	for (y = 0 ; y < size ; ++y) {
-		slices[x*size + y] = vol[c*size*size + x*size + y] ;
-		slices[size*size + x*size + y] = vol[x*size*size + c*size + y] ;
-		slices[2*size*size + x*size + y] = vol[x*size*size + y*size + c] ;
+	if (is_fourier) {
+		for (x = 0 ; x < size ; ++x)
+		for (y = 0 ; y < size ; ++y) {
+			slices[x*size + y] = vol[((x+c)%size)*size + ((y+c)%size)] ;
+			slices[size*size + x*size + y] = vol[((x+c)%size)*size*size + ((y+c)%size)] ;
+			slices[2*size*size + x*size + y] = vol[((x+c)%size)*size*size + ((y+c)%size)*size] ;
+		}
+	}
+	else {
+		for (x = 0 ; x < size ; ++x)
+		for (y = 0 ; y < size ; ++y) {
+			slices[x*size + y] = vol[c*size*size + x*size + y] ;
+			slices[size*size + x*size + y] = vol[x*size*size + c*size + y] ;
+			slices[2*size*size + x*size + y] = vol[x*size*size + y*size + c] ;
+		}
 	}
 	
 	fp = fopen(fname, "wb") ;
