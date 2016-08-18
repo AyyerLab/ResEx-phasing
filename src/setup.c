@@ -24,7 +24,7 @@ int setup(char *config_fname) {
 	do_histogram = 0 ;
 	do_positivity = 0 ;
 	strcpy(algorithm_name, "DM") ;
-	strcpy(avg_algorithm_name, "DM") ;
+	strcpy(avg_algorithm_name, "Avg") ;
 	
 	FILE *fp = fopen(config_fname, "r") ;
 	if (fp == NULL) {
