@@ -36,6 +36,7 @@ class GUI():
         self.resedge = Tk.StringVar()
         self.circleflag = Tk.IntVar()
         self.checkflag = Tk.IntVar()
+        self.fslices = Tk.IntVar()
         self.scaleradflag = Tk.IntVar()
         self.suppressflag = Tk.IntVar()
         self.rangelock = Tk.IntVar()
@@ -55,6 +56,7 @@ class GUI():
         self.scaleradmax.set('0')
         self.circleflag.set(0)
         self.checkflag.set(0)
+        self.fslices.set(0)
         self.scaleradflag.set(0)
         self.suppressflag.set(0)
         self.rangelock.set(0)
@@ -559,6 +561,7 @@ class GUI():
         ttk.Button(line, text='Gen. Config', command=self.gen_config).pack(side=Tk.LEFT)
         ttk.Button(line, text='Launch Recon', command=self.launch_recon).pack(side=Tk.LEFT)
         ttk.Checkbutton(line,text='Keep Checking',variable=self.checkflag,command=self.keep_checking).pack(side=Tk.LEFT)
+        ttk.Checkbutton(line,text='Fourier Slices',variable=self.fslices).pack(side=Tk.LEFT)
         
         self.added_recon_tab = True
 
@@ -589,18 +592,25 @@ class GUI():
             f.write('hist_fname = data/3wu2_hist.dat\n')
         print 'Generated %s:' % self.config_fname.get()
         os.system('cat %s' % self.config_fname.get())
-    
+
     def launch_recon(self, event=None):
         pass
 
     def keep_checking(self, event=None):
         if self.checkflag.get() == 1:
-            self.fname.set(self.output_prefix.get()+'-slices.raw')
+            if self.fslices.get() == 0:
+                self.fname.set(self.output_prefix.get()+'-slices.raw')
+            else:
+                self.fname.set(self.output_prefix.get()+'-fslices.raw')
+            
             if os.path.isfile(self.fname.get()):
                 s = np.fromfile(self.fname.get(), '=f4')
                 self.size = int(np.round((s.shape[0]/3)**0.5))
                 s = s.reshape(3,self.size,self.size) 
-                self.plot_slices(0, slices=s, zoom=True)
+                if self.fslices.get() == 0:
+                    self.plot_slices(0, slices=s, zoom=True)
+                else:
+                    self.plot_slices(0, slices=s, zoom=False)
             self.master.after(1000, self.keep_checking)
 
     def preprocess(self, event=None):
