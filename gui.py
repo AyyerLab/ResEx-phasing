@@ -495,30 +495,27 @@ class GUI():
         #    self.gen_recon_tab()
 
     def add_to_map_frame(self, mapnoext):
+        prefix = 'data/convert/'+mapnoext
         line = ttk.Frame(self.map_frame)
         line.pack(fill=Tk.X)
         ttk.Label(line,text='Complex: ').pack(side=Tk.LEFT)
-        b_fname = 'data/convert/'+mapnoext+'.cpx'
-        ttk.Button(line,text=b_fname,command=lambda: self.plot_vol(fname=b_fname)).pack(side=Tk.LEFT)
+        ttk.Button(line,text=prefix+'cpx',command=lambda: self.plot_vol(fname=prefix+'.cpx')).pack(side=Tk.LEFT)
         
         line = ttk.Frame(self.map_frame)
         line.pack(fill=Tk.X)
         ttk.Label(line,text='Symmetrized: ').pack(side=Tk.LEFT)
-        b_fname = 'data/convert/'+mapnoext+'-sym.raw'
-        ttk.Button(line,text=b_fname,command=lambda: self.plot_vol(fname=b_fname, sigma=True)).pack(side=Tk.LEFT)
+        ttk.Button(line,text=prefix+'-sym.raw',command=lambda: self.plot_vol(fname=prefix+'-sym.raw', sigma=True)).pack(side=Tk.LEFT)
         ttk.Checkbutton(line,text='Suppress low-q',variable=self.suppressflag,command=lambda: self.replot(zoom='current', sigma=True)).pack(side=Tk.LEFT)
         
         line = ttk.Frame(self.map_frame)
         line.pack(fill=Tk.X)
         ttk.Label(line,text='Density: ').pack(side=Tk.LEFT)
-        b_fname = 'data/convert/'+mapnoext+'-srecon.raw'
-        ttk.Button(line,text=b_fname,command=lambda: self.plot_vol(fname=b_fname, zoom=True)).pack(side=Tk.LEFT)
+        ttk.Button(line,text=prefix+'-srecon.raw',command=lambda: self.plot_vol(fname=prefix+'-srecon.raw', zoom=True)).pack(side=Tk.LEFT)
         
         line = ttk.Frame(self.map_frame)
         line.pack(fill=Tk.X)
         ttk.Label(line,text='Support: ').pack(side=Tk.LEFT)
-        b_fname = 'data/convert/'+mapnoext+'.supp'
-        ttk.Button(line,text=b_fname,command=lambda: self.plot_vol(fname=b_fname, zoom=True)).pack(side=Tk.LEFT)
+        ttk.Button(line,text=prefix+'.supp',command=lambda: self.plot_vol(fname=prefix+'.supp', zoom=True)).pack(side=Tk.LEFT)
         
         line = ttk.Frame(self.map_frame)
         line.pack(fill=Tk.X)
@@ -585,7 +582,7 @@ class GUI():
             f.write('\n[algorithm]\n')
             f.write('# Algorithm choices: DM, HIO, RAAR, mod-DM, ER\n')
             f.write('# With beta = 1, all algorithms except ER are equivalent\n')
-            f.write('# By default, the end iterations are averaged. To use ER set avg_algorithm_name = ER\n')
+            f.write('# By default, the end iterations are averaged. To use ER set avg_algorithm = ER\n')
             f.write('algorithm = DM\n')
             f.write('beta = 1.\n')
             f.write('histogram = 1\n')
