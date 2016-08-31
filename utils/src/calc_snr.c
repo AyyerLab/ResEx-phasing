@@ -77,9 +77,9 @@ int main(int argc, char *argv[]) {
 	calc_radavg(intens, radsqavg) ;
 	fprintf(stderr, "Calculated squared radial average\n") ;
 	
-	// The factor '10' in the following fomula is for num_twin = 4
+	// The factor '5/4' in the following fomula is for num_twin = 4
 	for (i = 0 ; i < size ; ++i) {
-//		radavg[i] = radavg[i] / sqrtf(radsqavg[i] - 10. * radavg[i]*radavg[i]) ;
+//		radavg[i] = radavg[i] / sqrtf(radsqavg[i] - 1.25 * radavg[i]*radavg[i]) ;
 		radavg[i] = radavg[i] / sqrtf(radsqavg[i] - radavg[i]*radavg[i]) ;
 		if (isnan(radavg[i]))
 			radavg[i] = 0.f ;
