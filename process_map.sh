@@ -73,7 +73,7 @@ then
 	padsize=`grep "volume size" $log_name|awk '{print $5}'`
 	padnoext="${padmodel%.*}"
 	echo -------------------------------------------------------------------------------- >> $log_name
-	echo ./utils/gen_fdens $padmodel $padsize 1| tee -a $log_name
+	echo ./utils/gen_fdens $padmodel $padsize ${padnoext}-fdens.cpx 1| tee -a $log_name
 	./utils/gen_fdens $padmodel $padsize ${padnoext}-fdens.cpx 1 >> $log_name 2>&1
 	
 	sx=`grep Stretch $log_name|awk -F'[=,()]' '{print $3}'`
