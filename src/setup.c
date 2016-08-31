@@ -8,6 +8,7 @@ void create_plans(char*) ;
 int gen_input(char*, int) ;
 int parse_quat(char*) ;
 int read_histogram(char*, long) ;
+float positive_mode(float*) ;
 
 int setup(char *config_fname) {
 	char line[999], *token ;
@@ -115,6 +116,7 @@ int setup(char *config_fname) {
 	}
 	gen_input(input_fname, 0) ;
 	create_plans(wisdom_fname) ;
+	mag_thresh = positive_mode(obs_mag) ;
 	
 	sprintf(line, "%s-log.dat", output_prefix) ;
 	fp = fopen(line, "w") ;
@@ -341,4 +343,35 @@ int read_histogram(char *fname, long num) {
 	free(cdf) ;
 	
 	return 0 ;
+}
+
+float positive_mode(float *model) {
+	long i, valbin, maxhist = 0, hist[99] ;
+	float bin[99], maxval = 0. ;
+	
+	for (i = 0 ; i < vol ; ++i)
+	if (model[i] > maxval)
+		maxval = model[i] ;
+	
+	for (i = 0 ; i < 99 ; ++i) {
+		hist[i] = 0. ;
+		bin[i] = maxval * i / 99. ;
+	}
+	
+	for (i = 0 ; i < vol ; ++i)
+	if (model[i] > 0.) {
+		valbin = model[i] * 99. / maxval ;
+		hist[valbin]++ ;
+	}
+	
+	valbin = 0 ;
+	for (i = 0 ; i < 99 ; ++i)
+	if (hist[i] > maxhist) {
+		valbin = i ;
+		maxhist = hist[i] ;
+	}
+	
+	fprintf(stderr, "Mode of positive values in volume = %.3e +- %.3e\n", bin[valbin], maxval / 2. / 99.) ;
+	
+	return 0.1 * bin[valbin] ;
 }

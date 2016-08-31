@@ -15,6 +15,7 @@
 
 int iter ;
 long size, vol ;
+float mag_thresh ;
 float * restrict obs_mag, * restrict exp_mag ;
 uint8_t * restrict support ;
 fftwf_complex * restrict fdensity, * restrict rdensity ;

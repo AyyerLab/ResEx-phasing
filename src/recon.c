@@ -79,9 +79,9 @@ int main(int argc, char *argv[]) {
 		}
 		
 		if (iter%2 == 0) {
-			sprintf(fname, "%s-slices.raw", output_prefix) ;
+			sprintf(fname, "%s-slices-%.4d.raw", output_prefix, iter) ;
 			dump_slices(algorithm_p2, fname, 0) ;
-			sprintf(fname, "%s-fslices.raw", output_prefix) ;
+			sprintf(fname, "%s-fslices-%.4d.raw", output_prefix, iter) ;
 			dump_slices(exp_mag, fname, 1) ;
 		}
 		 

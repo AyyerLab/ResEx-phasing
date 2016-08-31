@@ -27,6 +27,8 @@ void proj_fourier(float *in, float *out) {
 			fdensity[i] *= obs_mag[i] / exp_mag[i] ;
 		else if (obs_mag[i] == 0.)
 			fdensity[i] = 0. ;
+		else if (exp_mag[i] > mag_thresh)
+			fdensity[i] *= mag_thresh / exp_mag[i] ;
 	}
 	
 	fftwf_execute(inverse_plan) ;
