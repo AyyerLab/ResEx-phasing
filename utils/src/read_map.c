@@ -196,7 +196,7 @@ int main(int argc, char *argv[]) {
 		}
 	}
 	
-	sprintf(fname, "data/%s-%ld.raw", remove_ext(extract_fname(argv[1])), psize) ;
+	sprintf(fname, "data/convert/%s-%ld.raw", remove_ext(extract_fname(argv[1])), psize) ;
 	fprintf(stderr, "Saving padded model to %s\n", fname) ;
 	fp = fopen(fname, "wb") ;
 	fwrite(padmodel, sizeof(float), pvol, fp) ;
