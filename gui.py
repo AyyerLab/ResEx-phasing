@@ -604,9 +604,15 @@ class GUI():
                 self.fname.set(self.output_prefix.get()+'-fslices.raw')
             
             if os.path.isfile(self.fname.get()):
-                s = np.fromfile(self.fname.get(), '=f4')
-                self.size = int(np.round((s.shape[0]/3)**0.5))
-                s = s.reshape(3,self.size,self.size) 
+                done = False
+                while not done:
+                    s = np.fromfile(self.fname.get(), '=f4')
+                    self.size = int(np.round((s.shape[0]/3)**0.5))
+                    try:
+                        s = s.reshape(3,self.size,self.size) 
+                        done = True
+                    except ValueError:
+                        pass
                 if self.fslices.get() == 0:
                     self.plot_slices(0, slices=s, zoom=True)
                 else:
