@@ -40,7 +40,7 @@ int main(int argc, char *argv[]) {
 	temp = malloc(vol * sizeof(float)) ;
 	
 	// Generate FFTW plans
-	sprintf(fname, "data/wisdom_%ld_32", size) ;
+	sprintf(fname, "data/wisdom_%ld_%d", size, omp_get_max_threads()) ;
 	fp = fopen(fname, "rb") ;
 	if (fp == NULL)
 		forward = fftwf_plan_dft_3d(size, size, size, rdensity, fdensity, FFTW_FORWARD, FFTW_ESTIMATE) ;
