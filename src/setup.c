@@ -373,5 +373,5 @@ float positive_mode(float *model) {
 	
 	fprintf(stderr, "Mode of positive values in volume = %.3e +- %.3e\n", bin[valbin], maxval / 2. / 99.) ;
 	
-	return 0.1 * bin[valbin] ;
+	return bin[valbin] ;
 }

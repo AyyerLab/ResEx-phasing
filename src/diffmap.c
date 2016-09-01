@@ -14,21 +14,19 @@ void proj_fourier(float *in, float *out) {
 	
 	fftwf_execute(forward_plan) ;
 	
+	symmetrize_incoherent(fdensity, exp_mag) ;
+	
 	for (i = 0 ; i < vol ; ++i)
 	if (bragg_calc[i] != FLT_MAX)
 		fdensity[i] = bragg_calc[i] ;
-//	else // Only when doing Bragg-only reconstruction 
-//		fdensity[i] = 0.f ;
-	
-	symmetrize_incoherent(fdensity, exp_mag) ;
 	
 	for (i = 0 ; i < vol ; ++i) {
 		if (obs_mag[i] > 0.)
 			fdensity[i] *= obs_mag[i] / exp_mag[i] ;
 		else if (obs_mag[i] == 0.)
 			fdensity[i] = 0. ;
-		else if (exp_mag[i] > mag_thresh)
-			fdensity[i] *= mag_thresh / exp_mag[i] ;
+//		else if (exp_mag[i] > mag_thresh)
+//			fdensity[i] *= mag_thresh / exp_mag[i] ;
 	}
 	
 	fftwf_execute(inverse_plan) ;
