@@ -161,7 +161,7 @@ def plot_vol_slices(layernum):
 def parse_and_plot(event=None):
     if image_exists == 0:
         size = parse_vol()
-        slider.configure(from_=0,to=size)
+        slider.configure(from_=0,to=size-1)
         layernum.set(size/2)
         plot_vol_slices(layernum.get())
     elif old_fname == fname.get():
@@ -171,7 +171,7 @@ def parse_and_plot(event=None):
         parse_extension(fname.get())
         
         size = parse_vol()
-        slider.configure(from_=0,to=size)
+        slider.configure(from_=0,to=size-1)
         layernum.set(size/2)
         plot_vol_slices(layernum.get())
 
@@ -181,7 +181,7 @@ def force_plot(event=None):
     plot_vol_slices(layernum.get())
 
 def increment_layer(event=None):
-    layernum.set(min(layernum.get()+1, len(vol)))
+    layernum.set(min(layernum.get()+1, len(vol)-1))
     plot_vol_slices(layernum.get())
 
 def decrement_layer(event=None):

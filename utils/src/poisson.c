@@ -6,9 +6,9 @@
 #include <gsl/gsl_randist.h>
 
 int main(int argc, char *argv[]) {
-	long size, vol ;
+	long i, size, vol ;
 	float *model, *pmodel ;
-	double target ;
+	double rescale, numr, denr, target ;
 	FILE *fp ;
 	
 	if (argc < 5) {
@@ -32,7 +32,8 @@ int main(int argc, char *argv[]) {
 	pmodel = malloc(vol * sizeof(float)) ;
 	#pragma omp parallel default(shared)
 	{
-		long x, y, z, c = size / 2, num_vox = 0 ;
+		int rank = omp_get_thread_num() ;
+		long vox, x, y, z, c = size / 2, num_vox = 0 ;
 		double val, dist, multip, rescale ;
 		const gsl_rng_type *T ;
 		gsl_rng *rng ;
@@ -44,7 +45,7 @@ int main(int argc, char *argv[]) {
 		for (y = 0 ; y < size ; ++y)
 		for (z = 0 ; z < size ; ++z) {
 			dist = sqrt((x-c)*(x-c) + (y-c)*(y-c) + (z-c)*(z-c)) ;
-			if ((int) dist == c) {
+			if ((int) dist == c-1) {
 				val += model[x*size*size + y*size + z] ;
 				num_vox++ ;
 			}
@@ -56,6 +57,7 @@ int main(int argc, char *argv[]) {
 		for (x = 0 ; x < size ; ++x)
 		for (y = 0 ; y < size ; ++y)
 		for (z = 0 ; z < size ; ++z) {
+			vox = x*size*size + y*size + z ;
 			dist = sqrt((x-c)*(x-c) + (y-c)*(y-c) + (z-c)*(z-c)) ;
 			
 			if (dist == 0.)
@@ -63,15 +65,30 @@ int main(int argc, char *argv[]) {
 			else
 				multip = c / dist ;
 			
-			val = model[x*size*size + y*size + z] * rescale * multip ;
+			val = model[vox] * rescale * multip ;
 			if (val > 100.)
-				pmodel[x*size*size + y*size + z] = (val + gsl_ran_gaussian(rng, sqrt(val))) / multip ;
+				pmodel[vox] = (val + gsl_ran_gaussian(rng, sqrt(val))) / multip ;
+			else if (val > 0.)
+				pmodel[vox] = gsl_ran_poisson(rng, val) / multip ;
 			else
-				pmodel[x*size*size + y*size + z] = gsl_ran_poisson(rng, val) / multip ;
+				pmodel[vox] = model[vox] ;
+			
+			if (model[vox] > 0.) {
+				numr += model[vox] * pmodel[vox] ;
+				denr += pmodel[vox] * pmodel[vox] ;
+			}
+			
+			if (rank == 0 && y == size - 1 && z == size - 1)
+				fprintf(stderr, "\rFinished x = %ld", x) ;
 		}
 		
 		gsl_rng_free(rng) ;
 	}
+	
+	rescale = numr / denr ;
+	fprintf(stderr, "\nScale factor: %e\n", rescale) ;
+	for (i = 0 ; i < vol ; ++i)
+		pmodel[i] *= rescale ;
 	
 	// Save sampled model
 	fp = fopen(argv[4], "wb") ;

@@ -36,7 +36,9 @@ class GUI():
         self.resedge = Tk.StringVar()
         self.circleflag = Tk.IntVar()
         self.checkflag = Tk.IntVar()
+        self.fslices = Tk.IntVar()
         self.scaleradflag = Tk.IntVar()
+        self.suppressflag = Tk.IntVar()
         self.rangelock = Tk.IntVar()
         self.suppradstr = Tk.StringVar()
         self.suppthreshstr = Tk.StringVar()
@@ -54,15 +56,18 @@ class GUI():
         self.scaleradmax.set('0')
         self.circleflag.set(0)
         self.checkflag.set(0)
+        self.fslices.set(0)
         self.scaleradflag.set(0)
+        self.suppressflag.set(0)
         self.rangelock.set(0)
         self.suppradstr.set('3.')
         self.suppthreshstr.set('0.1')
-        self.output_prefix.set('data/recon')
+        self.output_prefix.set('data/recon/test')
         self.point_group.set('222')
         self.config_fname.set('config.ini')
         self.size = None
         self.vol = None
+        self.rad = None
         self.old_fname = None
         self.space = None
         self.rangeminstr.set("%.1e" % rangemin)
@@ -265,15 +270,18 @@ class GUI():
         self.old_fname = self.fname.get()
 
     def parse_map(self):
-        f = open(self.fname.get(), 'rb')
-        f.seek(28, 0)
-        grid = np.fromfile(f, '=i4', count=3)
-        nx, ny, nz = tuple(grid)
-        f.seek(1024, 0)
-        vol = np.fromfile(f, '=f4').reshape(nx, ny, nz)
-        vol = np.roll(vol, nx/2, axis=0)
-        vol = np.roll(vol, ny/2, axis=1)
-        vol = np.roll(vol, nz/2, axis=2)
+        with open(self.fname.get(), 'rb') as f:
+            f.seek(28, 0)
+            grid = np.fromfile(f, '=i4', count=3)
+            nx, ny, nz = tuple(grid)
+            f.seek(1024, 0)
+            vol = np.fromfile(f, '=f4', count=nx*ny*nz).reshape(nx, ny, nz)
+        edgesum = (np.abs(vol[:,:,0]).sum() + np.abs(vol[:,:,-1]).sum() + np.abs(vol[:,0]).sum() + np.abs(vol[:,-1]).sum() + np.abs(vol[0]).sum() + np.abs(vol[-1]).sum()) / 6.
+        centralsum = (np.abs(vol[:,:,nz/2]).sum() + np.abs(vol[:,ny/2]).sum() + np.abs(vol[nx/2]).sum())/ 3.
+        if edgesum > centralsum:
+            vol = np.roll(vol, nx/2, axis=0)
+            vol = np.roll(vol, ny/2, axis=1)
+            vol = np.roll(vol, nz/2, axis=2)
         s = max(nx, ny, nz)
         self.size = s
         self.vol = np.pad(vol, (((s-nx)/2,s-nx-(s-nx)/2),((s-ny)/2,s-ny-(s-ny)/2),((s-nz)/2,s-nz-(s-nz)/2)), mode='constant', constant_values=0)
@@ -376,7 +384,7 @@ class GUI():
         else:
             self.plot_vol(fname=self.fname.get(), **kwargs) # Default plotting merge
 
-    def plot_vol(self, fname=None, event=None, force=False, **kwargs):
+    def plot_vol(self, fname=None, event=None, force=False, sigma=False, **kwargs):
         if fname is None:
             self.fname.set(self.merge_fname.get())
         else:
@@ -387,11 +395,29 @@ class GUI():
             print "Reparsing volume:", self.fname.get()
             self.parse_vol()
         
+        if sigma and self.suppressflag.get() == 1:
+            c = self.vol.shape[0] / 2
+            if self.rad is None:
+                if os.path.isfile('data/sigma_%d.bin' % self.size):
+                    self.rad = np.fromfile('data/rad_%d.bin' % self.size, '=f8').reshape(self.size,self.size,self.size)
+                    self.sigma = np.fromfile('data/sigma_%d.bin' % self.size, '=f8').reshape(self.size,self.size,self.size)
+                else:
+                    x, y, z = np.indices(self.vol.shape)
+                    x -= c
+                    y -= c
+                    z -= c
+                    self.rad = np.sqrt(x*x + y*y + z*z)
+                    print 'Calculated self.rad'
+                    self.sigma = np.exp(-8 * self.rad**2 / (c**2))
+                    print 'Calculated self.sigma'
+                    self.rad.tofile('data/rad_%d.bin' % self.size)
+                    self.sigma.tofile('data/sigma_%d.bin' % self.size)
+            self.vol *= (1. - self.sigma)
         self.plot_slices(self.layernum.get(), space='fourier', **kwargs)
         self.vol_image_exists = True
         self.map_image_exists = False
 
-    def plot_map(self, event=None, force=False, **kwargs):
+    def plot_map(self, event=None, force=False, sigma=False, **kwargs):
         self.fname.set(self.map_fname.get())
         if not self.map_image_exists:
             self.parse_map()
@@ -426,7 +452,7 @@ class GUI():
         rmin = int(self.scaleradmin.get())
         rmax = int(self.scaleradmax.get())
         mapnoext = os.path.splitext(os.path.basename(self.map_fname.get()))[0]
-        sym_model = 'data/'+mapnoext+'-sym.raw'
+        sym_model = 'data/convert/'+mapnoext+'-sym.raw'
         cmd = './utils/calc_scale %s %s %d %d %d' % (sym_model, self.merge_fname.get(), self.size, rmin, rmax)
         output = subprocess.check_output(cmd.split(), shell=False)
         self.scale_factor = float(output.split()[4])
@@ -443,12 +469,12 @@ class GUI():
 
     def process_map(self, event=None):
         mapnoext = os.path.splitext(os.path.basename(self.map_fname.get()))[0]
-        if os.path.isfile('data/'+mapnoext+'.cpx') and not tkMessageBox.askyesno('Process Map', 'Found processed map output. Overwrite?', default=tkMessageBox.NO, icon=tkMessageBox.QUESTION, parent=self.master):
+        if os.path.isfile('data/convert/'+mapnoext+'.cpx') and not tkMessageBox.askyesno('Process Map', 'Found processed map output. Overwrite?', default=tkMessageBox.NO, icon=tkMessageBox.QUESTION, parent=self.master):
             with open('results/'+mapnoext+'.log', 'r') as f:
                 words = f.read().split()
                 warray = np.array(words)
                 self.resedge.set(float(words[words.index('./utils/read_map')+2])/(self.vol_size/2))
-                self.point_group.set(words[words.index('data/'+mapnoext+'-srecon.raw')+2])
+                self.point_group.set(words[words.index('data/convert/'+mapnoext+'-srecon.raw')+2])
                 self.suppradstr.set('%.1f'%float(words[np.where(warray=='./utils/create_support')[0][-1]+3]))
                 self.suppthreshstr.set('%.1f'%float(words[np.where(warray=='./utils/create_support')[0][-1]+4]))
         else:
@@ -471,25 +497,27 @@ class GUI():
         #    self.gen_recon_tab()
 
     def add_to_map_frame(self, mapnoext):
+        prefix = 'data/convert/'+mapnoext
         line = ttk.Frame(self.map_frame)
         line.pack(fill=Tk.X)
         ttk.Label(line,text='Complex: ').pack(side=Tk.LEFT)
-        ttk.Button(line,text='data/'+mapnoext+'.cpx',command=lambda: self.plot_vol(fname='data/'+mapnoext+'.cpx')).pack(side=Tk.LEFT)
+        ttk.Button(line,text=prefix+'cpx',command=lambda: self.plot_vol(fname=prefix+'.cpx')).pack(side=Tk.LEFT)
         
         line = ttk.Frame(self.map_frame)
         line.pack(fill=Tk.X)
         ttk.Label(line,text='Symmetrized: ').pack(side=Tk.LEFT)
-        ttk.Button(line,text='data/'+mapnoext+'-sym.raw',command=lambda: self.plot_vol(fname='data/'+mapnoext+'-sym.raw')).pack(side=Tk.LEFT)
+        ttk.Button(line,text=prefix+'-sym.raw',command=lambda: self.plot_vol(fname=prefix+'-sym.raw', sigma=True)).pack(side=Tk.LEFT)
+        ttk.Checkbutton(line,text='Suppress low-q',variable=self.suppressflag,command=lambda: self.replot(zoom='current', sigma=True)).pack(side=Tk.LEFT)
         
         line = ttk.Frame(self.map_frame)
         line.pack(fill=Tk.X)
         ttk.Label(line,text='Density: ').pack(side=Tk.LEFT)
-        ttk.Button(line,text='data/'+mapnoext+'-srecon.raw',command=lambda: self.plot_vol(fname='data/'+mapnoext+'-srecon.raw', zoom=True)).pack(side=Tk.LEFT)
+        ttk.Button(line,text=prefix+'-srecon.raw',command=lambda: self.plot_vol(fname=prefix+'-srecon.raw', zoom=True)).pack(side=Tk.LEFT)
         
         line = ttk.Frame(self.map_frame)
         line.pack(fill=Tk.X)
         ttk.Label(line,text='Support: ').pack(side=Tk.LEFT)
-        ttk.Button(line,text='data/'+mapnoext+'.supp ',command=lambda: self.plot_vol(fname='data/'+mapnoext+'.supp', zoom=True)).pack(side=Tk.LEFT)
+        ttk.Button(line,text=prefix+'.supp',command=lambda: self.plot_vol(fname=prefix+'.supp', zoom=True)).pack(side=Tk.LEFT)
         
         line = ttk.Frame(self.map_frame)
         line.pack(fill=Tk.X)
@@ -533,40 +561,63 @@ class GUI():
         ttk.Button(line, text='Gen. Config', command=self.gen_config).pack(side=Tk.LEFT)
         ttk.Button(line, text='Launch Recon', command=self.launch_recon).pack(side=Tk.LEFT)
         ttk.Checkbutton(line,text='Keep Checking',variable=self.checkflag,command=self.keep_checking).pack(side=Tk.LEFT)
+        ttk.Checkbutton(line,text='Fourier Slices',variable=self.fslices).pack(side=Tk.LEFT)
         
         self.added_recon_tab = True
 
     def gen_config(self, event=None):
         with open(self.config_fname.get(), 'w') as f:
             f.write('[parameters]\n')
-            f.write('size=%d\n' % self.vol_size)
-            f.write('bragg_qmax=%f\n' % (float(self.radiusmin.get())/(self.vol_size/2)))
-            f.write('scale_factor=%f\n' % self.scale_factor)
-            f.write('num_threads=%d\n' % multiprocessing.cpu_count())
-            f.write('point_group=%s\n' % self.point_group.get())
+            f.write('size = %d\n' % self.vol_size)
+            f.write('bragg_qmax = %f\n' % (float(self.radiusmin.get())/(self.vol_size/2)))
+            f.write('scale_factor = %f\n' % self.scale_factor)
+            f.write('num_threads = %d\n' % multiprocessing.cpu_count())
+            f.write('point_group = %s\n' % self.point_group.get())
             
             mapnoext = os.path.splitext(os.path.basename(self.map_fname.get()))[0]
             f.write('\n[files]\n')
-            f.write('intens_fname=%s\n' % (os.path.splitext(self.merge_fname.get())[0].rstrip()+'-zero.raw'))
-            f.write('bragg_fname=%s\n' % ('data/'+mapnoext+'.cpx'))
-            f.write('support_fname=%s\n' % ('data/'+mapnoext+'.supp'))
-            #f.write('input_fname=%s\n')
-            f.write('output_prefix=%s\n' % self.output_prefix.get())
+            f.write('intens_fname = %s\n' % (os.path.splitext(self.merge_fname.get())[0].rstrip()+'-zero.raw'))
+            f.write('bragg_fname = %s\n' % ('data/convert/'+mapnoext+'.cpx'))
+            f.write('support_fname = %s\n' % ('data/convert/'+mapnoext+'.supp'))
+            #f.write('input_fname = %s\n')
+            f.write('output_prefix = %s\n' % self.output_prefix.get())
+            
+            f.write('\n[algorithm]\n')
+            f.write('# Algorithm choices: DM, HIO, RAAR, mod-DM, ER\n')
+            f.write('# With beta = 1, all algorithms except ER are equivalent\n')
+            f.write('# By default, the end iterations are averaged. To use ER set avg_algorithm = ER\n')
+            f.write('algorithm = DM\n')
+            f.write('beta = 1.\n')
+            f.write('histogram = 1\n')
+            f.write('hist_fname = data/3wu2_hist.dat\n')
         print 'Generated %s:' % self.config_fname.get()
         os.system('cat %s' % self.config_fname.get())
-    
+
     def launch_recon(self, event=None):
         pass
 
     def keep_checking(self, event=None):
         if self.checkflag.get() == 1:
-            self.fname.set(self.output_prefix.get()+'-slices.raw')
+            if self.fslices.get() == 0:
+                self.fname.set(self.output_prefix.get()+'-slices.raw')
+            else:
+                self.fname.set(self.output_prefix.get()+'-fslices.raw')
+            
             if os.path.isfile(self.fname.get()):
-                s = np.fromfile(self.fname.get(), '=f4')
-                self.size = int((s.shape[0]/3)**0.5)
-                s = s.reshape(3,self.size,self.size) 
-                self.plot_slices(0, slices=s, zoom=True)
-            self.master.after(5000, self.keep_checking)
+                done = False
+                while not done:
+                    s = np.fromfile(self.fname.get(), '=f4')
+                    self.size = int(np.round((s.shape[0]/3)**0.5))
+                    try:
+                        s = s.reshape(3,self.size,self.size) 
+                        done = True
+                    except ValueError:
+                        pass
+                if self.fslices.get() == 0:
+                    self.plot_slices(0, slices=s, zoom=True)
+                else:
+                    self.plot_slices(0, slices=s, zoom=False)
+            self.master.after(1000, self.keep_checking)
 
     def preprocess(self, event=None):
         self.zero_outer()

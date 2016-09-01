@@ -26,3 +26,4 @@ config.ini
 
 # External files
 *DS_Store
+*.out

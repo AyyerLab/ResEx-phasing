@@ -27,6 +27,7 @@ int main(int argc, char *argv[]) {
 	
 	if (argc < 5) {
 		fprintf(stderr, "Format: %s <model1> <model2> <size> <res_at_edge>\n", argv[0]) ;
+		fprintf(stderr, "Optional: <fsc_fname>\n") ;
 		return 1 ;
 	}
 	size = atoi(argv[3]) ;
@@ -52,10 +53,22 @@ int main(int argc, char *argv[]) {
 	
 	// Parse fftwf plan
 	fftwf_init_threads() ;
-	fftwf_plan_with_nthreads(omp_get_max_threads()) ;
+	fftwf_plan_with_nthreads(32) ;
 	
-	forward = fftwf_plan_dft_3d(size, size, size, rdensity, fdensity, FFTW_FORWARD, FFTW_ESTIMATE) ;
-
+	sprintf(fname, "data/wisdom_%ld_32", size) ;
+	fp = fopen(fname, "rb") ;
+	if (fp == NULL) {
+		fprintf(stderr, "No wisdom file found. Estimating FFTW plan.\n") ;
+		forward = fftwf_plan_dft_3d(size, size, size, rdensity, fdensity, FFTW_FORWARD, FFTW_ESTIMATE) ;
+	}
+	else {
+		fprintf(stderr, "Using wisdom from %s to generate FFTW plan\n", fname) ;
+		fftwf_import_wisdom_from_file(fp) ;
+		fclose(fp) ;
+		
+		forward = fftwf_plan_dft_3d(size, size, size, rdensity, fdensity, FFTW_FORWARD, FFTW_MEASURE) ;
+	}
+	
 	// Parse first model
 	fp = fopen(argv[1], "rb") ;
 	fread(temp, sizeof(float), vol, fp) ;
@@ -143,15 +156,20 @@ int main(int argc, char *argv[]) {
 		fsc[bin] /= sqrtf(norm1[bin] * norm2[bin]) ;
 
 	// Write to file
-	sprintf(fname, "%s", extract_fname(argv[1])) ;
-	strtok(fname, "_.") ;
-	int num1 = atoi(strtok(NULL, "_.")) ;
-	sprintf(fname, "%s", extract_fname(argv[2])) ;
-	strtok(fname, "_.") ;
-	int num2 = atoi(strtok(NULL, "_.")) ;
-	sprintf(fname, "fsc-%d-%d.dat", num1, num2) ;
-	fprintf(stderr, "Writing to %s\n", fname) ;
+	if (argc > 5) {
+		strcpy(fname, argv[5]) ;
+	}
+	else {
+		sprintf(fname, "%s", extract_fname(argv[1])) ;
+		strtok(fname, "_.") ;
+		int num1 = atoi(strtok(NULL, "_.")) ;
+		sprintf(fname, "%s", extract_fname(argv[2])) ;
+		strtok(fname, "_.") ;
+		int num2 = atoi(strtok(NULL, "_.")) ;
+		sprintf(fname, "fsc-%d-%d.dat", num1, num2) ;
+	}
 	
+	fprintf(stderr, "Writing to %s\n", fname) ;
 	fp = fopen(fname, "w") ;
 	for (bin = 0 ; bin < num_bins ; ++bin)
 		fprintf(fp, "%.3f\t%.3f\t%.6f\t%.8ld\n", (bin+1)/d_min/num_bins, num_bins*d_min/(bin+1), cabsf(fsc[bin]), numvox[bin]) ;

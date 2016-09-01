@@ -19,7 +19,7 @@ void init_model(float *model) {
 	memset(model, 0, vol*sizeof(float)) ;
 	
 	for (i = 0 ; i < vol ; ++i) {
-		bg[i] = gsl_rng_uniform(r) ;
+		model[vol+i] = gsl_rng_uniform(r) ;
 		if (support[i])
 			model[i] = gsl_rng_uniform(r) ;
 	}
@@ -48,7 +48,7 @@ void gen_prtf(float *model) {
 	for (x = 0 ; x < vol ; ++x)
 		rdensity[x] = model[x] ;
 	
-	fftwf_execute(forward) ;
+	fftwf_execute(forward_plan) ;
 	
 	symmetrize_incoherent(fdensity, exp_mag) ;
 	
@@ -150,7 +150,7 @@ void symmetrize_incoherent(fftwf_complex *in, float *out) {
 				
 				for (y = 0 ; y < ks ; ++y)
 				for (z = 0 ; z < ls ; ++z)
-					out[x*ks*ls + y*ls + z] = sqrtf(out[x*ks*ls + y*ls + z] + powf(bg[x*ks*ls + y*ls + z], 2.f)) ;
+					out[x*ks*ls + y*ls + z] = sqrtf(out[x*ks*ls + y*ls + z] + powf(in[vol + x*ks*ls + y*ls + z], 2.f)) ;
 			}
 		}
 	}
@@ -193,14 +193,14 @@ void symmetrize_incoherent(fftwf_complex *in, float *out) {
 				
 				for (y = 0 ; y < ks ; ++y)
 				for (z = 0 ; z < ls ; ++z)
-					out[x*ks*ls + y*ls + z] = sqrtf(out[x*ks*ls + y*ls + z] + powf(bg[x*ks*ls + y*ls + z], 2.f)) ;
+					out[x*ks*ls + y*ls + z] = sqrtf(out[x*ks*ls + y*ls + z] + powf(in[vol + x*ks*ls + y*ls + z], 2.f)) ;
 			}
 		}
 	}
 	else if (strcmp(point_group, "1") == 0) {
 		long x ;
 		for (x = 0 ; x < vol ; ++x)
-			out[x] = cabsf(in[x] + powf(bg[x], 2.f)) ;
+			out[x] = cabsf(in[x] + powf(in[vol + x], 2.f)) ;
 	}
 }
 
@@ -217,7 +217,7 @@ void apply_shrinkwrap(float *model, float blur, float threshold) {
 	}
 	
 	// Blur density
-	fftwf_execute(forward) ;
+	fftwf_execute(forward_plan) ;
 	
 	fblur = size / (2. * M_PI * blur) ;
 	
@@ -228,7 +228,7 @@ void apply_shrinkwrap(float *model, float blur, float threshold) {
 		fdensity[x*size*size + y*size + z] *= expf(-rsq / 2. / fblur / fblur) ;
 	}
 	
-	fftwf_execute(inverse) ;
+	fftwf_execute(inverse_plan) ;
 	
 	// Apply threshold
 	float max = -1.f ;
@@ -259,25 +259,25 @@ void apply_shrinkwrap(float *model, float blur, float threshold) {
 
 /* Save orthogonal central slices to file
 */
-void dump_slices(float *vol, char *fname, int flag) {
+void dump_slices(float *vol, char *fname, int is_fourier) {
 	long x, y, c = size/2 ;
 	FILE *fp ;
 	float *slices = malloc(3*size*size*sizeof(float)) ;
 	
-	if (flag == 0) {
+	if (is_fourier) {
 		for (x = 0 ; x < size ; ++x)
 		for (y = 0 ; y < size ; ++y) {
-			slices[x*size + y] = vol[x*size + y] ;
-			slices[size*size + x*size + y] = vol[x*size*size + y*size] ;
-			slices[2*size*size + x*size + y] = vol[y*size*size + x] ;
+			slices[x*size + y] = vol[((x+c)%size)*size + ((y+c)%size)] ;
+			slices[size*size + x*size + y] = vol[((x+c)%size)*size*size + ((y+c)%size)] ;
+			slices[2*size*size + x*size + y] = vol[((x+c)%size)*size*size + ((y+c)%size)*size] ;
 		}
 	}
-	else if (flag == 1) {
+	else {
 		for (x = 0 ; x < size ; ++x)
 		for (y = 0 ; y < size ; ++y) {
 			slices[x*size + y] = vol[c*size*size + x*size + y] ;
-			slices[size*size + x*size + y] = vol[x*size*size + y*size + c] ;
-			slices[2*size*size + x*size + y] = vol[y*size*size + c*size + x] ;
+			slices[size*size + x*size + y] = vol[x*size*size + c*size + y] ;
+			slices[2*size*size + x*size + y] = vol[x*size*size + y*size + c] ;
 		}
 	}
 	
@@ -326,12 +326,32 @@ void radial_average(float *in, float *out) {
 	
 	memset(radavg, 0, size*sizeof(float)) ;
 	for (i = 0 ; i < vol ; ++i)
-		radavg[intrad[i]] += in[i] ;
+		radavg[intrad[i]] += in[vol+i] ;
 	
 	for (i = 0 ; i < size ; ++i)
 		radavg[i] /= (float) radcount[i] ;
 	
 	for (i = 0 ; i < vol ; ++i)
-		out[i] = radavg[intrad[i]] ;
+		out[vol+i] = radavg[intrad[i]] ;
 }
 
+int compare_indices(const void *a, const void *b) {
+	int ia = *(int*) a ;
+	int ib = *(int*) b ;
+	return supp_val[ia] < supp_val[ib] ? -1 : supp_val[ia] > supp_val[ib] ;
+}
+
+void match_histogram(float *in, float *out) {
+	long i ; 
+	
+	for (i = 0 ; i < num_supp ; ++i) {
+		supp_index[i] = i ;
+		supp_val[i] = in[supp_loc[i]] ;
+	}
+	
+	qsort(supp_index, num_supp, sizeof(long), compare_indices) ;
+	
+	memset(out, 0, vol*sizeof(float)) ;
+	for (i = 0 ; i < num_supp ; ++i)
+		out[supp_loc[supp_index[i]]] = inverse_cdf[i] ;
+}

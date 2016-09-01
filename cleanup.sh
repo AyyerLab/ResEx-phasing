@@ -1,7 +1,7 @@
 #!/bin/zsh
 
 i=1
-while [ $i -lt 200 ]
+while [ $i -lt 400 ]
 do
 	j=`printf "%.2d" $i`
 	if [ -f results/output_${j}.raw ]
@@ -24,22 +24,24 @@ then
 	fi
 fi
 
+config=config.ini
 
-prefix=`grep output_prefix config.ini|awk -F"[ =]" '{print $2}'`
-size=`grep size config.ini|awk -F"[ =]" '{print $2}'`
+
+prefix=`grep output_prefix $config |awk -F" ?= ?" '{print $2}'`
+size=`grep size $config |awk -F" ?= ?" '{print $2}'`
+supp_fname=`grep support_fname config.ini|awk -F" ?= ?" '{print $2}'`
 center=$((size/2))
 voxsize=$((voxres / 2. / center))
 
 echo Cleaning to number $j with data from $prefix
-cp ${prefix}-recon.raw results/output_${j}.raw
+cp ${prefix}-pf.raw results/output_pf_${j}.raw
+cp ${prefix}-pd.raw results/output_${j}.raw
 cp ${prefix}-frecon.raw results/foutput_${j}.raw
 cp ${prefix}-log.dat results/log_${j}.dat
 cp ${prefix}-prtf.dat results/prtf_${j}.dat
 cp ${prefix}-last.raw results/last_${j}.raw
-cp config.ini results/conf_${j}.ini
+cp $config results/conf_${j}.ini
 echo Generating map
-supp_fname=`grep support_fname config.ini|awk -F"[ =]" '{print $2}'`
-echo support = $supp_fname
 echo ./utils/gen_map results/output_${j}.raw $size $voxsize $voxsize $voxsize $supp_fname
 ./utils/gen_map results/output_${j}.raw $size $voxsize $voxsize $voxsize $supp_fname
 cd data/maps

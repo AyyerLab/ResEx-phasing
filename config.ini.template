@@ -1,23 +1,21 @@
 [parameters]
-# 3D volume size
-size = 301
-# Fraction of radius to which Bragg model is valid
-bragg_qmax = 0.5
-# Relative scale factor between (Bragg model):(3D Merged intensities)
-scale_factor = 1
-# Point group symmetry of continuous diffraction (currently can do 1,4,222)
+size = 701
+bragg_qmax = 0.500000
+scale_factor = 1.000000
+num_threads = 32
 point_group = 222
-# Number of threads to use for FFTW
-num_threads = 64
 
 [files]
-# 3D merge file
-intens_fname = data/3dmerge.raw
-# Complex Bragg model
-bragg_fname = data/lowresmodel.cpx
-# Support volume (uint8_t)
-support_fname = data/lowresmodel.supp
-# Starting guess
-#input_fname = data/lowresmodel-srecon.raw
-# Prefix to output files (one gets -recon.raw, -frecon.raw, -prtf.dat and -log.dat)
-output_prefix = data/test
+intens_fname = data/convert/3wu2_dimer_rot-sym-zero.raw
+bragg_fname = data/convert/3wu2_dimer_rot.cpx
+support_fname = data/convert/3wu2_dimer_rot.supp
+output_prefix = data/recon/3wu2-nohist
+
+[algorithm]
+# Algorithm choices: DM, HIO, RAAR, mod-DM
+# With beta = 1, all algorithms are equivalent
+# By default, the end iterations are averaged. To use ER set avg_algorithm_name = ER
+algorithm = DM
+beta = 1.
+histogram = 0
+#hist_fname = data/3wu2_hist_280.dat
