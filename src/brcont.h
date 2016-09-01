@@ -12,6 +12,7 @@
 #include <fftw3.h>
 #include <gsl/gsl_rng.h>
 #include <omp.h>
+#include <sys/stat.h>
 
 int iter ;
 long size, vol ;
