@@ -16,11 +16,11 @@ void proj_fourier(float * restrict in, float * restrict out) {
 	
 	fftwf_execute(forward_plan) ;
 	
+	symmetrize_incoherent(fdensity, exp_mag) ;
+	
 	for (i = 0 ; i < vol ; ++i)
 	if (bragg_calc[i] != FLT_MAX)
 		fdensity[i] = bragg_calc[i] ;
-	
-	symmetrize_incoherent(fdensity, exp_mag) ;
 	
 	for (i = 0 ; i < vol ; ++i) {
 		if (obs_mag[i] > 0.) {
