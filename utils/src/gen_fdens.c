@@ -50,11 +50,13 @@ int main(int argc, char *argv[]) {
 		
 		forward = fftwf_plan_dft_3d(size, size, size, rdensity, fdensity, FFTW_FORWARD, FFTW_MEASURE) ;
 	}
+	fprintf(stderr, "Generated plans for size %ld\n", size) ;
 	
 	// Parse real-space density
 	fp = fopen(argv[1], "rb") ;
 	fread(temp, sizeof(float), vol, fp) ;
 	fclose(fp) ;
+	fprintf(stderr, "Parsed density\n") ;
 	
 	// Translate array such that molecule is around the origin
 	for (x = 0 ; x < size ; ++x)
@@ -65,6 +67,7 @@ int main(int argc, char *argv[]) {
 	
 	// Apply Fourier transform
 	fftwf_execute(forward) ;
+	fprintf(stderr, "Fourier transformed density\n") ;
 	
 	// Translate array to put the origin at (c, c, c)
 	for (x = 0 ; x < size ; ++x)
