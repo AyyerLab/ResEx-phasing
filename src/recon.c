@@ -30,6 +30,8 @@ int main(int argc, char *argv[]) {
 	mkdir(fname, S_IRWXU|S_IRGRP|S_IROTH) ;
 	sprintf(fname, "%s-fslices", output_prefix) ;
 	mkdir(fname, S_IRWXU|S_IRGRP|S_IROTH) ;
+	sprintf(fname, "%s-radavg", output_prefix) ;
+	mkdir(fname, S_IRWXU|S_IRGRP|S_IROTH) ;
 	
 	for (iter = 1 ; iter <= num_iter ; ++iter) {
 		gettimeofday(&t1, NULL) ;
@@ -87,8 +89,12 @@ int main(int argc, char *argv[]) {
 			dump_slices(algorithm_p2, fname, 0) ;
 			sprintf(fname, "%s-fslices/%.4d.raw", output_prefix, iter) ;
 			dump_slices(exp_mag, fname, 1) ;
+			sprintf(fname, "%s-radavg/%.4d.raw", output_prefix, iter) ;
+			fp = fopen(fname, "wb") ;
+			fwrite(radavg, sizeof(float), size/2, fp) ;
+			fclose(fp) ;
 		}
-		 
+		
 		fprintf(stderr, "\rFinished %d/%d iterations. ", iter, num_iter) ;
 		if (iter > start_ave)
 			fprintf(stderr, "Now averaging") ;
