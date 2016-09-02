@@ -4,7 +4,7 @@
  * Model is white noise inside support volume
  * Background is white noise
 */
-void init_model(float *model) {
+void init_model(float *model, int random_model) {
 	long i ;
 	struct timeval t1 ;
 	const gsl_rng_type *T ;
@@ -16,11 +16,12 @@ void init_model(float *model) {
 	r = gsl_rng_alloc(T) ;
 	gsl_rng_set(r, t1.tv_sec + t1.tv_usec) ;
 	
-	memset(model, 0, vol*sizeof(float)) ;
+	if (random_model)
+		memset(model, 0, vol*sizeof(float)) ;
 	
 	for (i = 0 ; i < vol ; ++i) {
 		model[vol+i] = gsl_rng_uniform(r) ;
-		if (support[i])
+		if (random_model && support[i])
 			model[i] = gsl_rng_uniform(r) ;
 	}
 	
@@ -299,7 +300,7 @@ void init_radavg() {
 	
 	intrad = malloc(vol * sizeof(int)) ;
 	radavg = calloc(size, sizeof(float)) ;
-	radcount = calloc(size, sizeof(int)) ;
+	radcount = calloc(size, sizeof(float)) ;
 	
 	for (x = 0 ; x < size ; ++x)
 	for (y = 0 ; y < size ; ++y)
@@ -309,12 +310,12 @@ void init_radavg() {
 		dz = z <= c ? z : size-z ; 
 		dist = sqrt(dx*dx + dy*dy + dz*dz) ;
 		intrad[x*size*size + y*size + z] = (int) dist ;
-		radcount[intrad[x*size*size + y*size + z]]++ ;
+		radcount[intrad[x*size*size + y*size + z]] += 1. ;
 	}
 	
 	for (x = 0 ; x < size ; ++x)
-	if (radcount[x] == 0)
-		radcount[x] = 1 ;
+	if (radcount[x] == 0.)
+		radcount[x] = 1. ;
 }
 
 /* Radial average calculation
@@ -329,7 +330,7 @@ void radial_average(float *in, float *out) {
 		radavg[intrad[i]] += in[vol+i] ;
 	
 	for (i = 0 ; i < size ; ++i)
-		radavg[i] /= (float) radcount[i] ;
+		radavg[i] /= radcount[i] ;
 	
 	for (i = 0 ; i < vol ; ++i)
 		out[vol+i] = radavg[intrad[i]] ;
@@ -354,4 +355,35 @@ void match_histogram(float *in, float *out) {
 	memset(out, 0, vol*sizeof(float)) ;
 	for (i = 0 ; i < num_supp ; ++i)
 		out[supp_loc[supp_index[i]]] = inverse_cdf[i] ;
+}
+
+float positive_mode(float *model) {
+	long i, valbin, maxhist = 0, hist[99] ;
+	float bin[99], maxval = 0. ;
+	
+	for (i = 0 ; i < vol ; ++i)
+	if (model[i] > maxval)
+		maxval = model[i] ;
+	
+	for (i = 0 ; i < 99 ; ++i) {
+		hist[i] = 0. ;
+		bin[i] = maxval * i / 99. ;
+	}
+	
+	for (i = 0 ; i < vol ; ++i)
+	if (model[i] > 0.) {
+		valbin = model[i] * 99. / maxval ;
+		hist[valbin]++ ;
+	}
+	
+	valbin = 0 ;
+	for (i = 0 ; i < 99 ; ++i)
+	if (hist[i] > maxhist) {
+		valbin = i ;
+		maxhist = hist[i] ;
+	}
+	
+	fprintf(stderr, "Mode of positive values in volume = %.3e +- %.3e\n", bin[valbin], maxval / 2. / 99.) ;
+	
+	return 0.1 * bin[valbin] ;
 }

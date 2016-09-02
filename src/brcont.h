@@ -16,7 +16,6 @@
 
 int iter ;
 long size, vol ;
-int *intrad, *radcount ;
 float * restrict obs_mag, * restrict exp_mag ;
 uint8_t * restrict support ;
 fftwf_complex * restrict fdensity, * restrict rdensity ;
@@ -26,7 +25,8 @@ char output_prefix[999], point_group[999] ;
 
 // Algorithm parameters
 char algorithm_name[999], avg_algorithm_name[999] ;
-float *radavg, algorithm_beta ;
+int *intrad ;
+float *radavg, *radcount, algorithm_beta ;
 float * restrict algorithm_iterate, * restrict algorithm_p1 ;
 float * restrict algorithm_p2, * restrict algorithm_r1, * restrict algorithm_r2 ;
 int do_histogram, do_positivity ;
@@ -49,7 +49,7 @@ int setup() ;
 int setup_gen() ;
 
 // utils.c
-void init_model(float*) ;
+void init_model(float*, int) ;
 void average_model(float*, float*) ;
 void gen_prtf(float*) ;
 void symmetrize_incoherent(fftwf_complex*, float*) ;
@@ -59,3 +59,4 @@ void dump_slices(float*, char*, int) ;
 void init_radavg() ;
 void radial_average(float*, float*) ;
 void match_histogram(float*, float*) ;
+float positive_mode(float*) ;

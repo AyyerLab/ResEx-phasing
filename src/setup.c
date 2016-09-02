@@ -272,7 +272,7 @@ int gen_input(char *fname, int flag) {
 	if (fp == NULL) {
 		if (flag == 0) {
 			fprintf(stderr, "Random start\n") ;
-			init_model(algorithm_iterate) ;
+			init_model(algorithm_iterate, 1) ;
 		}
 		else {
 			fprintf(stderr, "Cannot find input %s\n", fname) ;
@@ -283,6 +283,7 @@ int gen_input(char *fname, int flag) {
 		fprintf(stderr, "Starting from %s\n", fname) ;
 		fread(algorithm_iterate, sizeof(float), vol, fp) ;
 		fclose(fp) ;
+		init_model(algorithm_iterate, 0) ;
 	}
 	
 	return 0 ;
@@ -343,35 +344,4 @@ int read_histogram(char *fname, long num) {
 	free(cdf) ;
 	
 	return 0 ;
-}
-
-float positive_mode(float *model) {
-	long i, valbin, maxhist = 0, hist[99] ;
-	float bin[99], maxval = 0. ;
-	
-	for (i = 0 ; i < vol ; ++i)
-	if (model[i] > maxval)
-		maxval = model[i] ;
-	
-	for (i = 0 ; i < 99 ; ++i) {
-		hist[i] = 0. ;
-		bin[i] = maxval * i / 99. ;
-	}
-	
-	for (i = 0 ; i < vol ; ++i)
-	if (model[i] > 0.) {
-		valbin = model[i] * 99. / maxval ;
-		hist[valbin]++ ;
-	}
-	
-	valbin = 0 ;
-	for (i = 0 ; i < 99 ; ++i)
-	if (hist[i] > maxhist) {
-		valbin = i ;
-		maxhist = hist[i] ;
-	}
-	
-	fprintf(stderr, "Mode of positive values in volume = %.3e +- %.3e\n", bin[valbin], maxval / 2. / 99.) ;
-	
-	return 0.1 * bin[valbin] ;
 }
