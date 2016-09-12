@@ -14,7 +14,7 @@ char* remove_ext(char *fullName) {
 int main(int argc, char *argv[]) {
 	long x, y, z, size, c, vol ;
 	int num_bins, *count, *bin ;
-	float binsize, *model, *rad_avg ;
+	double binsize, *model, *rad_avg ;
 	FILE *fp ;
 	char fname[999] ;
 	
@@ -59,18 +59,18 @@ int main(int argc, char *argv[]) {
 	for (x = 0 ; x < vol ; ++x)
 		model[x] = rad_avg[bin[x]] ;
 	
-/*	sprintf(fname, "%s_avg.raw", remove_ext(argv[1])) ;
+	sprintf(fname, "%s-avg.bin", remove_ext(argv[1])) ;
 	fp = fopen(fname, "wb") ;
-	fwrite(model, sizeof(float), vol, fp) ;
+	fwrite(rad_avg, sizeof(double), num_bins, fp) ;
 	fclose(fp) ;
-*/	
-	sprintf(fname, "%s_avg.dat", remove_ext(argv[1])) ;
+	
+/*	sprintf(fname, "%s_avg.dat", remove_ext(argv[1])) ;
 	fp = fopen(fname, "w") ;
 	for (x = 0 ; x < num_bins ; ++x)
 	if (count[x] > 0)
 		fprintf(fp, "%ld\t%.6e\n", x, rad_avg[x]) ;
 	fclose(fp) ;
-	
+*/	
 	free(model) ;
 	free(rad_avg) ;
 	free(count) ;
