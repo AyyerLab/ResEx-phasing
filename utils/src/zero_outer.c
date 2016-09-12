@@ -20,8 +20,8 @@ char* remove_ext(char *fullName) {
 }
 
 int main(int argc, char *argv[]) {
-	long x, y, z, size, c, rad ;
-	float rmin, rmax, minmodel = FLT_MAX ;
+	long x, y, z, size, c ;
+	float rad, rmin, rmax, minmodel = FLT_MAX ;
 	float *model ;
 	FILE *fp ;
 	char fname[500] ;
@@ -50,9 +50,9 @@ int main(int argc, char *argv[]) {
 		
 		if (rad < rmin)
 			model[x*size*size + y*size + z] = -1.f ;
-		else if (rad > rmax + 4)
+		else if (rad > rmax + 3)
 			model[x*size*size + y*size + z] = 0.f ;
-		else if (rad > rmax - 4)
+		else if (rad > rmax - 3)
 			model[x*size*size + y*size + z] = -1.f ;
 		else if (model[x*size*size + y*size + z] < minmodel)
 			minmodel = model[x*size*size + y*size + z] ;
@@ -66,7 +66,7 @@ int main(int argc, char *argv[]) {
 		for (z = 0 ; z < size ; ++z) {
 			rad = sqrtf((x-c)*(x-c) + (y-c)*(y-c) + (z-c)*(z-c)) ;
 			
-			if (rad >= rmin && rad <= rmax - 4)
+			if (rad >= rmin && rad <= rmax - 3)
 				model[x*size*size + y*size + z] -= minmodel ;
 		}
 		fprintf(stderr, "Subtracted minimum value in annulus\n") ;
