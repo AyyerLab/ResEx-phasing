@@ -20,7 +20,8 @@ void init_model(float *model, int random_model) {
 		memset(model, 0, vol*sizeof(float)) ;
 	
 	for (i = 0 ; i < vol ; ++i) {
-		model[vol+i] = gsl_rng_uniform(r) ;
+//		model[vol+i] = gsl_rng_uniform(r) ;
+		model[vol+i] = 1. ;
 		if (random_model && support[i])
 			model[i] = gsl_rng_uniform(r) ;
 	}
@@ -51,7 +52,7 @@ void gen_prtf(float *model) {
 	
 	fftwf_execute(forward_plan) ;
 	
-	symmetrize_incoherent(fdensity, exp_mag) ;
+	symmetrize_incoherent(fdensity, exp_mag, &(algorithm_p2[vol])) ;
 	
 	for (x = 0 ; x < size ; ++x)
 	for (y = 0 ; y < size ; ++y)
@@ -98,7 +99,7 @@ void gen_prtf(float *model) {
  * The array is assumed to have q=0 at (0,0,0) instead of in the center of the array
  * Global variables: (size, point_group)
 */
-void symmetrize_incoherent(fftwf_complex *in, float *out) {
+void symmetrize_incoherent(fftwf_complex *in, float *out, float *bg) {
 	long hs, ks, ls, kc, lc ;
 	
 	hs = size ;
@@ -151,7 +152,7 @@ void symmetrize_incoherent(fftwf_complex *in, float *out) {
 				
 				for (y = 0 ; y < ks ; ++y)
 				for (z = 0 ; z < ls ; ++z)
-					out[x*ks*ls + y*ls + z] = sqrtf(out[x*ks*ls + y*ls + z] + powf(in[vol + x*ks*ls + y*ls + z], 2.f)) ;
+					out[x*ks*ls + y*ls + z] = sqrtf(out[x*ks*ls + y*ls + z] + powf(bg[x*ks*ls + y*ls + z], 2.f)) ;
 			}
 		}
 	}
@@ -194,14 +195,14 @@ void symmetrize_incoherent(fftwf_complex *in, float *out) {
 				
 				for (y = 0 ; y < ks ; ++y)
 				for (z = 0 ; z < ls ; ++z)
-					out[x*ks*ls + y*ls + z] = sqrtf(out[x*ks*ls + y*ls + z] + powf(in[vol + x*ks*ls + y*ls + z], 2.f)) ;
+					out[x*ks*ls + y*ls + z] = sqrtf(out[x*ks*ls + y*ls + z] + powf(bg[x*ks*ls + y*ls + z], 2.f)) ;
 			}
 		}
 	}
 	else if (strcmp(point_group, "1") == 0) {
 		long x ;
 		for (x = 0 ; x < vol ; ++x)
-			out[x] = cabsf(in[x] + powf(in[vol + x], 2.f)) ;
+			out[x] = sqrtf(powf(cabsf(in[x]), 2.f) + powf(bg[x], 2.f)) ;
 	}
 }
 
@@ -299,8 +300,9 @@ void init_radavg() {
 	double dist ;
 	
 	intrad = malloc(vol * sizeof(int)) ;
-	radavg = calloc(size, sizeof(float)) ;
-	radcount = calloc(size, sizeof(float)) ;
+	radavg = calloc(size, sizeof(double)) ;
+	obs_radavg = calloc(size, sizeof(double)) ;
+	radcount = calloc(size, sizeof(double)) ;
 	
 	for (x = 0 ; x < size ; ++x)
 	for (y = 0 ; y < size ; ++y)
@@ -310,30 +312,44 @@ void init_radavg() {
 		dz = z <= c ? z : size-z ; 
 		dist = sqrt(dx*dx + dy*dy + dz*dz) ;
 		intrad[x*size*size + y*size + z] = (int) dist ;
-		radcount[intrad[x*size*size + y*size + z]] += 1. ;
+//		if (obs_mag[x*size*size + y*size + z] > 0.)
+			radcount[intrad[x*size*size + y*size + z]] += 1. ;
 	}
 	
 	for (x = 0 ; x < size ; ++x)
 	if (radcount[x] == 0.)
 		radcount[x] = 1. ;
+	
+	for (x = 0 ; x < vol ; ++x)
+		fdensity[x] = obs_mag[x] ;
+	symmetrize_incoherent(fdensity, exp_mag, algorithm_p1) ;
+	radial_average(exp_mag, exp_mag, 0) ;
+	for (x = 0 ; x < size ; ++x)
+		obs_radavg[x] = sqrtf(radavg[x]) ;
 }
 
 /* Radial average calculation
  * Using previously calculated bins and bin occupancies
  * Note that q=0 is at (0,0,0) and not in the center of the array
 */
-void radial_average(float *in, float *out) {
+void radial_average(float *in, float *out, int bound_max) {
 	long i ;
 	
 	memset(radavg, 0, size*sizeof(float)) ;
 	for (i = 0 ; i < vol ; ++i)
-		radavg[intrad[i]] += in[vol+i] ;
+//	if (obs_mag[i] > 0.)
+		radavg[intrad[i]] += in[i] ;
 	
-	for (i = 0 ; i < size ; ++i)
+	for (i = 0 ; i < size ; ++i) {
 		radavg[i] /= radcount[i] ;
+		if (radavg[i] < 0.)
+			radavg[i] = 0. ;
+//		else if (bound_max && radavg[i] > obs_radavg[i])
+//			radavg[i] = obs_radavg[i] ;
+	}
 	
 	for (i = 0 ; i < vol ; ++i)
-		out[vol+i] = radavg[intrad[i]] ;
+		out[i] = radavg[intrad[i]] ;
 }
 
 int compare_indices(const void *a, const void *b) {
