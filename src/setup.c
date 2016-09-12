@@ -8,7 +8,6 @@ void create_plans(char*) ;
 int gen_input(char*, int) ;
 int parse_quat(char*) ;
 int read_histogram(char*, long) ;
-float positive_mode(float*) ;
 
 int setup(char *config_fname) {
 	char line[999], *token ;
@@ -145,7 +144,7 @@ int allocate_memory(int flag) {
 	if (flag == 1) {
 		obs_mag = malloc(vol * sizeof(float)) ;
 		bragg_calc = fftwf_malloc(vol * sizeof(fftwf_complex)) ;
-		algorithm_p1 = malloc(2 * vol * sizeof(float)) ;
+		algorithm_p1 = calloc(2 * vol, sizeof(float)) ;
 		algorithm_p2 = malloc(2 * vol * sizeof(float)) ;
 		algorithm_r1 = malloc(2 * vol * sizeof(float)) ;
 		if (algorithm_beta != 1.)

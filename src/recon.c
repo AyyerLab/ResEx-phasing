@@ -84,14 +84,14 @@ int main(int argc, char *argv[]) {
 			fclose(fp) ;
 		}
 		
-		if (iter%2 == 0) {
+		if (iter%1 == 0) {
 			sprintf(fname, "%s-slices/%.4d.raw", output_prefix, iter) ;
 			dump_slices(algorithm_p2, fname, 0) ;
 			sprintf(fname, "%s-fslices/%.4d.raw", output_prefix, iter) ;
 			dump_slices(exp_mag, fname, 1) ;
 			sprintf(fname, "%s-radavg/%.4d.raw", output_prefix, iter) ;
 			fp = fopen(fname, "wb") ;
-			fwrite(radavg, sizeof(float), size/2, fp) ;
+			fwrite(radavg, sizeof(double), size/2, fp) ;
 			fclose(fp) ;
 		}
 		
