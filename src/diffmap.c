@@ -16,7 +16,7 @@ void proj_fourier(float * restrict in, float * restrict out) {
 	
 	fftwf_execute(forward_plan) ;
 	
-	symmetrize_incoherent(fdensity, exp_mag) ;
+	symmetrize_incoherent(fdensity, exp_mag, &(in[vol])) ;
 	
 	for (i = 0 ; i < vol ; ++i)
 	if (bragg_calc[i] != FLT_MAX)
@@ -29,7 +29,6 @@ void proj_fourier(float * restrict in, float * restrict out) {
 		}
 		else if (obs_mag[i] == 0.) {
 			fdensity[i] = 0. ;
-			out[vol+i] = 0. ;
 		}
 	}
 	
@@ -64,7 +63,7 @@ void proj_direct(float * restrict in, float * restrict out) {
 		}
 	}
 	
-	radial_average(in, out) ;
+	radial_average(&(in[vol]), &(out[vol]), 1) ;
 }
 
 /* Difference Map algorithm
