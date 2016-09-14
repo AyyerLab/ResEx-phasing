@@ -58,6 +58,6 @@ void blur_intens(float*, float*) ;
 void apply_shrinkwrap(float*, float, float) ;
 void dump_slices(float*, char*, int) ;
 void init_radavg() ;
-void radial_average(float*, float*, int) ;
+void radial_average(float*, float*) ;
 void match_histogram(float*, float*) ;
 float positive_mode(float*) ;

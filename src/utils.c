@@ -19,9 +19,13 @@ void init_model(float *model, int random_model) {
 	if (random_model)
 		memset(model, 0, vol*sizeof(float)) ;
 	
+	float val = sqrtf(vol) ;
 	for (i = 0 ; i < vol ; ++i) {
 //		model[vol+i] = gsl_rng_uniform(r) ;
-		model[vol+i] = 1. ;
+		if (obs_mag[i] > 0.)
+			model[vol+i] = val ;
+		else
+			model[vol+i] = 0. ;
 		if (random_model && support[i])
 			model[i] = gsl_rng_uniform(r) ;
 	}
@@ -77,6 +81,11 @@ void gen_prtf(float *model) {
 			bin_count[bin]++ ;
 	}
 	
+	memset(algorithm_p2, 0, 2*vol*sizeof(float)) ;
+	symmetrize_incoherent(fdensity, exp_mag, &(algorithm_p2[vol])) ;
+	sprintf(fname, "%s-expmag.raw", output_prefix) ;
+	dump_slices(exp_mag, fname, 1) ;
+	
 	sprintf(fname, "%s-frecon.raw", output_prefix) ;
 	fp = fopen(fname, "wb") ;
 	fwrite(model, sizeof(float), vol, fp) ;
@@ -128,6 +137,17 @@ void symmetrize_incoherent(fftwf_complex *in, float *out, float *bg) {
 					out[x*ks*ls + y*ls + (ls-z)] = ave_intens ;
 					out[x*ks*ls + (ks-y)*ls + z] = ave_intens ;
 					out[x*ks*ls + (ks-y)*ls + (ls-z)] = ave_intens ;
+					
+					ave_intens = 0.25 * (
+						powf(bg[x*ks*ls + y*ls + z], 2.) +
+						powf(bg[x*ks*ls + y*ls + (ls-z)], 2.) +
+						powf(bg[x*ks*ls + (ks-y)*ls + z], 2.) +
+						powf(bg[x*ks*ls + (ks-y)*ls + (ls-z)], 2.)) ;
+					
+					bg[x*ks*ls + y*ls + z] = ave_intens ;
+					bg[x*ks*ls + y*ls + (ls-z)] = ave_intens ;
+					bg[x*ks*ls + (ks-y)*ls + z] = ave_intens ;
+					bg[x*ks*ls + (ks-y)*ls + (ls-z)] = ave_intens ;
 				}
 				
 				for (z = 1 ; z <= lc ; ++z) {
@@ -137,6 +157,13 @@ void symmetrize_incoherent(fftwf_complex *in, float *out, float *bg) {
 					
 					out[x*ks*ls + z] = ave_intens ;
 					out[x*ks*ls + (ls-z)] = ave_intens ;
+					
+					ave_intens = 0.5 * (
+						powf(bg[x*ks*ls + z], 2.) + 
+						powf(bg[x*ks*ls + (ls-z)], 2.)) ;
+					
+					bg[x*ks*ls + z] = ave_intens ;
+					bg[x*ks*ls + (ls-z)] = ave_intens ;
 				}
 				
 				for (y = 1 ; y <= kc ; ++y) {
@@ -146,13 +173,23 @@ void symmetrize_incoherent(fftwf_complex *in, float *out, float *bg) {
 					
 					out[x*ks*ls + y*ls] = ave_intens ;
 					out[x*ks*ls + (ks-y)*ls] = ave_intens ;
+					
+					ave_intens = 0.5 * (
+						powf(bg[x*ks*ls + y*ls], 2.) + 
+						powf(bg[x*ks*ls + (ks-y)*ls], 2.)) ;
+					
+					bg[x*ks*ls + y*ls] = ave_intens ;
+					bg[x*ks*ls + (ks-y)*ls] = ave_intens ;
 				}
 				
 				out[x*ks*ls] = powf(cabsf(in[x*ks*ls]), 2.) ;
+				bg[x*ks*ls] = powf(bg[x*ks*ls], 2.) ;
 				
 				for (y = 0 ; y < ks ; ++y)
-				for (z = 0 ; z < ls ; ++z)
-					out[x*ks*ls + y*ls + z] = sqrtf(out[x*ks*ls + y*ls + z] + powf(bg[x*ks*ls + y*ls + z], 2.f)) ;
+				for (z = 0 ; z < ls ; ++z) {
+					out[x*ks*ls + y*ls + z] = sqrtf(out[x*ks*ls + y*ls + z] + bg[x*ks*ls + y*ls + z]) ;
+//					bg[x*ks*ls + y*ls + z] = sqrtf(bg[x*ks*ls + y*ls + z]) ;
+				}
 			}
 		}
 	}
@@ -319,33 +356,23 @@ void init_radavg() {
 	for (x = 0 ; x < size ; ++x)
 	if (radcount[x] == 0.)
 		radcount[x] = 1. ;
-	
-	for (x = 0 ; x < vol ; ++x)
-		fdensity[x] = obs_mag[x] ;
-	symmetrize_incoherent(fdensity, exp_mag, algorithm_p1) ;
-	radial_average(exp_mag, exp_mag, 0) ;
-	for (x = 0 ; x < size ; ++x)
-		obs_radavg[x] = sqrtf(radavg[x]) ;
 }
 
 /* Radial average calculation
  * Using previously calculated bins and bin occupancies
  * Note that q=0 is at (0,0,0) and not in the center of the array
 */
-void radial_average(float *in, float *out, int bound_max) {
+void radial_average(float *in, float *out) {
 	long i ;
 	
 	memset(radavg, 0, size*sizeof(float)) ;
 	for (i = 0 ; i < vol ; ++i)
-//	if (obs_mag[i] > 0.)
 		radavg[intrad[i]] += in[i] ;
 	
 	for (i = 0 ; i < size ; ++i) {
 		radavg[i] /= radcount[i] ;
 		if (radavg[i] < 0.)
 			radavg[i] = 0. ;
-//		else if (bound_max && radavg[i] > obs_radavg[i])
-//			radavg[i] = obs_radavg[i] ;
 	}
 	
 	for (i = 0 ; i < vol ; ++i)
