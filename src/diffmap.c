@@ -11,12 +11,12 @@ void proj_fourier(float * restrict in, float * restrict out) {
 	
 	for (i = 0 ; i < vol ; ++i) {
 		rdensity[i] = in[i] ;
-		out[vol+i] = 0. ;
+		out[vol+i] = in[vol+i] ;
 	}
 	
 	fftwf_execute(forward_plan) ;
 	
-	symmetrize_incoherent(fdensity, exp_mag, &(in[vol])) ;
+	symmetrize_incoherent(fdensity, exp_mag, &(out[vol])) ;
 	
 	for (i = 0 ; i < vol ; ++i)
 	if (bragg_calc[i] != FLT_MAX)
@@ -29,6 +29,10 @@ void proj_fourier(float * restrict in, float * restrict out) {
 		}
 		else if (obs_mag[i] == 0.) {
 			fdensity[i] = 0. ;
+			out[vol+i] = 0. ;
+		}
+		else {
+			out[vol+i] = 0. ;
 		}
 	}
 	
@@ -63,7 +67,7 @@ void proj_direct(float * restrict in, float * restrict out) {
 		}
 	}
 	
-	radial_average(&(in[vol]), &(out[vol]), 1) ;
+	radial_average(&(in[vol]), &(out[vol])) ;
 }
 
 /* Difference Map algorithm
@@ -92,10 +96,11 @@ double DM_algorithm(float *x) {
 	for (i = 0 ; i < 2*vol ; ++i) {
 		diff = algorithm_beta * (algorithm_p2[i] - algorithm_p1[i]) ;
 		x[i] += diff ;
-		change += diff*diff ;
+		if (i < vol)
+			change += diff*diff ;
 	}
 	
-	return sqrt(change / 2. / vol) ;
+	return sqrt(change / vol) ;
 }
 
 /* Modified Difference Map algorithm
@@ -125,10 +130,11 @@ double mod_DM_algorithm(float *x) {
 	for (i = 0 ; i < 2*vol ; ++i) {
 		diff = algorithm_p1[i] - algorithm_p2[i] ;
 		x[i] += diff ;
-		change += diff*diff ;
+		if (i < vol)
+			change += diff*diff ;
 	}
 	
-	return sqrt(change / 2. / vol) ;
+	return sqrt(change / vol) ;
 }
 
 /* RAAR algorithm
@@ -157,10 +163,11 @@ double RAAR_algorithm(float *x) {
 	for (i = 0 ; i < 2*vol ; ++i) {
 		diff = (algorithm_beta - 1.) * x[i] + algorithm_beta * (algorithm_r2[i] + algorithm_p2[i]) + (1. - 2. * algorithm_beta) * algorithm_p1[i] ;
 		x[i] += diff ;
-		change += diff*diff ;
+		if (i < vol)
+			change += diff*diff ;
 	}
 	
-	return sqrt(change / 2. / vol) ;
+	return sqrt(change / vol) ;
 }
 
 /* HIO algorithm
@@ -182,10 +189,11 @@ double HIO_algorithm(float *x) {
 	for (i = 0 ; i < 2*vol ; ++i) {
 		diff = algorithm_beta * (algorithm_p2[i] - algorithm_p1[i]) ;
 		x[i] += diff ;
-		change += diff*diff ;
+		if (i < vol)
+			change += diff*diff ;
 	}
 	
-	return sqrt(change / 2. / vol) ;
+	return sqrt(change / vol) ;
 }
 
 /* Error Reduction algorithm
@@ -201,12 +209,14 @@ double ER_algorithm(float *x) {
 	proj_direct(algorithm_p1, algorithm_p2) ;
 	
 	for (i = 0 ; i < 2*vol ; ++i) {
-		diff = algorithm_p2[i] - algorithm_p1[i] ;
 		x[i] = algorithm_p2[i] ;
-		change += diff*diff ;
+		if (i < vol) {
+			diff = algorithm_p2[i] - algorithm_p1[i] ;
+			change += diff*diff ;
+		}
 	}
 	
-	return sqrt(change / 2. / vol) ;
+	return sqrt(change / vol) ;
 }
 
 double modified_hio(float *x) {
