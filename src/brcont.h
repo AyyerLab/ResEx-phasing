@@ -50,7 +50,7 @@ int setup() ;
 int setup_gen() ;
 
 // utils.c
-void init_model(float*, int) ;
+void init_model(float*, int, int) ;
 void average_model(float*, float*) ;
 void gen_prtf(float*) ;
 void symmetrize_incoherent(fftwf_complex*, float*, float*) ;

@@ -5,7 +5,7 @@ int parse_intens(char*, float) ;
 int parse_bragg(char*, double) ;
 int parse_support(char*) ;
 void create_plans(char*) ;
-int gen_input(char*, int) ;
+int gen_input(char*, char*, int) ;
 int parse_quat(char*) ;
 int read_histogram(char*, long) ;
 
@@ -14,6 +14,7 @@ int setup(char *config_fname) {
 	char input_fname[999], hist_fname[999] ;
 	char intens_fname[999], bragg_fname[999] ;
 	char support_fname[999], wisdom_fname[999] ;
+	char inputbg_fname[999] ;
 	double bragg_qmax = 0. ;
 	float scale_factor = 0. ;
 	int num_threads = -1 ;
@@ -54,6 +55,8 @@ int setup(char *config_fname) {
 			strcpy(bragg_fname, strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "input_fname") == 0)
 			strcpy(input_fname, strtok(NULL, " =\n")) ;
+		else if (strcmp(token, "inputbg_fname") == 0)
+			strcpy(inputbg_fname, strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "support_fname") == 0)
 			strcpy(support_fname, strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "output_prefix") == 0)
@@ -113,7 +116,7 @@ int setup(char *config_fname) {
 		if (read_histogram(hist_fname, num_supp))
 			return 1 ;
 	}
-	gen_input(input_fname, 0) ;
+	gen_input(input_fname, inputbg_fname, 0) ;
 	create_plans(wisdom_fname) ;
 	init_radavg() ;
 	
@@ -266,12 +269,15 @@ void create_plans(char *fname) {
 	}
 }
 
-int gen_input(char *fname, int flag) {
-	FILE *fp = fopen(fname, "rb") ;
+int gen_input(char *fname, char *bg_fname, int flag) {
+	int random_model = 0, init_bg = 0 ;
+	FILE *fp ;
+	
+	fp = fopen(fname, "rb") ;
 	if (fp == NULL) {
 		if (flag == 0) {
-			fprintf(stderr, "Random start\n") ;
-			init_model(algorithm_iterate, 1) ;
+			fprintf(stderr, "Random start") ;
+			random_model = 1 ;
 		}
 		else {
 			fprintf(stderr, "Cannot find input %s\n", fname) ;
@@ -279,11 +285,29 @@ int gen_input(char *fname, int flag) {
 		}
 	}
 	else {
-		fprintf(stderr, "Starting from %s\n", fname) ;
+		fprintf(stderr, "Starting from %s", fname) ;
 		fread(algorithm_iterate, sizeof(float), vol, fp) ;
 		fclose(fp) ;
-		init_model(algorithm_iterate, 0) ;
 	}
+	
+	fp = fopen(bg_fname, "rb") ;
+	if (fp == NULL) {
+		if (flag == 0) {
+			fprintf(stderr, " and with uniform background\n") ;
+			init_bg = 1 ;
+		}
+		else {
+			fprintf(stderr, "Cannot find background %s\n", fname) ;
+			return 1 ;
+		}
+	}
+	else {
+		fprintf(stderr, " with background from %s\n", fname) ;
+		fread(&(algorithm_iterate[vol]), sizeof(float), vol, fp) ;
+		fclose(fp) ;
+	}
+	
+	init_model(algorithm_iterate, random_model, init_bg) ;
 	
 	return 0 ;
 }

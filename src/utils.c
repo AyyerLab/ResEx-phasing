@@ -4,8 +4,9 @@
  * Model is white noise inside support volume
  * Background is white noise
 */
-void init_model(float *model, int random_model) {
+void init_model(float *model, int random_model, int init_bg) {
 	long i ;
+	float val = sqrtf(vol) ;
 	struct timeval t1 ;
 	const gsl_rng_type *T ;
 	gsl_rng *r ;
@@ -18,16 +19,17 @@ void init_model(float *model, int random_model) {
 	
 	if (random_model)
 		memset(model, 0, vol*sizeof(float)) ;
+	if (init_bg)
+		memset(&(model[vol]), 0, vol*sizeof(float)) ;
 	
-	float val = sqrtf(vol) ;
-	for (i = 0 ; i < vol ; ++i) {
-//		model[vol+i] = gsl_rng_uniform(r) ;
-		if (obs_mag[i] > 0.)
-			model[vol+i] = val ;
-		else
-			model[vol+i] = 0. ;
-		if (random_model && support[i])
-			model[i] = gsl_rng_uniform(r) ;
+	if (random_model || init_bg) {
+		for (i = 0 ; i < vol ; ++i) {
+			if (random_model && support[i])
+				model[i] = gsl_rng_uniform(r) ;
+			
+			if (init_bg && obs_mag[i] > 0.)
+				model[vol+i] = val ;
+		}
 	}
 	
 	gsl_rng_free(r) ;
