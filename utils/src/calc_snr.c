@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <gsl/gsl_sf.h>
-#include <math.h>
+#include <gsl/gsl_math.h>
 #include <omp.h>
 
 long size ;
@@ -44,7 +44,7 @@ long calc_radavg(float *model, float *avg) {
 
 int main(int argc, char *argv[]) {
 	long vol, i, rmax ;
-	float *intens, *radavg, *radsqavg ;
+	float *intens, *radavg, *radsqavg, *sigma, *kl_div ;
 	char fname[999] ;
 	FILE *fp ;
 	
@@ -57,6 +57,11 @@ int main(int argc, char *argv[]) {
 	vol = size*size*size ;
 	
 	intens = malloc(vol * sizeof(float)) ;
+	radavg = calloc(size, sizeof(float)) ;
+	radsqavg = calloc(size, sizeof(float)) ;
+	sigma = malloc(size * sizeof(float)) ;
+	kl_div = malloc(size * sizeof(float)) ;
+	
 	fp = fopen(argv[1], "rb") ;
 	fread(intens, sizeof(float), vol, fp) ;
 	fclose(fp) ;
@@ -66,23 +71,28 @@ int main(int argc, char *argv[]) {
 	if (intens[i] < -500.)
 		intens[i] = 0. ;
 	
-	radavg = calloc(size, sizeof(float)) ;
 	rmax = calc_radavg(intens, radavg) ;
 	fprintf(stderr, "Calculated radial average\n") ;
 	
 	for (i = 0 ; i < vol ; ++i)
 		intens[i] = intens[i]*intens[i] ;
 	
-	radsqavg = calloc(size, sizeof(float)) ;
 	calc_radavg(intens, radsqavg) ;
 	fprintf(stderr, "Calculated squared radial average\n") ;
 	
-	// The factor '5/4' in the following fomula is for num_twin = 4
+	int num_sym = 4 ;
 	for (i = 0 ; i < size ; ++i) {
-//		radavg[i] = radavg[i] / sqrtf(radsqavg[i] - 1.25 * radavg[i]*radavg[i]) ;
-		radavg[i] = radavg[i] / sqrtf(radsqavg[i] - radavg[i]*radavg[i]) ;
-		if (isnan(radavg[i]))
-			radavg[i] = 0.f ;
+		sigma[i] = radavg[i] / sqrtf(radsqavg[i] - radavg[i]*radavg[i]) ;
+		if (isnan(sigma[i]))
+			sigma[i] = 0.f ;
+		
+		kl_div[i] = num_sym * log(num_sym / radavg[i])
+		          + log(sqrt(2.*M_PI) * sigma[i] / gsl_sf_fact(num_sym-1))
+		          + (num_sym-1)*(gsl_sf_psi_int(num_sym) - log(num_sym/radavg[i]))
+				  - num_sym
+				  + radavg[i]*radavg[i] / (2. * sigma[i]*sigma[i]) ;
+		if (isnan(kl_div[i]))
+			kl_div[i] = 0.f ;
 	}
 	
 	if (argc > 3)
@@ -92,7 +102,7 @@ int main(int argc, char *argv[]) {
 	fprintf(stderr, "Writing output to %s\n", fname) ;
 	fp = fopen(fname, "w") ;
 	for (i = 0 ; i < rmax ; ++i)
-		fprintf(fp, "%.4ld\t%.6e\n", i, radavg[i]) ;
+		fprintf(fp, "%.4ld\t%.6e\t%.6e\t%.6e\n", i, radavg[i], sigma[i], kl_div[i]) ;
 	fclose(fp) ;
 	
 	free(intens) ;
