@@ -431,8 +431,8 @@ class GUI():
         self.vol_image_exists = False
 
     def zero_outer(self, event=None):
-        rmin = int(self.radiusmin.get())
-        rmax = int(self.radiusmax.get())
+        rmin = float(self.radiusmin.get())
+        rmax = float(self.radiusmax.get())
         print '-'*80
         os.system('./utils/zero_outer %s %d %d %d' % (self.merge_fname.get(), self.size, rmin, rmax))
         print '-'*80
@@ -449,8 +449,8 @@ class GUI():
         #    self.gen_recon_tab()
 
     def calc_scale(self, event=None):
-        rmin = int(self.scaleradmin.get())
-        rmax = int(self.scaleradmax.get())
+        rmin = float(self.scaleradmin.get())
+        rmax = float(self.scaleradmax.get())
         mapnoext = os.path.splitext(os.path.basename(self.map_fname.get()))[0]
         sym_model = 'data/convert/'+mapnoext+'-sym.raw'
         cmd = './utils/calc_scale %s %s %d %d %d' % (sym_model, self.merge_fname.get(), self.size, rmin, rmax)

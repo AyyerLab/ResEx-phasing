@@ -14,7 +14,7 @@ gen_data
 /phenix
 
 # Config file
-config.ini
+/*.ini
 
 # Data files
 *.log

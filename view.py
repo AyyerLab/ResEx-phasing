@@ -79,10 +79,11 @@ rangeminstr.set("%.1e" % rangemin)
 rangemaxstr.set("%.1e" % rangemax)
 
 old_fname = fname.get()
+only_slices = False
 
 # Parse file to generate three arrays and plot them
 def parse_vol():
-    global vol, old_fname
+    global vol, old_fname, only_slices
     
     s = fname.get()
     
@@ -92,8 +93,14 @@ def parse_vol():
     
     vol = np.fromfile(s, dtype=typestr)
     size = int(round(vol.size**(1/3.)))
+    slice_size = int(round(np.sqrt(vol.size/3)))
     if size*size*size == len(vol):
         vol = vol.reshape(size,size,size)
+    elif slice_size*slice_size*3 == len(vol):
+        vol = vol.reshape(3,slice_size,slice_size)
+        only_slices = True
+        size = slice_size
+        print 'Only 3 slices and not full volume'
     else:
         vol = np.resize(vol, size*size*size).reshape(size,size,size)
     
@@ -109,23 +116,30 @@ def plot_vol_slices(layernum):
     imagename.set('images/' + os.path.splitext(os.path.basename(fname.get()))[0] + '.png')
     rangemax = float(rangemaxstr.get())
     rangemin = float(rangeminstr.get())
-    size = len(vol)
+    size = len(vol[0])
     
     if flag.get() is 0:
         min = int(size/3)
         max = int(2*size/3)
         
-        a = vol[layernum,min:max,min:max]
-        b = vol[min:max,layernum,min:max]
-        c = vol[min:max,min:max,layernum]
-        #a = vol.sum(0)[min:max,min:max]
-        #b = vol.sum(1)[min:max,min:max]
-        #c = vol.sum(2)[min:max,min:max]
+        if only_slices:
+            a = vol[0,min:max,min:max]
+            b = vol[1,min:max,min:max]
+            c = vol[2,min:max,min:max]
+        else:
+            a = vol[layernum,min:max,min:max]
+            b = vol[min:max,layernum,min:max]
+            c = vol[min:max,min:max,layernum]
     elif flag.get() is 1:
-        a = vol[layernum,:,:]    
-        b = vol[:,layernum,:]    
-        c = vol[:,:,layernum]
-        
+        if only_slices:
+            a = vol[0]
+            b = vol[1]
+            c = vol[2]
+        else:
+            a = vol[layernum,:,:]    
+            b = vol[:,layernum,:]    
+            c = vol[:,:,layernum]
+    
     s1 = fig.add_subplot(131)
     s1.matshow(a, vmin=rangemin, vmax=rangemax, cmap='jet')
     plt.title("h = 0, YZ plane", y = 1.01)
