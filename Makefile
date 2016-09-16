@@ -7,7 +7,7 @@ src = $(wildcard src/*.c)
 objects = $(patsubst src/%.c,bin/%.o,$(src)) 
 
 utils_src = $(wildcard utils/src/*.c)
-utils = $(patsubst utils/src/%.c,utils/%,$(utils_src))
+utils = $(filter-out utils/calc_smoothness, $(patsubst utils/src/%.c,utils/%,$(utils_src)))
 directories = data bin images results data/maps data/recon data/convert
 
 all: mkdir recon $(utils)
@@ -25,6 +25,9 @@ $(objects): bin/%.o: src/%.c src/brcont.h
 
 $(utils): utils/%: utils/src/%.c
 	$(CC) $< -o $@ $(LDFLAGS) $(CFLAGS)
+
+utils/calc_smoothness: utils/src/calc_smoothness.c
+	$(CC) $< -o $@ $(CFLAGS) -lgsl -lgslcblas -lfftw3 -lm
 
 clean:
 	rm -f gen_data recon $(objects) $(utils)
