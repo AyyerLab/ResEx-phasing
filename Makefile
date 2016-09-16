@@ -10,7 +10,7 @@ utils_src = $(wildcard utils/src/*.c)
 utils = $(filter-out utils/calc_smoothness, $(patsubst utils/src/%.c,utils/%,$(utils_src)))
 directories = data bin images results data/maps data/recon data/convert
 
-all: mkdir recon $(utils)
+all: mkdir recon $(utils) utils/calc_smoothness
 
 mkdir: $(directories)
 
