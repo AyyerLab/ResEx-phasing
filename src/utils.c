@@ -287,7 +287,9 @@ void apply_shrinkwrap(float *model, float blur, float threshold) {
 		support[x] = 1 ;
 	
 	char fname[999] ;
-	sprintf(fname, "%s-shrink%d.supp", output_prefix, iter) ;
+	sprintf(fname, "%s-shrink", output_prefix) ;
+	mkdir(fname, S_IRWXU|S_IRGRP|S_IROTH) ;
+	sprintf(fname, "%s-shrink/%.4d.supp", output_prefix, iter) ;
 	FILE *fp = fopen(fname, "wb") ;
 	fwrite(support, sizeof(uint8_t), vol, fp) ;
 	fclose(fp) ;
