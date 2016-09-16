@@ -58,7 +58,7 @@ void gen_prtf(float *model) {
 	
 	fftwf_execute(forward_plan) ;
 	
-	symmetrize_incoherent(fdensity, exp_mag, &(algorithm_p2[vol])) ;
+	symmetrize_incoherent(fdensity, exp_mag, &(model[vol])) ;
 	
 	for (x = 0 ; x < size ; ++x)
 	for (y = 0 ; y < size ; ++y)
