@@ -19,8 +19,8 @@ int main(int argc, char *argv[]) {
 	
 	omp_set_num_threads(omp_get_max_threads()) ;
 	
-	average_p1 = calloc(vol, sizeof(float)) ;
-	average_p2 = calloc(vol, sizeof(float)) ;
+	average_p1 = calloc(2 * vol, sizeof(float)) ;
+	average_p2 = calloc(2 * vol, sizeof(float)) ;
 	alg_type = get_algorithm_type(algorithm_name, avg_algorithm_name) ;
 	if (alg_type < 0) {
 		fprintf(stderr, "Could not understand algorithm name: %s\n", algorithm_name) ;
@@ -32,6 +32,10 @@ int main(int argc, char *argv[]) {
 	mkdir(fname, S_IRWXU|S_IRGRP|S_IROTH) ;
 	sprintf(fname, "%s-radavg", output_prefix) ;
 	mkdir(fname, S_IRWXU|S_IRGRP|S_IROTH) ;
+	if (do_local_variation) {
+		sprintf(fname, "%s-support", output_prefix) ;
+		mkdir(fname, S_IRWXU|S_IRGRP|S_IROTH) ;
+	}
 	
 	for (iter = 1 ; iter <= num_iter ; ++iter) {
 		gettimeofday(&t1, NULL) ;
@@ -89,6 +93,10 @@ int main(int argc, char *argv[]) {
 			dump_slices(algorithm_p2, fname, 0) ;
 			sprintf(fname, "%s-fslices/%.4d.raw", output_prefix, iter) ;
 			dump_slices(exp_mag, fname, 1) ;
+			if (do_local_variation) {
+				sprintf(fname, "%s-support/%.4d.raw", output_prefix, iter) ;
+				dump_support_slices(support, fname) ;
+			}
 			sprintf(fname, "%s-radavg/%.4d.raw", output_prefix, iter) ;
 			fp = fopen(fname, "wb") ;
 			fwrite(radavg, sizeof(double), size/2, fp) ;
@@ -103,13 +111,13 @@ int main(int argc, char *argv[]) {
 	fprintf(stderr, "\nCalculating prtf and writing to file.\n") ;
 	
 	if (alg_type % 2 == 0) {
-		for (i = 0 ; i < vol ; ++i) {
+		for (i = 0 ; i < 2 * vol ; ++i) {
 			average_p1[i] /= (num_iter - start_ave + 1) ;
 			average_p2[i] /= (num_iter - start_ave + 1) ;
 		}
 	}
 	else {
-		for (i = 0 ; i < vol ; ++i) {
+		for (i = 0 ; i < 2 * vol ; ++i) {
 			average_p1[i] = algorithm_p1[i] ;
 			average_p2[i] = algorithm_p2[i] ;
 		}

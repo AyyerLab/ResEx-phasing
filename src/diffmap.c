@@ -49,14 +49,20 @@ void proj_fourier(float * restrict in, float * restrict out) {
  * 	do_positivity - Set negative values inside support to zero
  * 	do_histogram - Project values inside support such that they match a 
  * 	               target histogram.
+ * 	do_local_variation - Calculate local variation and update support keeping
+ * 	                     support size the same
  * Can be applied in-place (out = in)
  */
 void proj_direct(float * restrict in, float * restrict out) {
+	if (do_local_variation)
+		variation_support(in, support, 2) ;
+	
 	if (do_histogram) {
 		match_histogram(in, out) ;
 	}
 	else {
 		long i ;
+		 
 		for (i = 0 ; i < vol ; ++i)
 			out[i] = in[i] * support[i] ;
 		

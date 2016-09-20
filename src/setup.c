@@ -1,6 +1,6 @@
 #include "brcont.h"
 
-int allocate_memory(int) ;
+int allocate_memory(int, int) ;
 int parse_intens(char*, float) ;
 int parse_bragg(char*, double) ;
 int parse_support(char*) ;
@@ -24,6 +24,7 @@ int setup(char *config_fname) {
 	strcpy(point_group, "222") ;
 	do_histogram = 0 ;
 	do_positivity = 0 ;
+	do_local_variation = 0 ;
 	strcpy(algorithm_name, "DM") ;
 	strcpy(avg_algorithm_name, "Avg") ;
 	
@@ -70,6 +71,8 @@ int setup(char *config_fname) {
 			algorithm_beta = atof(strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "histogram") == 0)
 			do_histogram = atoi(strtok(NULL, " =\n")) ;
+		else if (strcmp(token, "local_variation") == 0)
+			do_local_variation = atoi(strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "positivity") == 0)
 			do_positivity = atoi(strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "hist_fname") == 0)
@@ -104,7 +107,7 @@ int setup(char *config_fname) {
 	fftwf_init_threads() ;
 	fftwf_plan_with_nthreads(num_threads) ;
 	
-	if (allocate_memory(1))
+	if (allocate_memory(1, 0))
 		return 1 ;
 	if (parse_intens(intens_fname, scale_factor))
 		return 1 ;
@@ -140,7 +143,7 @@ int setup(char *config_fname) {
 	return 0 ;
 }	
 
-int allocate_memory(int flag) {
+int allocate_memory(int flag, int do_shrinkwrap) {
 	algorithm_iterate = malloc(2 * vol * sizeof(float)) ;
 	exp_mag = malloc(vol * sizeof(float)) ;
 	
@@ -153,6 +156,8 @@ int allocate_memory(int flag) {
 		if (algorithm_beta != 1.)
 			algorithm_r2 = malloc(2 * vol * sizeof(float)) ;
 		supp_loc = malloc(vol / 8 * sizeof(long)) ;
+		if (do_shrinkwrap)
+			shrinkwrap_kernel = malloc(vol * sizeof(float)) ;
 	}
 	
 	rdensity = fftwf_malloc(vol * sizeof(fftwf_complex)) ;
@@ -226,7 +231,8 @@ int parse_bragg(char *fname, double braggqmax) {
 }
 
 int parse_support(char *fname) {
-	long i ;
+	long x, y, z ;
+	
 	FILE *fp = fopen(fname, "rb") ;
 	if (fp == NULL) {
 		fprintf(stderr, "%s not found.\n", fname) ;
@@ -236,13 +242,40 @@ int parse_support(char *fname) {
 	fclose(fp) ;
 	
 	num_supp = 0 ;
-	for (i = 0 ; i < vol ; ++i)
-	if (support[i])
-		supp_loc[num_supp++] = i ;
+	for (x = 0 ; x < 6 ; ++x)
+		support_bounds[x] = size * (1 - (x % 2)) ;
 	
-	fprintf(stderr, "num_supp = %ld\n", num_supp) ;
-	supp_index = malloc(num_supp * sizeof(long)) ;
-	supp_val = malloc(num_supp * sizeof(float)) ;
+	for (x = 0 ; x < size ; ++x)
+	for (y = 0 ; y < size ; ++y)
+	for (z = 0 ; z < size ; ++z)
+	if (support[x*size*size + y*size + z]) {
+		supp_loc[num_supp++] = x*size*size + y*size + z ;
+		if (x < support_bounds[0])
+			support_bounds[0] = x ;
+		if (x > support_bounds[1])
+			support_bounds[1] = x ;
+		if (y < support_bounds[2])
+			support_bounds[2] = y ;
+		if (y > support_bounds[3])
+			support_bounds[3] = y ;
+		if (z < support_bounds[4])
+			support_bounds[4] = z ;
+		if (z > support_bounds[5])
+			support_bounds[5] = z ;
+	}
+	
+	fprintf(stderr, "num_supp = %ld\nSupport bounds: (", num_supp) ;
+	for (x = 0 ; x < 6 ; ++x)
+		fprintf(stderr, "%ld ", support_bounds[x]) ;
+	fprintf(stderr, ")\n") ;
+	if (do_histogram) {
+		supp_index = malloc(num_supp * sizeof(long)) ;
+		supp_val = malloc(num_supp * sizeof(float)) ;
+	}
+	if (do_local_variation) {
+		local_variation = malloc(vol * sizeof(float)) ;
+		voxel_pos = malloc(vol * sizeof(long)) ;
+	}
 	
 	return 0 ;
 }

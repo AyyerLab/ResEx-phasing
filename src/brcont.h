@@ -15,7 +15,7 @@
 #include <sys/stat.h>
 
 int iter ;
-long size, vol ;
+long size, vol, support_bounds[6] ;
 float * restrict obs_mag, * restrict exp_mag ;
 uint8_t * restrict support ;
 fftwf_complex * restrict fdensity, * restrict rdensity ;
@@ -30,11 +30,16 @@ double *radavg, *radcount, *obs_radavg ;
 float algorithm_beta ;
 float * restrict algorithm_iterate, * restrict algorithm_p1 ;
 float * restrict algorithm_p2, * restrict algorithm_r1, * restrict algorithm_r2 ;
-int do_histogram, do_positivity ;
+int do_histogram, do_positivity, do_local_variation ;
 
 // Histogram matching
 long num_supp, *supp_loc, *supp_index ;
 float *supp_val, *inverse_cdf ;
+
+// Support update
+float *shrinkwrap_kernel ;
+float *local_variation ;
+long *voxel_pos ;
 
 // Functions
 // diffmap.c
@@ -57,7 +62,9 @@ void symmetrize_incoherent(fftwf_complex*, float*, float*) ;
 void blur_intens(float*, float*) ;
 void apply_shrinkwrap(float*, float, float) ;
 void dump_slices(float*, char*, int) ;
+void dump_support_slices(uint8_t*, char*) ;
 void init_radavg() ;
 void radial_average(float*, float*) ;
 void match_histogram(float*, float*) ;
 float positive_mode(float*) ;
+void variation_support(float*, uint8_t*, long) ;

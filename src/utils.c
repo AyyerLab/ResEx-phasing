@@ -38,7 +38,7 @@ void init_model(float *model, int random_model, int init_bg) {
 void average_model(float *current, float *sum) {
 	long i ;
 	
-	for (i = 0 ; i < vol ; ++i)
+	for (i = 0 ; i < 2 * vol ; ++i)
 		sum[i] += current[i] ;
 }
 
@@ -331,6 +331,25 @@ void dump_slices(float *vol, char *fname, int is_fourier) {
 	free(slices) ;
 }
 
+void dump_support_slices(uint8_t *vol, char *fname) {
+	long x, y, c = size/2 ;
+	FILE *fp ;
+	uint8_t *slices = malloc(3*size*size*sizeof(float)) ;
+	
+	for (x = 0 ; x < size ; ++x)
+	for (y = 0 ; y < size ; ++y) {
+		slices[x*size + y] = vol[c*size*size + x*size + y] ;
+		slices[size*size + x*size + y] = vol[x*size*size + c*size + y] ;
+		slices[2*size*size + x*size + y] = vol[x*size*size + y*size + c] ;
+	}
+	
+	fp = fopen(fname, "wb") ;
+	fwrite(slices, sizeof(uint8_t), 3*size*size, fp) ;
+	fclose(fp) ;
+	
+	free(slices) ;
+}
+
 /* Radial average initialization
  * Calculate bin for each voxel and bin occupancy
  * Note that q=0 is at (0,0,0) and not in the center of the array
@@ -383,7 +402,7 @@ void radial_average(float *in, float *out) {
 		out[i] = radavg[intrad[i]] ;
 }
 
-int compare_indices(const void *a, const void *b) {
+int compare_indices_histogram(const void *a, const void *b) {
 	int ia = *(int*) a ;
 	int ib = *(int*) b ;
 	return supp_val[ia] < supp_val[ib] ? -1 : supp_val[ia] > supp_val[ib] ;
@@ -397,7 +416,7 @@ void match_histogram(float *in, float *out) {
 		supp_val[i] = in[supp_loc[i]] ;
 	}
 	
-	qsort(supp_index, num_supp, sizeof(long), compare_indices) ;
+	qsort(supp_index, num_supp, sizeof(long), compare_indices_histogram) ;
 	
 	memset(out, 0, vol*sizeof(float)) ;
 	for (i = 0 ; i < num_supp ; ++i)
@@ -433,4 +452,63 @@ float positive_mode(float *model) {
 	fprintf(stderr, "Mode of positive values in volume = %.3e +- %.3e\n", bin[valbin], maxval / 2. / 99.) ;
 	
 	return 0.1 * bin[valbin] ;
+}
+
+int compare_indices_variation(const void *a, const void *b) {
+	int ia = *(int*) a ;
+	int ib = *(int*) b ;
+	return local_variation[ia] > local_variation[ib] ? -1 : local_variation[ia] < local_variation[ib] ;
+}
+
+void variation_support(float *model, uint8_t *supp, long box_rad) {
+	long i, num_vox = 0 ;
+	
+	memset(local_variation, 0, vol*sizeof(float)) ;
+	#pragma omp parallel default(shared)
+	{
+		int np = omp_get_num_threads(), rank = omp_get_thread_num() ;
+		long x, y, z, i, j, k, num_p = 0 ;
+		float val, avg, rms, weight = 1. / powf(2 * box_rad + 1, 3.f) ;
+		
+		#pragma omp for schedule(static,1)
+		for (x = support_bounds[0]-3*box_rad ; x <= support_bounds[1]+3*box_rad ; ++x)
+		for (y = support_bounds[2]-3*box_rad ; y <= support_bounds[3]+3*box_rad ; ++y)
+		for (z = support_bounds[4]-3*box_rad ; z <= support_bounds[5]+3*box_rad ; ++z) {
+			avg = 0. ;
+			rms = 0. ;
+			for (i = -box_rad ; i < box_rad ; ++i)
+			for (j = -box_rad ; j < box_rad ; ++j)
+			for (k = -box_rad ; k < box_rad ; ++k) {
+				val = model[(x+i)*size*size + (y+j)*size + (z+k)] ;
+				avg += val ;
+				rms += val*val ;
+			}
+			
+			local_variation[x*size*size + y*size + z] = rms * weight - powf(avg * weight, 2.f) ;
+			voxel_pos[(num_p++)*np + rank] = x*size*size + y*size + z ;
+		}
+		
+		#pragma omp critical(num_vox)
+		{
+			if (num_p > num_vox)
+				num_vox = num_p ;
+		}
+		if (rank == 0)
+			num_vox *= np ;
+	}
+	FILE *fp = fopen("data/local_variation.raw", "wb") ;
+	fwrite(local_variation, sizeof(float), vol, fp) ;
+	fclose(fp) ;
+	
+	// Sort and set keep highest num_supp values
+	fprintf(stderr, "Sorting...") ;
+	qsort(voxel_pos, num_vox, sizeof(long), compare_indices_variation) ;
+	fprintf(stderr, "done\n") ;
+	
+	memset(supp, 0, vol*sizeof(uint8_t)) ;
+	for (i = 0 ; i < num_supp ; ++i)
+		supp[voxel_pos[i]] = 1 ;
+	fp = fopen("data/variation.supp", "wb") ;
+	fwrite(supp, sizeof(uint8_t), vol, fp) ;
+	fclose(fp) ;
 }
