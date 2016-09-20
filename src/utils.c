@@ -496,19 +496,11 @@ void variation_support(float *model, uint8_t *supp, long box_rad) {
 		if (rank == 0)
 			num_vox *= np ;
 	}
-	FILE *fp = fopen("data/local_variation.raw", "wb") ;
-	fwrite(local_variation, sizeof(float), vol, fp) ;
-	fclose(fp) ;
 	
 	// Sort and set keep highest num_supp values
-	fprintf(stderr, "Sorting...") ;
 	qsort(voxel_pos, num_vox, sizeof(long), compare_indices_variation) ;
-	fprintf(stderr, "done\n") ;
 	
 	memset(supp, 0, vol*sizeof(uint8_t)) ;
 	for (i = 0 ; i < num_supp ; ++i)
 		supp[voxel_pos[i]] = 1 ;
-	fp = fopen("data/variation.supp", "wb") ;
-	fwrite(supp, sizeof(uint8_t), vol, fp) ;
-	fclose(fp) ;
 }
