@@ -41,6 +41,7 @@ cp ${prefix}-log.dat results/log_${j}.dat
 cp ${prefix}-prtf.dat results/prtf_${j}.dat
 cp ${prefix}-last.raw results/last_${j}.raw
 cp ${prefix}-bg.raw results/bg_${j}.raw
+cp ${prefix}-expmag.raw results/expmag_${j}.raw
 cp $config results/conf_${j}.ini
 echo Generating map
 echo ./utils/gen_map results/output_${j}.raw $size $voxsize $voxsize $voxsize $supp_fname
