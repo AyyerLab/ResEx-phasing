@@ -8,6 +8,6 @@ fi
 
 cd $1
 phenix.cut_out_density high_resolution=3.0 cutout_type=model cutout_model_radius=2.0 *phaser*.pdb *phaser*.mtz
-phenix.fft prefix=$2 cutout.mtz
+phenix.fft prefix=$2 scale=volume cutout.mtz
 cp *.ccp4 ..
 cd ..
