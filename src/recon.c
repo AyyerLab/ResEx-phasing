@@ -102,8 +102,12 @@ int main(int argc, char *argv[]) {
 			fwrite(radavg, sizeof(double), size/2, fp) ;
 			fclose(fp) ;
 		}
+
+//		if (iter > 250 && iter % 20 == 0)
+//			num_supp = (0.99 * num_supp) ;
 		
 		fprintf(stderr, "\rFinished %d/%d iterations. ", iter, num_iter) ;
+//		fprintf(stderr, "\rFinished %d/%d iterations. num_supp = %ld. ", iter, num_iter, num_supp) ;
 		if (iter > start_ave)
 			fprintf(stderr, "Now averaging") ;
 	}
@@ -142,6 +146,13 @@ int main(int argc, char *argv[]) {
 	fp = fopen(fname, "wb") ;
 	fwrite(radavg, sizeof(float), size/2, fp) ;
 	fclose(fp) ;
+	
+	if (do_local_variation) {
+		sprintf(fname, "%s-supp.supp", output_prefix) ;
+		fp = fopen(fname, "wb") ;
+		fwrite(support, sizeof(uint8_t), vol, fp) ;
+		fclose(fp) ;
+	}
 	
 	gen_prtf(average_p2) ;
 	
