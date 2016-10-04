@@ -1,7 +1,12 @@
 #include "brcont.h"
 
-void init_model(float *model) {
+/* Initial guess for model and background
+ * Model is white noise inside support volume
+ * Background is white noise
+*/
+void init_model(float *model, int random_model, int init_bg) {
 	long i ;
+	float val = sqrtf(vol) ;
 	struct timeval t1 ;
 	const gsl_rng_type *T ;
 	gsl_rng *r ;
@@ -12,11 +17,20 @@ void init_model(float *model) {
 	r = gsl_rng_alloc(T) ;
 	gsl_rng_set(r, t1.tv_sec + t1.tv_usec) ;
 	
-	memset(model, 0, vol*sizeof(float)) ;
+	if (random_model)
+		memset(model, 0, vol*sizeof(float)) ;
+	if (init_bg)
+		memset(&(model[vol]), 0, vol*sizeof(float)) ;
 	
-	for (i = 0 ; i < vol ; ++i)
-	if (support[i])
-		model[i] = gsl_rng_uniform(r) ;
+	if (random_model || init_bg) {
+		for (i = 0 ; i < vol ; ++i) {
+			if (random_model && support[i])
+				model[i] = gsl_rng_uniform(r) ;
+			
+			if (init_bg && obs_mag[i] > 0.)
+				model[vol+i] = val ;
+		}
+	}
 	
 	gsl_rng_free(r) ;
 }
@@ -24,10 +38,12 @@ void init_model(float *model) {
 void average_model(float *current, float *sum) {
 	long i ;
 	
-	for (i = 0 ; i < vol ; ++i)
+	for (i = 0 ; i < 2 * vol ; ++i)
 		sum[i] += current[i] ;
 }
 
+/* Calculate PRTF and save estimated intensities due to
+*/
 void gen_prtf(float *model) {
 	long x, y, z, bin, num_bins = 50 ;
 	long dx, dy, dz, c = size/2, c1 = size/2+1 ;
@@ -42,7 +58,7 @@ void gen_prtf(float *model) {
 	
 	fftwf_execute(forward_plan) ;
 	
-	symmetrize_incoherent(fdensity, exp_mag) ;
+	symmetrize_incoherent(fdensity, exp_mag, &(model[vol])) ;
 	
 	for (x = 0 ; x < size ; ++x)
 	for (y = 0 ; y < size ; ++y)
@@ -67,6 +83,11 @@ void gen_prtf(float *model) {
 			bin_count[bin]++ ;
 	}
 	
+	memset(algorithm_p2, 0, 2*vol*sizeof(float)) ;
+	symmetrize_incoherent(fdensity, exp_mag, &(algorithm_p2[vol])) ;
+	sprintf(fname, "%s-expmag.raw", output_prefix) ;
+	dump_slices(exp_mag, fname, 1) ;
+	
 	sprintf(fname, "%s-frecon.raw", output_prefix) ;
 	fp = fopen(fname, "wb") ;
 	fwrite(model, sizeof(float), vol, fp) ;
@@ -85,10 +106,11 @@ void gen_prtf(float *model) {
 	free(bin_count) ;
 }
 
-// Symmetrize intensity incoherently according to 222 point group
-// The array is assumed to have q=0 at (0,0,0) instead of in the center of the array
-// (size, point_group)
-void symmetrize_incoherent(fftwf_complex *in, float *out) {
+/* Symmetrize intensity incoherently according to 222 point group
+ * The array is assumed to have q=0 at (0,0,0) instead of in the center of the array
+ * Global variables: (size, point_group)
+*/
+void symmetrize_incoherent(fftwf_complex *in, float *out, float *bg) {
 	long hs, ks, ls, kc, lc ;
 	
 	hs = size ;
@@ -117,6 +139,17 @@ void symmetrize_incoherent(fftwf_complex *in, float *out) {
 					out[x*ks*ls + y*ls + (ls-z)] = ave_intens ;
 					out[x*ks*ls + (ks-y)*ls + z] = ave_intens ;
 					out[x*ks*ls + (ks-y)*ls + (ls-z)] = ave_intens ;
+					
+					ave_intens = 0.25 * (
+						powf(bg[x*ks*ls + y*ls + z], 2.) +
+						powf(bg[x*ks*ls + y*ls + (ls-z)], 2.) +
+						powf(bg[x*ks*ls + (ks-y)*ls + z], 2.) +
+						powf(bg[x*ks*ls + (ks-y)*ls + (ls-z)], 2.)) ;
+					
+					bg[x*ks*ls + y*ls + z] = ave_intens ;
+					bg[x*ks*ls + y*ls + (ls-z)] = ave_intens ;
+					bg[x*ks*ls + (ks-y)*ls + z] = ave_intens ;
+					bg[x*ks*ls + (ks-y)*ls + (ls-z)] = ave_intens ;
 				}
 				
 				for (z = 1 ; z <= lc ; ++z) {
@@ -126,6 +159,13 @@ void symmetrize_incoherent(fftwf_complex *in, float *out) {
 					
 					out[x*ks*ls + z] = ave_intens ;
 					out[x*ks*ls + (ls-z)] = ave_intens ;
+					
+					ave_intens = 0.5 * (
+						powf(bg[x*ks*ls + z], 2.) + 
+						powf(bg[x*ks*ls + (ls-z)], 2.)) ;
+					
+					bg[x*ks*ls + z] = ave_intens ;
+					bg[x*ks*ls + (ls-z)] = ave_intens ;
 				}
 				
 				for (y = 1 ; y <= kc ; ++y) {
@@ -135,13 +175,23 @@ void symmetrize_incoherent(fftwf_complex *in, float *out) {
 					
 					out[x*ks*ls + y*ls] = ave_intens ;
 					out[x*ks*ls + (ks-y)*ls] = ave_intens ;
+					
+					ave_intens = 0.5 * (
+						powf(bg[x*ks*ls + y*ls], 2.) + 
+						powf(bg[x*ks*ls + (ks-y)*ls], 2.)) ;
+					
+					bg[x*ks*ls + y*ls] = ave_intens ;
+					bg[x*ks*ls + (ks-y)*ls] = ave_intens ;
 				}
 				
 				out[x*ks*ls] = powf(cabsf(in[x*ks*ls]), 2.) ;
+				bg[x*ks*ls] = powf(bg[x*ks*ls], 2.) ;
 				
 				for (y = 0 ; y < ks ; ++y)
-				for (z = 0 ; z < ls ; ++z)
-					out[x*ks*ls + y*ls + z] = sqrtf(out[x*ks*ls + y*ls + z]) ;
+				for (z = 0 ; z < ls ; ++z) {
+					out[x*ks*ls + y*ls + z] = sqrtf(out[x*ks*ls + y*ls + z] + bg[x*ks*ls + y*ls + z]) ;
+//					bg[x*ks*ls + y*ls + z] = sqrtf(bg[x*ks*ls + y*ls + z]) ;
+				}
 			}
 		}
 	}
@@ -184,20 +234,21 @@ void symmetrize_incoherent(fftwf_complex *in, float *out) {
 				
 				for (y = 0 ; y < ks ; ++y)
 				for (z = 0 ; z < ls ; ++z)
-					out[x*ks*ls + y*ls + z] = sqrtf(out[x*ks*ls + y*ls + z]) ;
+					out[x*ks*ls + y*ls + z] = sqrtf(out[x*ks*ls + y*ls + z] + powf(bg[x*ks*ls + y*ls + z], 2.f)) ;
 			}
 		}
 	}
 	else if (strcmp(point_group, "1") == 0) {
 		long x ;
 		for (x = 0 ; x < vol ; ++x)
-			out[x] = cabsf(in[x]) ;
+			out[x] = sqrtf(powf(cabsf(in[x]), 2.f) + powf(bg[x], 2.f)) ;
 	}
 }
 
-// Recalculate support
-// 'blur' gives width of Gaussian used to convolve with density
-// 'threshold' gives cutoff value as a fraction of maximum
+/* Recalculate support
+ * 'blur' gives width of Gaussian used to convolve with density
+ * 'threshold' gives cutoff value as a fraction of maximum
+*/
 void apply_shrinkwrap(float *model, float blur, float threshold) {
 	long x, y, z, c = size/2 ;
 	float rsq, fblur ;
@@ -236,7 +287,9 @@ void apply_shrinkwrap(float *model, float blur, float threshold) {
 		support[x] = 1 ;
 	
 	char fname[999] ;
-	sprintf(fname, "data/shrinkwrap_501_%d.supp", iter) ;
+	sprintf(fname, "%s-shrink", output_prefix) ;
+	mkdir(fname, S_IRWXU|S_IRGRP|S_IROTH) ;
+	sprintf(fname, "%s-shrink/%.4d.supp", output_prefix, iter) ;
 	FILE *fp = fopen(fname, "wb") ;
 	fwrite(support, sizeof(uint8_t), vol, fp) ;
 	fclose(fp) ;
@@ -247,6 +300,8 @@ void apply_shrinkwrap(float *model, float blur, float threshold) {
 */	
 }
 
+/* Save orthogonal central slices to file
+*/
 void dump_slices(float *vol, char *fname, int is_fourier) {
 	long x, y, c = size/2 ;
 	FILE *fp ;
@@ -276,7 +331,78 @@ void dump_slices(float *vol, char *fname, int is_fourier) {
 	free(slices) ;
 }
 
-int compare_indices(const void *a, const void *b) {
+void dump_support_slices(uint8_t *vol, char *fname) {
+	long x, y, c = size/2 ;
+	FILE *fp ;
+	uint8_t *slices = malloc(3*size*size*sizeof(float)) ;
+	
+	for (x = 0 ; x < size ; ++x)
+	for (y = 0 ; y < size ; ++y) {
+		slices[x*size + y] = vol[c*size*size + x*size + y] ;
+		slices[size*size + x*size + y] = vol[x*size*size + c*size + y] ;
+		slices[2*size*size + x*size + y] = vol[x*size*size + y*size + c] ;
+	}
+	
+	fp = fopen(fname, "wb") ;
+	fwrite(slices, sizeof(uint8_t), 3*size*size, fp) ;
+	fclose(fp) ;
+	
+	free(slices) ;
+}
+
+/* Radial average initialization
+ * Calculate bin for each voxel and bin occupancy
+ * Note that q=0 is at (0,0,0) and not in the center of the array
+*/
+void init_radavg() {
+	long x, y, z, c = size/2 ;
+	long dx, dy, dz ;
+	double dist ;
+	
+	intrad = malloc(vol * sizeof(int)) ;
+	radavg = calloc(size, sizeof(double)) ;
+	obs_radavg = calloc(size, sizeof(double)) ;
+	radcount = calloc(size, sizeof(double)) ;
+	
+	for (x = 0 ; x < size ; ++x)
+	for (y = 0 ; y < size ; ++y)
+	for (z = 0 ; z < size ; ++z) {
+		dx = x <= c ? x : size-x ; 
+		dy = y <= c ? y : size-y ; 
+		dz = z <= c ? z : size-z ; 
+		dist = sqrt(dx*dx + dy*dy + dz*dz) ;
+		intrad[x*size*size + y*size + z] = (int) dist ;
+//		if (obs_mag[x*size*size + y*size + z] > 0.)
+			radcount[intrad[x*size*size + y*size + z]] += 1. ;
+	}
+	
+	for (x = 0 ; x < size ; ++x)
+	if (radcount[x] == 0.)
+		radcount[x] = 1. ;
+}
+
+/* Radial average calculation
+ * Using previously calculated bins and bin occupancies
+ * Note that q=0 is at (0,0,0) and not in the center of the array
+*/
+void radial_average(float *in, float *out) {
+	long i ;
+	
+	memset(radavg, 0, size*sizeof(float)) ;
+	for (i = 0 ; i < vol ; ++i)
+		radavg[intrad[i]] += in[i] ;
+	
+	for (i = 0 ; i < size ; ++i) {
+		radavg[i] /= radcount[i] ;
+		if (radavg[i] < 0.)
+			radavg[i] = 0. ;
+	}
+	
+	for (i = 0 ; i < vol ; ++i)
+		out[i] = radavg[intrad[i]] ;
+}
+
+int compare_indices_histogram(const void *a, const void *b) {
 	int ia = *(int*) a ;
 	int ib = *(int*) b ;
 	return supp_val[ia] < supp_val[ib] ? -1 : supp_val[ia] > supp_val[ib] ;
@@ -290,9 +416,91 @@ void match_histogram(float *in, float *out) {
 		supp_val[i] = in[supp_loc[i]] ;
 	}
 	
-	qsort(supp_index, num_supp, sizeof(long), compare_indices) ;
+	qsort(supp_index, num_supp, sizeof(long), compare_indices_histogram) ;
 	
 	memset(out, 0, vol*sizeof(float)) ;
 	for (i = 0 ; i < num_supp ; ++i)
 		out[supp_loc[supp_index[i]]] = inverse_cdf[i] ;
+}
+
+float positive_mode(float *model) {
+	long i, valbin, maxhist = 0, hist[99] ;
+	float bin[99], maxval = 0. ;
+	
+	for (i = 0 ; i < vol ; ++i)
+	if (model[i] > maxval)
+		maxval = model[i] ;
+	
+	for (i = 0 ; i < 99 ; ++i) {
+		hist[i] = 0. ;
+		bin[i] = maxval * i / 99. ;
+	}
+	
+	for (i = 0 ; i < vol ; ++i)
+	if (model[i] > 0.) {
+		valbin = model[i] * 99. / maxval ;
+		hist[valbin]++ ;
+	}
+	
+	valbin = 0 ;
+	for (i = 0 ; i < 99 ; ++i)
+	if (hist[i] > maxhist) {
+		valbin = i ;
+		maxhist = hist[i] ;
+	}
+	
+	fprintf(stderr, "Mode of positive values in volume = %.3e +- %.3e\n", bin[valbin], maxval / 2. / 99.) ;
+	
+	return 0.1 * bin[valbin] ;
+}
+
+int compare_indices_variation(const void *a, const void *b) {
+	int ia = *(int*) a ;
+	int ib = *(int*) b ;
+	return local_variation[ia] > local_variation[ib] ? -1 : local_variation[ia] < local_variation[ib] ;
+}
+
+void variation_support(float *model, uint8_t *supp, long box_rad) {
+	long i, num_vox = 0 ;
+	
+	memset(local_variation, 0, vol*sizeof(float)) ;
+	#pragma omp parallel default(shared)
+	{
+		int np = omp_get_num_threads(), rank = omp_get_thread_num() ;
+		long x, y, z, i, j, k, num_p = 0 ;
+		float val, avg, rms, weight = 1. / powf(2 * box_rad + 1, 3.f) ;
+		
+		#pragma omp for schedule(static,1)
+		for (x = support_bounds[0]-3*box_rad ; x <= support_bounds[1]+3*box_rad ; ++x)
+		for (y = support_bounds[2]-3*box_rad ; y <= support_bounds[3]+3*box_rad ; ++y)
+		for (z = support_bounds[4]-3*box_rad ; z <= support_bounds[5]+3*box_rad ; ++z) {
+			avg = 0. ;
+			rms = 0. ;
+			for (i = -box_rad ; i < box_rad ; ++i)
+			for (j = -box_rad ; j < box_rad ; ++j)
+			for (k = -box_rad ; k < box_rad ; ++k) {
+				val = model[(x+i)*size*size + (y+j)*size + (z+k)] ;
+				avg += val ;
+				rms += val*val ;
+			}
+			
+			local_variation[x*size*size + y*size + z] = rms * weight - powf(avg * weight, 2.f) ;
+			voxel_pos[(num_p++)*np + rank] = x*size*size + y*size + z ;
+		}
+		
+		#pragma omp critical(num_vox)
+		{
+			if (num_p > num_vox)
+				num_vox = num_p ;
+		}
+		if (rank == 0)
+			num_vox *= np ;
+	}
+	
+	// Sort and set keep highest num_supp values
+	qsort(voxel_pos, num_vox, sizeof(long), compare_indices_variation) ;
+	
+	memset(supp, 0, vol*sizeof(uint8_t)) ;
+	for (i = 0 ; i < num_supp ; ++i)
+		supp[voxel_pos[i]] = 1 ;
 }

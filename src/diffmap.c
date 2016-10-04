@@ -5,28 +5,35 @@
  * phases unchanged. Applies symmetry depending on the specified point group.
  * Can be applied in-place (out = in)
  */
-void proj_fourier(float *in, float *out) {
+void proj_fourier(float * restrict in, float * restrict out) {
 	long i ;
-	float norm_factor = 1.f / (float) vol ;
+	float norm_factor = 1. / (float) vol ;
 	
-	for (i = 0 ; i < vol ; ++i)
+	for (i = 0 ; i < vol ; ++i) {
 		rdensity[i] = in[i] ;
+		out[vol+i] = in[vol+i] ;
+	}
 	
 	fftwf_execute(forward_plan) ;
 	
-	symmetrize_incoherent(fdensity, exp_mag) ;
+	symmetrize_incoherent(fdensity, exp_mag, &(out[vol])) ;
 	
 	for (i = 0 ; i < vol ; ++i)
 	if (bragg_calc[i] != FLT_MAX)
 		fdensity[i] = bragg_calc[i] ;
 	
 	for (i = 0 ; i < vol ; ++i) {
-		if (obs_mag[i] > 0.)
+		if (obs_mag[i] > 0.) {
 			fdensity[i] *= obs_mag[i] / exp_mag[i] ;
-		else if (obs_mag[i] == 0.)
+			out[vol+i] = in[vol+i] * obs_mag[i] / exp_mag[i] ;
+		}
+		else if (obs_mag[i] == 0.) {
 			fdensity[i] = 0. ;
-		else if (exp_mag[i] > mag_thresh)
-			fdensity[i] *= mag_thresh / cabsf(fdensity[i]) ;
+			out[vol+i] = 0. ;
+		}
+		else {
+			out[vol+i] = 0. ;
+		}
 	}
 	
 	fftwf_execute(inverse_plan) ;
@@ -42,14 +49,20 @@ void proj_fourier(float *in, float *out) {
  * 	do_positivity - Set negative values inside support to zero
  * 	do_histogram - Project values inside support such that they match a 
  * 	               target histogram.
+ * 	do_local_variation - Calculate local variation and update support keeping
+ * 	                     support size the same
  * Can be applied in-place (out = in)
  */
 void proj_direct(float * restrict in, float * restrict out) {
+	if (do_local_variation)
+		variation_support(in, support, 2) ;
+	
 	if (do_histogram) {
 		match_histogram(in, out) ;
 	}
 	else {
 		long i ;
+		 
 		for (i = 0 ; i < vol ; ++i)
 			out[i] = in[i] * support[i] ;
 		
@@ -59,6 +72,8 @@ void proj_direct(float * restrict in, float * restrict out) {
 				out[i] = 0. ;
 		}
 	}
+	
+	radial_average(&(in[vol]), &(out[vol])) ;
 }
 
 /* Difference Map algorithm
@@ -68,13 +83,13 @@ void proj_direct(float * restrict in, float * restrict out) {
  */
 double DM_algorithm(float *x) {
 	long i ;
-	float diff, change = 0.f ;
+	float diff, change = 0. ;
 	
 	proj_fourier(x, algorithm_p1) ;
 	if (algorithm_beta != 1.)
 		proj_direct(x, algorithm_p2) ;
 	
-	for (i = 0 ; i < vol ; ++i) {
+	for (i = 0 ; i < 2*vol ; ++i) {
 		algorithm_r1[i] = (1. + 1./algorithm_beta) * algorithm_p1[i] - x[i] / algorithm_beta ;
 		if (algorithm_beta != 1.)
 			algorithm_r2[i] = (1. - 1./algorithm_beta) * algorithm_p2[i] + x[i] / algorithm_beta ;
@@ -84,10 +99,11 @@ double DM_algorithm(float *x) {
 	if (algorithm_beta != 1.)
 		proj_fourier(algorithm_r2, algorithm_p1) ;
 	
-	for (i = 0 ; i < vol ; ++i) {
+	for (i = 0 ; i < 2*vol ; ++i) {
 		diff = algorithm_beta * (algorithm_p2[i] - algorithm_p1[i]) ;
 		x[i] += diff ;
-		change += diff*diff ;
+		if (i < vol)
+			change += diff*diff ;
 	}
 	
 	return sqrt(change / vol) ;
@@ -101,26 +117,27 @@ double DM_algorithm(float *x) {
  */
 double mod_DM_algorithm(float *x) {
 	long i ;
-	float diff, change = 0.f ;
+	float diff, change = 0. ;
 	
 	if (algorithm_beta != 1.) {
 		proj_fourier(x, algorithm_p1) ;
-	
-		for (i = 0 ; i < vol ; ++i)
+		
+		for (i = 0 ; i < 2*vol ; ++i)
 			x[i] = algorithm_beta*x[i] + (1. - algorithm_beta) * algorithm_p1[i] ;
 	}
 	
 	proj_direct(x, algorithm_p2) ;
 	
-	for (i = 0 ; i < vol ; ++i)
+	for (i = 0 ; i < 2*vol ; ++i)
 		algorithm_r1[i] = 2. * algorithm_p2[i] - x[i] ;
 	
 	proj_fourier(algorithm_r1, algorithm_p1) ;
 	
-	for (i = 0 ; i < vol ; ++i) {
+	for (i = 0 ; i < 2*vol ; ++i) {
 		diff = algorithm_p1[i] - algorithm_p2[i] ;
 		x[i] += diff ;
-		change += diff*diff ;
+		if (i < vol)
+			change += diff*diff ;
 	}
 	
 	return sqrt(change / vol) ;
@@ -137,22 +154,23 @@ double mod_DM_algorithm(float *x) {
  */
 double RAAR_algorithm(float *x) {
 	long i ;
-	float diff, change = 0.f ;
+	float diff, change = 0. ;
 	
 	proj_fourier(x, algorithm_p1) ;
 	
-	for (i = 0 ; i < vol ; ++i)
+	for (i = 0 ; i < 2*vol ; ++i)
 		algorithm_r1[i] = 2. * algorithm_p1[i] ;
 	proj_direct(algorithm_r1, algorithm_r2) ;
 	
-	for (i = 0 ; i < vol ; ++i)
+	for (i = 0 ; i < 2*vol ; ++i)
 		algorithm_r1[i] = - algorithm_p1[i] ;
 	proj_direct(algorithm_r1, algorithm_p2) ;
 	
-	for (i = 0 ; i < vol ; ++i) {
+	for (i = 0 ; i < 2*vol ; ++i) {
 		diff = (algorithm_beta - 1.) * x[i] + algorithm_beta * (algorithm_r2[i] + algorithm_p2[i]) + (1. - 2. * algorithm_beta) * algorithm_p1[i] ;
 		x[i] += diff ;
-		change += diff*diff ;
+		if (i < vol)
+			change += diff*diff ;
 	}
 	
 	return sqrt(change / vol) ;
@@ -165,19 +183,20 @@ double RAAR_algorithm(float *x) {
  */
 double HIO_algorithm(float *x) {
 	long i ;
-	float diff, change = 0.f ;
+	float diff, change = 0. ;
 	
 	proj_fourier(x, algorithm_p1) ;
 	
-	for (i = 0 ; i < vol ; ++i)
+	for (i = 0 ; i < 2*vol ; ++i)
 		algorithm_r1[i] = (1. + 1./algorithm_beta) * algorithm_p1[i] - x[i] / algorithm_beta ;
 	
 	proj_direct(algorithm_r1, algorithm_p2) ;
 	
-	for (i = 0 ; i < vol ; ++i) {
+	for (i = 0 ; i < 2*vol ; ++i) {
 		diff = algorithm_beta * (algorithm_p2[i] - algorithm_p1[i]) ;
 		x[i] += diff ;
-		change += diff*diff ;
+		if (i < vol)
+			change += diff*diff ;
 	}
 	
 	return sqrt(change / vol) ;
@@ -190,15 +209,17 @@ double HIO_algorithm(float *x) {
  */
 double ER_algorithm(float *x) {
 	long i ;
-	float diff, change = 0.f ;
+	float diff, change = 0. ;
 	
 	proj_fourier(x, algorithm_p1) ;
 	proj_direct(algorithm_p1, algorithm_p2) ;
 	
-	for (i = 0 ; i < vol ; ++i) {
-		diff = algorithm_p2[i] - algorithm_p1[i] ;
+	for (i = 0 ; i < 2*vol ; ++i) {
 		x[i] = algorithm_p2[i] ;
-		change += diff*diff ;
+		if (i < vol) {
+			diff = algorithm_p2[i] - algorithm_p1[i] ;
+			change += diff*diff ;
+		}
 	}
 	
 	return sqrt(change / vol) ;
@@ -206,18 +227,18 @@ double ER_algorithm(float *x) {
 
 double modified_hio(float *x) {
 	long i ;
-	float diff, change = 0.f ;
+	float diff, change = 0. ;
 	float thresh = 0.1 ;
 	
 	proj_fourier(x, algorithm_p1) ;
 	
-	for (i = 0 ; i < vol ; ++i)
-		algorithm_r1[i] = (1.f + algorithm_beta) * algorithm_p1[i] - x[i] ;
+	for (i = 0 ; i < 2*vol ; ++i)
+		algorithm_r1[i] = (1. + algorithm_beta) * algorithm_p1[i] - x[i] ;
 	
 	proj_direct(algorithm_r1, algorithm_p2) ;
 	proj_direct(algorithm_p1, algorithm_r1) ;
 	
-	for (i = 0 ; i < vol ; ++i) {
+	for (i = 0 ; i < 2*vol ; ++i) {
 		if (fabs(algorithm_p1[i]) > thresh)
 			diff = algorithm_p2[i] - algorithm_beta*algorithm_p1[i] ;
 		else
@@ -227,5 +248,5 @@ double modified_hio(float *x) {
 		change += diff*diff ;
 	}
 	
-	return sqrt(change / vol) ;
+	return sqrt(change / 2. / vol) ;
 }

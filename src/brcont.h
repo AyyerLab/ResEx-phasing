@@ -15,8 +15,7 @@
 #include <sys/stat.h>
 
 int iter ;
-long size, vol ;
-float mag_thresh ;
+long size, vol, support_bounds[6] ;
 float * restrict obs_mag, * restrict exp_mag ;
 uint8_t * restrict support ;
 fftwf_complex * restrict fdensity, * restrict rdensity ;
@@ -26,14 +25,21 @@ char output_prefix[999], point_group[999] ;
 
 // Algorithm parameters
 char algorithm_name[999], avg_algorithm_name[999] ;
+int *intrad ;
+double *radavg, *radcount, *obs_radavg ;
 float algorithm_beta ;
-float * restrict algorithm_iterate,  * restrict algorithm_p1 ;
-float * restrict algorithm_p2, *restrict algorithm_r1, *restrict algorithm_r2 ;
-int do_histogram, do_positivity ;
+float * restrict algorithm_iterate, * restrict algorithm_p1 ;
+float * restrict algorithm_p2, * restrict algorithm_r1, * restrict algorithm_r2 ;
+int do_histogram, do_positivity, do_local_variation ;
 
 // Histogram matching
 long num_supp, *supp_loc, *supp_index ;
 float *supp_val, *inverse_cdf ;
+
+// Support update
+float *shrinkwrap_kernel ;
+float *local_variation ;
+long *voxel_pos ;
 
 // Functions
 // diffmap.c
@@ -49,11 +55,16 @@ int setup() ;
 int setup_gen() ;
 
 // utils.c
-void init_model(float*) ;
+void init_model(float*, int, int) ;
 void average_model(float*, float*) ;
 void gen_prtf(float*) ;
-void symmetrize_incoherent(fftwf_complex*, float*) ;
+void symmetrize_incoherent(fftwf_complex*, float*, float*) ;
 void blur_intens(float*, float*) ;
 void apply_shrinkwrap(float*, float, float) ;
 void dump_slices(float*, char*, int) ;
+void dump_support_slices(uint8_t*, char*) ;
+void init_radavg() ;
+void radial_average(float*, float*) ;
 void match_histogram(float*, float*) ;
+float positive_mode(float*) ;
+void variation_support(float*, uint8_t*, long) ;

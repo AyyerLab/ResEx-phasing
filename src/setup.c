@@ -1,20 +1,20 @@
 #include "brcont.h"
 
-int allocate_memory(int) ;
+int allocate_memory(int, int) ;
 int parse_intens(char*, float) ;
 int parse_bragg(char*, double) ;
 int parse_support(char*) ;
 void create_plans(char*) ;
-int gen_input(char*, int) ;
+int gen_input(char*, char*, int) ;
 int parse_quat(char*) ;
 int read_histogram(char*, long) ;
-float positive_mode(float*) ;
 
 int setup(char *config_fname) {
 	char line[999], *token ;
 	char input_fname[999], hist_fname[999] ;
 	char intens_fname[999], bragg_fname[999] ;
 	char support_fname[999], wisdom_fname[999] ;
+	char inputbg_fname[999] ;
 	double bragg_qmax = 0. ;
 	float scale_factor = 0. ;
 	int num_threads = -1 ;
@@ -24,6 +24,7 @@ int setup(char *config_fname) {
 	strcpy(point_group, "222") ;
 	do_histogram = 0 ;
 	do_positivity = 0 ;
+	do_local_variation = 0 ;
 	strcpy(algorithm_name, "DM") ;
 	strcpy(avg_algorithm_name, "Avg") ;
 	
@@ -55,6 +56,8 @@ int setup(char *config_fname) {
 			strcpy(bragg_fname, strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "input_fname") == 0)
 			strcpy(input_fname, strtok(NULL, " =\n")) ;
+		else if (strcmp(token, "inputbg_fname") == 0)
+			strcpy(inputbg_fname, strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "support_fname") == 0)
 			strcpy(support_fname, strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "output_prefix") == 0)
@@ -68,6 +71,8 @@ int setup(char *config_fname) {
 			algorithm_beta = atof(strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "histogram") == 0)
 			do_histogram = atoi(strtok(NULL, " =\n")) ;
+		else if (strcmp(token, "local_variation") == 0)
+			do_local_variation = atoi(strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "positivity") == 0)
 			do_positivity = atoi(strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "hist_fname") == 0)
@@ -102,7 +107,7 @@ int setup(char *config_fname) {
 	fftwf_init_threads() ;
 	fftwf_plan_with_nthreads(num_threads) ;
 	
-	if (allocate_memory(1))
+	if (allocate_memory(1, 0))
 		return 1 ;
 	if (parse_intens(intens_fname, scale_factor))
 		return 1 ;
@@ -114,9 +119,9 @@ int setup(char *config_fname) {
 		if (read_histogram(hist_fname, num_supp))
 			return 1 ;
 	}
-	gen_input(input_fname, 0) ;
+	gen_input(input_fname, inputbg_fname, 0) ;
 	create_plans(wisdom_fname) ;
-	mag_thresh = positive_mode(obs_mag) ;
+	init_radavg() ;
 	
 	sprintf(line, "%s-log.dat", output_prefix) ;
 	fp = fopen(line, "w") ;
@@ -138,19 +143,21 @@ int setup(char *config_fname) {
 	return 0 ;
 }	
 
-int allocate_memory(int flag) {
-	algorithm_iterate = malloc(vol * sizeof(float)) ;
+int allocate_memory(int flag, int do_shrinkwrap) {
+	algorithm_iterate = malloc(2 * vol * sizeof(float)) ;
 	exp_mag = malloc(vol * sizeof(float)) ;
 	
 	if (flag == 1) {
 		obs_mag = malloc(vol * sizeof(float)) ;
 		bragg_calc = fftwf_malloc(vol * sizeof(fftwf_complex)) ;
-		algorithm_p1 = malloc(vol * sizeof(float)) ;
-		algorithm_p2 = malloc(vol * sizeof(float)) ;
-		algorithm_r1 = malloc(vol * sizeof(float)) ;
+		algorithm_p1 = calloc(2 * vol, sizeof(float)) ;
+		algorithm_p2 = malloc(2 * vol * sizeof(float)) ;
+		algorithm_r1 = malloc(2 * vol * sizeof(float)) ;
 		if (algorithm_beta != 1.)
-			algorithm_r2 = malloc(vol * sizeof(float)) ; // for beta != 1
+			algorithm_r2 = malloc(2 * vol * sizeof(float)) ;
 		supp_loc = malloc(vol / 8 * sizeof(long)) ;
+		if (do_shrinkwrap)
+			shrinkwrap_kernel = malloc(vol * sizeof(float)) ;
 	}
 	
 	rdensity = fftwf_malloc(vol * sizeof(fftwf_complex)) ;
@@ -224,7 +231,8 @@ int parse_bragg(char *fname, double braggqmax) {
 }
 
 int parse_support(char *fname) {
-	long i ;
+	long x, y, z ;
+	
 	FILE *fp = fopen(fname, "rb") ;
 	if (fp == NULL) {
 		fprintf(stderr, "%s not found.\n", fname) ;
@@ -234,13 +242,40 @@ int parse_support(char *fname) {
 	fclose(fp) ;
 	
 	num_supp = 0 ;
-	for (i = 0 ; i < vol ; ++i)
-	if (support[i])
-		supp_loc[num_supp++] = i ;
+	for (x = 0 ; x < 6 ; ++x)
+		support_bounds[x] = size * (1 - (x % 2)) ;
 	
-	fprintf(stderr, "num_supp = %ld\n", num_supp) ;
-	supp_index = malloc(num_supp * sizeof(long)) ;
-	supp_val = malloc(num_supp * sizeof(float)) ;
+	for (x = 0 ; x < size ; ++x)
+	for (y = 0 ; y < size ; ++y)
+	for (z = 0 ; z < size ; ++z)
+	if (support[x*size*size + y*size + z]) {
+		supp_loc[num_supp++] = x*size*size + y*size + z ;
+		if (x < support_bounds[0])
+			support_bounds[0] = x ;
+		if (x > support_bounds[1])
+			support_bounds[1] = x ;
+		if (y < support_bounds[2])
+			support_bounds[2] = y ;
+		if (y > support_bounds[3])
+			support_bounds[3] = y ;
+		if (z < support_bounds[4])
+			support_bounds[4] = z ;
+		if (z > support_bounds[5])
+			support_bounds[5] = z ;
+	}
+	
+	fprintf(stderr, "num_supp = %ld\nSupport bounds: (", num_supp) ;
+	for (x = 0 ; x < 6 ; ++x)
+		fprintf(stderr, "%ld ", support_bounds[x]) ;
+	fprintf(stderr, ")\n") ;
+	if (do_histogram) {
+		supp_index = malloc(num_supp * sizeof(long)) ;
+		supp_val = malloc(num_supp * sizeof(float)) ;
+	}
+	if (do_local_variation) {
+		local_variation = malloc(vol * sizeof(float)) ;
+		voxel_pos = malloc(vol * sizeof(long)) ;
+	}
 	
 	return 0 ;
 }
@@ -267,12 +302,15 @@ void create_plans(char *fname) {
 	}
 }
 
-int gen_input(char *fname, int flag) {
-	FILE *fp = fopen(fname, "rb") ;
+int gen_input(char *fname, char *bg_fname, int flag) {
+	int random_model = 0, init_bg = 0 ;
+	FILE *fp ;
+	
+	fp = fopen(fname, "rb") ;
 	if (fp == NULL) {
 		if (flag == 0) {
-			fprintf(stderr, "Random start\n") ;
-			init_model(algorithm_iterate) ;
+			fprintf(stderr, "Random start") ;
+			random_model = 1 ;
 		}
 		else {
 			fprintf(stderr, "Cannot find input %s\n", fname) ;
@@ -280,10 +318,29 @@ int gen_input(char *fname, int flag) {
 		}
 	}
 	else {
-		fprintf(stderr, "Starting from %s\n", fname) ;
+		fprintf(stderr, "Starting from %s", fname) ;
 		fread(algorithm_iterate, sizeof(float), vol, fp) ;
 		fclose(fp) ;
 	}
+	
+	fp = fopen(bg_fname, "rb") ;
+	if (fp == NULL) {
+		if (flag == 0) {
+			fprintf(stderr, " and with uniform background\n") ;
+			init_bg = 1 ;
+		}
+		else {
+			fprintf(stderr, "Cannot find background %s\n", fname) ;
+			return 1 ;
+		}
+	}
+	else {
+		fprintf(stderr, " with background from %s\n", fname) ;
+		fread(&(algorithm_iterate[vol]), sizeof(float), vol, fp) ;
+		fclose(fp) ;
+	}
+	
+	init_model(algorithm_iterate, random_model, init_bg) ;
 	
 	return 0 ;
 }
@@ -343,35 +400,4 @@ int read_histogram(char *fname, long num) {
 	free(cdf) ;
 	
 	return 0 ;
-}
-
-float positive_mode(float *model) {
-	long i, valbin, maxhist = 0, hist[99] ;
-	float bin[99], maxval = 0. ;
-	
-	for (i = 0 ; i < vol ; ++i)
-	if (model[i] > maxval)
-		maxval = model[i] ;
-	
-	for (i = 0 ; i < 99 ; ++i) {
-		hist[i] = 0. ;
-		bin[i] = maxval * i / 99. ;
-	}
-	
-	for (i = 0 ; i < vol ; ++i)
-	if (model[i] > 0.) {
-		valbin = model[i] * 99. / maxval ;
-		hist[valbin]++ ;
-	}
-	
-	valbin = 0 ;
-	for (i = 0 ; i < 99 ; ++i)
-	if (hist[i] > maxhist) {
-		valbin = i ;
-		maxhist = hist[i] ;
-	}
-	
-	fprintf(stderr, "Mode of positive values in volume = %.3e +- %.3e\n", bin[valbin], maxval / 2. / 99.) ;
-	
-	return bin[valbin] ;
 }
