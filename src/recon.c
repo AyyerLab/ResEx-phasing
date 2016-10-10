@@ -90,7 +90,7 @@ int main(int argc, char *argv[]) {
 		
 		if (iter%1 == 0) {
 			sprintf(fname, "%s-slices/%.4d.raw", output_prefix, iter) ;
-			dump_slices(algorithm_p2, fname, 0) ;
+			dump_slices(algorithm_p1, fname, 0) ;
 			sprintf(fname, "%s-fslices/%.4d.raw", output_prefix, iter) ;
 			dump_slices(exp_mag, fname, 1) ;
 			if (do_local_variation) {
