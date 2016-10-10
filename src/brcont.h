@@ -16,10 +16,10 @@
 
 int iter ;
 long size, vol, support_bounds[6] ;
-float * restrict obs_mag, * restrict exp_mag ;
-uint8_t * restrict support ;
-fftwf_complex * restrict fdensity, * restrict rdensity ;
-float complex * restrict bragg_calc ;
+float *restrict obs_mag, *restrict exp_mag ;
+uint8_t *restrict support ;
+fftwf_complex *restrict fdensity, *restrict rdensity ;
+float complex *restrict bragg_calc ;
 fftwf_plan forward_plan, inverse_plan ;
 char output_prefix[999], point_group[999] ;
 
@@ -40,6 +40,10 @@ float *supp_val, *inverse_cdf ;
 float *shrinkwrap_kernel ;
 float *local_variation ;
 long *voxel_pos ;
+
+// Intensity blurring
+int num_rot ;
+double *quat ;
 
 // Functions
 // diffmap.c

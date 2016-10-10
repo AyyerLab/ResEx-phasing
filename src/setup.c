@@ -6,7 +6,7 @@ int parse_bragg(char*, double) ;
 int parse_support(char*) ;
 void create_plans(char*) ;
 int gen_input(char*, char*, int) ;
-int parse_quat(char*) ;
+int parse_quat(char*, double) ;
 int read_histogram(char*, long) ;
 
 int setup(char *config_fname) {
@@ -14,8 +14,8 @@ int setup(char *config_fname) {
 	char input_fname[999], hist_fname[999] ;
 	char intens_fname[999], bragg_fname[999] ;
 	char support_fname[999], wisdom_fname[999] ;
-	char inputbg_fname[999] ;
-	double bragg_qmax = 0. ;
+	char inputbg_fname[999], quat_fname[999] ;
+	double bragg_qmax = 0., sigma = 0. ;
 	float scale_factor = 0. ;
 	int num_threads = -1 ;
 	
@@ -62,6 +62,8 @@ int setup(char *config_fname) {
 			strcpy(support_fname, strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "output_prefix") == 0)
 			strcpy(output_prefix, strtok(NULL, " =\n")) ;
+		else if (strcmp(token, "quat_fname") == 0)
+			strcpy(quat_fname, strtok(NULL, " =\n")) ;
 		// Algorithm
 		else if (strcmp(token, "algorithm") == 0)
 			strcpy(algorithm_name, strtok(NULL, " =\n")) ;
@@ -77,6 +79,8 @@ int setup(char *config_fname) {
 			do_positivity = atoi(strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "hist_fname") == 0)
 			strcpy(hist_fname, strtok(NULL, " =\n")) ;
+		else if (strcmp(token, "sigma_deg") == 0)
+			sigma = atof(strtok(NULL, " =\n")) ;
 	}
 	
 	if (size == 0) {
@@ -119,6 +123,8 @@ int setup(char *config_fname) {
 		if (read_histogram(hist_fname, num_supp))
 			return 1 ;
 	}
+	if (parse_quat(quat_fname, sigma))
+		return 1 ;
 	gen_input(input_fname, inputbg_fname, 0) ;
 	create_plans(wisdom_fname) ;
 	init_radavg() ;
@@ -390,7 +396,6 @@ int read_histogram(char *fname, long num) {
 		}
 	}
 	
-	
 	fp = fopen("data/inverse_cdf.raw", "wb") ;
 	fwrite(inverse_cdf, sizeof(float), num, fp) ;
 	fclose(fp) ;
@@ -401,3 +406,39 @@ int read_histogram(char *fname, long num) {
 	
 	return 0 ;
 }
+
+int parse_quat(char *fname, double sigma) {
+	int r, t ;
+	double total_weight = 0. ;
+	
+	sigma *= M_PI / 180. ;
+	if (sigma == 0.)
+		sigma = 1.e-5 ;
+	
+	FILE *fp = fopen(fname, "r") ;
+	if (fp == NULL) {
+		fprintf(stderr, "quaternion file %s not found. Exiting.\n", fname) ;
+		return 1 ;
+	}
+	fscanf(fp, "%d", &num_rot) ;
+	quat = malloc(num_rot * 5 * sizeof(double)) ;
+	for (r = 0 ; r < num_rot ; ++r) {
+		for (t = 0 ; t < 5 ; ++t)
+			fscanf(fp, "%lf", &quat[r*5 + t]) ;
+		quat[r*5 + 4] = exp(-0.5*pow(quat[r*5 + 4]/sigma, 2.f)) ;
+		total_weight += quat[r*5 + 4] ;
+	}
+	
+	fclose(fp) ;
+	
+	int num_rel = 0 ;
+	for (r = 0 ; r < num_rot ; ++r) {
+		quat[r*5 + 4] /= total_weight ;
+		if (quat[r*5 + 4] > 0.1 / num_rot)
+			num_rel++ ;
+	}
+	fprintf(stderr, "Number of relevant orientations = %d/%d\n", num_rel, num_rot) ;
+	
+	return 0 ;
+}
+

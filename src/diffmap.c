@@ -17,6 +17,9 @@ void proj_fourier(float * restrict in, float * restrict out) {
 	fftwf_execute(forward_plan) ;
 	
 	symmetrize_incoherent(fdensity, exp_mag, &(out[vol])) ;
+//	dump_slices(exp_mag, "data/unblurred_slices.raw", 1) ;
+//	blur_intens(exp_mag, exp_mag) ;
+//	dump_slices(exp_mag, "data/blurred_slices.raw", 1) ;
 	
 	for (i = 0 ; i < vol ; ++i)
 	if (bragg_calc[i] != FLT_MAX)
