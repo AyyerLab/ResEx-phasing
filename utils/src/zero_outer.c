@@ -54,7 +54,7 @@ int main(int argc, char *argv[]) {
 			model[x*size*size + y*size + z] = 0.f ;
 		else if (rad > rmax - 3)
 			model[x*size*size + y*size + z] = -1.f ;
-		else if (model[x*size*size + y*size + z] < minmodel)
+		else if (model[x*size*size + y*size + z] < minmodel && model[x*size*size + y*size + z] > -1000.)
 			minmodel = model[x*size*size + y*size + z] ;
 	}
 	fprintf(stderr, "Zeroed outer voxels and set inner voxels to be negative\n") ;
