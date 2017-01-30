@@ -504,3 +504,97 @@ void variation_support(float *model, uint8_t *supp, long box_rad) {
 	for (i = 0 ; i < num_supp ; ++i)
 		supp[voxel_pos[i]] = 1 ;
 }
+
+void gen_rot(float rot[3][3], double *q) {
+	double q0, q1, q2, q3, q01, q02, q03, q11, q12, q13, q22, q23, q33 ;
+	
+	q0 = q[0] ;
+	q1 = q[1] ;
+	q2 = q[2] ;
+	q3 = q[3] ;
+	
+	q01 = q0*q1 ;
+	q02 = q0*q2 ;
+	q03 = q0*q3 ;
+	q11 = q1*q1 ;
+	q12 = q1*q2 ;
+	q13 = q1*q3 ;
+	q22 = q2*q2 ;
+	q23 = q2*q3 ;
+	q33 = q3*q3 ;
+	
+	rot[0][0] = (1. - 2.*(q22 + q33)) ;
+	rot[0][1] = 2.*(q12 + q03) ;
+	rot[0][2] = 2.*(q13 - q02) ;
+	rot[1][0] = 2.*(q12 - q03) ;
+	rot[1][1] = (1. - 2.*(q11 + q33)) ;
+	rot[1][2] = 2.*(q01 + q23) ;
+	rot[2][0] = 2.*(q02 + q13) ;
+	rot[2][1] = 2.*(q23 - q01) ;
+	rot[2][2] = (1. - 2.*(q11 + q22)) ;
+}
+
+void blur_intens(float *in, float *out) {
+	#pragma omp parallel default(shared)
+	{
+		long r, i, j, x, y, z, vox[3], c = size / 2 ;
+		float fx, fy, fz, cx, cy, cz, w ;
+		float rot_vox[3], rot[3][3] ;
+		float *priv_out = calloc(vol, sizeof(float)) ;
+		
+		#pragma omp for schedule(dynamic,1)
+		for (r = 0 ; r < num_rot ; ++r) {
+			if (quat[r*5 + 4] < 0.)
+				continue ;
+			
+			gen_rot(rot, &(quat[r*5])) ;
+			
+			for (vox[0] = -c ; vox[0] < size-c ; ++vox[0])
+			for (vox[1] = -c ; vox[1] < size-c ; ++vox[1])
+			for (vox[2] = -c ; vox[2] < size-c ; ++vox[2]) {
+				for (i = 0 ; i < 3 ; ++i) {
+					rot_vox[i] = 0. ;
+					
+					for (j = 0 ; j < 3 ; ++j)
+						rot_vox[i] += rot[i][j] * vox[j] ;
+					
+					rot_vox[i] = fmod(rot_vox[i] + size, size) ;
+				}
+				
+				x = rot_vox[0] ;
+				y = rot_vox[1] ;
+				z = rot_vox[2] ;
+				fx = rot_vox[0] - x ;
+				fy = rot_vox[1] - y ;
+				fz = rot_vox[2] - z ;
+				cx = 1. - fx ;
+				cy = 1. - fy ;
+				cz = 1. - fz ;
+				
+				w = in[((vox[0]+size)%size)*size*size + ((vox[1]+size)%size)*size + ((vox[2]+size)%size)] * 
+				    quat[r*5 + 4] ;
+				
+				priv_out[x*size*size + y*size + z] += cx*cy*cz*w ;
+				priv_out[x*size*size + y*size + ((z+1)%size)] += cx*cy*fz*w ;
+				priv_out[x*size*size + ((y+1)%size)*size + z] += cx*fy*cz*w ;
+				priv_out[x*size*size + ((y+1)%size)*size + ((z+1)%size)] += cx*fy*fz*w ;
+				priv_out[((x+1)%size)*size*size + y*size + z] += fx*cy*cz*w ;
+				priv_out[((x+1)%size)*size*size + y*size + ((z+1)%size)] += fx*cy*fz*w ;
+				priv_out[((x+1)%size)*size*size + ((y+1)%size)*size + z] += fx*fy*cz*w ;
+				priv_out[((x+1)%size)*size*size + ((y+1)%size)*size + ((z+1)%size)] += fx*fy*fz*w ;
+			}
+		}
+		
+		if (omp_get_thread_num() == 0)
+			memset(out, 0, vol*sizeof(float)) ;
+		#pragma omp barrier
+		
+		#pragma omp critical(priv_out)
+		{
+			for (x = 0 ; x < vol ; ++x)
+				out[x] += priv_out[x] ;
+		}
+		
+		free(priv_out) ;
+	}
+}

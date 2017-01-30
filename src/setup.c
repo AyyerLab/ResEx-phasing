@@ -434,8 +434,10 @@ int parse_quat(char *fname, double sigma) {
 	int num_rel = 0 ;
 	for (r = 0 ; r < num_rot ; ++r) {
 		quat[r*5 + 4] /= total_weight ;
-		if (quat[r*5 + 4] > 0.1 / num_rot)
+		if (quat[r*5 + 4] > 0.1 / num_rot) {
 			num_rel++ ;
+			quat[r*5 + 4] = -1. ;
+		}
 	}
 	fprintf(stderr, "Number of relevant orientations = %d/%d\n", num_rel, num_rot) ;
 	
