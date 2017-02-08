@@ -4,6 +4,7 @@
 if [ $# -lt 3 ]
 then
 	echo Format: $0 map size res_at_edge
+	echo Optional: skip supp_radius supp_thresh point_group
 	exit
 fi
 
@@ -61,6 +62,7 @@ strmodel=data/convert/${mapnoext}-str.cpx
 lowresmodel_name=data/convert/${mapnoext}-recon.raw
 supp_name=data/convert/${mapnoext}.supp
 supprecon_name=data/convert/${mapnoext}-srecon.raw
+cpx_name=data/convert/${mapnoext}.cpx
 
 # Read map and generate 3D model
 if [ $skip -eq 0 ]
@@ -86,6 +88,10 @@ then
 	echo -------------------------------------------------------------------------------- >> $log_name
 	echo ./utils/gen_dens $strmodel $size $lowresmodel_name | tee -a $log_name
 	./utils/gen_dens $strmodel $size $lowresmodel_name >> $log_name 2>&1
+	
+	echo -------------------------------------------------------------------------------- >> $log_name
+	echo Removing temporary files
+	rm -v $padmodel ${padnoext}-fdens.cpx ${padnoext}-fdens-sym.raw ${strmodel} ${strmodel%.*}-sym.raw >> $log_name
 fi
 
 # Calculate support and constrain model by support
@@ -106,8 +112,8 @@ then
 	EOF
 	
 	echo -------------------------------------------------------------------------------- >> $log_name
-	echo ./utils/gen_fdens $supprecon_name $size $point_group data/convert/${mapnoext}.cpx | tee -a $log_name
-	./utils/gen_fdens $supprecon_name $size data/convert/${mapnoext}.cpx $point_group >> $log_name 2>&1
+	echo ./utils/gen_fdens $supprecon_name $size $cpx_name $point_group | tee -a $log_name
+	./utils/gen_fdens $supprecon_name $size $cpx_name $point_group >> $log_name 2>&1
 	
 	echo -------------------------------------------------------------------------------- >> $log_name
 	echo ./utils/create_support $supprecon_name $size $supp_radius $supp_thresh $supp_name | tee -a $log_name
