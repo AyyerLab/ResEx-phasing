@@ -2,9 +2,13 @@
 recon
 gen_data
 /bin
+
+# Binary utilities
 /utils/*
 #	but keep the source files
 !/utils/src
+#   and the python utilities
+!/utils/*.py
 
 # Data
 /data
