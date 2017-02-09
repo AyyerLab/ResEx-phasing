@@ -60,7 +60,10 @@ void gen_prtf(float *model) {
 	
 	fftwf_execute(forward_plan) ;
 	
-	symmetrize_incoherent(fdensity, exp_mag, &(model[vol])) ;
+	if (do_bg_fitting)
+		symmetrize_incoherent(fdensity, exp_mag, &(model[vol])) ;
+	else
+		symmetrize_incoherent(fdensity, exp_mag, NULL) ;
 	
 	for (x = 0 ; x < size ; ++x)
 	for (y = 0 ; y < size ; ++y)
@@ -142,16 +145,18 @@ void symmetrize_incoherent(fftwf_complex *in, float *out, float *bg) {
 					out[x*ks*ls + (ks-y)*ls + z] = ave_intens ;
 					out[x*ks*ls + (ks-y)*ls + (ls-z)] = ave_intens ;
 					
-					ave_intens = 0.25 * (
-						powf(bg[x*ks*ls + y*ls + z], 2.) +
-						powf(bg[x*ks*ls + y*ls + (ls-z)], 2.) +
-						powf(bg[x*ks*ls + (ks-y)*ls + z], 2.) +
-						powf(bg[x*ks*ls + (ks-y)*ls + (ls-z)], 2.)) ;
-					
-					bg[x*ks*ls + y*ls + z] = ave_intens ;
-					bg[x*ks*ls + y*ls + (ls-z)] = ave_intens ;
-					bg[x*ks*ls + (ks-y)*ls + z] = ave_intens ;
-					bg[x*ks*ls + (ks-y)*ls + (ls-z)] = ave_intens ;
+					if (bg != NULL) {
+						ave_intens = 0.25 * (
+							powf(bg[x*ks*ls + y*ls + z], 2.) +
+							powf(bg[x*ks*ls + y*ls + (ls-z)], 2.) +
+							powf(bg[x*ks*ls + (ks-y)*ls + z], 2.) +
+							powf(bg[x*ks*ls + (ks-y)*ls + (ls-z)], 2.)) ;
+						
+						bg[x*ks*ls + y*ls + z] = ave_intens ;
+						bg[x*ks*ls + y*ls + (ls-z)] = ave_intens ;
+						bg[x*ks*ls + (ks-y)*ls + z] = ave_intens ;
+						bg[x*ks*ls + (ks-y)*ls + (ls-z)] = ave_intens ;
+					}
 				}
 				
 				for (z = 1 ; z <= lc ; ++z) {
@@ -162,12 +167,14 @@ void symmetrize_incoherent(fftwf_complex *in, float *out, float *bg) {
 					out[x*ks*ls + z] = ave_intens ;
 					out[x*ks*ls + (ls-z)] = ave_intens ;
 					
-					ave_intens = 0.5 * (
-						powf(bg[x*ks*ls + z], 2.) + 
-						powf(bg[x*ks*ls + (ls-z)], 2.)) ;
-					
-					bg[x*ks*ls + z] = ave_intens ;
-					bg[x*ks*ls + (ls-z)] = ave_intens ;
+					if (bg != NULL) {
+						ave_intens = 0.5 * (
+							powf(bg[x*ks*ls + z], 2.) + 
+							powf(bg[x*ks*ls + (ls-z)], 2.)) ;
+						
+						bg[x*ks*ls + z] = ave_intens ;
+						bg[x*ks*ls + (ls-z)] = ave_intens ;
+					}
 				}
 				
 				for (y = 1 ; y <= kc ; ++y) {
@@ -178,21 +185,26 @@ void symmetrize_incoherent(fftwf_complex *in, float *out, float *bg) {
 					out[x*ks*ls + y*ls] = ave_intens ;
 					out[x*ks*ls + (ks-y)*ls] = ave_intens ;
 					
-					ave_intens = 0.5 * (
-						powf(bg[x*ks*ls + y*ls], 2.) + 
-						powf(bg[x*ks*ls + (ks-y)*ls], 2.)) ;
-					
-					bg[x*ks*ls + y*ls] = ave_intens ;
-					bg[x*ks*ls + (ks-y)*ls] = ave_intens ;
+					if (bg != NULL) {
+						ave_intens = 0.5 * (
+							powf(bg[x*ks*ls + y*ls], 2.) + 
+							powf(bg[x*ks*ls + (ks-y)*ls], 2.)) ;
+						
+						bg[x*ks*ls + y*ls] = ave_intens ;
+						bg[x*ks*ls + (ks-y)*ls] = ave_intens ;
+					}
 				}
 				
 				out[x*ks*ls] = powf(cabsf(in[x*ks*ls]), 2.) ;
-				bg[x*ks*ls] = powf(bg[x*ks*ls], 2.) ;
+				if (bg != NULL)
+					bg[x*ks*ls] = powf(bg[x*ks*ls], 2.) ;
 				
 				for (y = 0 ; y < ks ; ++y)
 				for (z = 0 ; z < ls ; ++z) {
-					out[x*ks*ls + y*ls + z] = sqrtf(out[x*ks*ls + y*ls + z] + bg[x*ks*ls + y*ls + z]) ;
-//					bg[x*ks*ls + y*ls + z] = sqrtf(bg[x*ks*ls + y*ls + z]) ;
+					if (bg != NULL)
+						out[x*ks*ls + y*ls + z] = sqrtf(out[x*ks*ls + y*ls + z] + bg[x*ks*ls + y*ls + z]) ;
+					else
+						out[x*ks*ls + y*ls + z] = sqrtf(out[x*ks*ls + y*ls + z]) ;
 				}
 			}
 		}
@@ -236,14 +248,20 @@ void symmetrize_incoherent(fftwf_complex *in, float *out, float *bg) {
 				
 				for (y = 0 ; y < ks ; ++y)
 				for (z = 0 ; z < ls ; ++z)
+				if (bg != NULL)
 					out[x*ks*ls + y*ls + z] = sqrtf(out[x*ks*ls + y*ls + z] + powf(bg[x*ks*ls + y*ls + z], 2.f)) ;
+				else
+					out[x*ks*ls + y*ls + z] = sqrtf(out[x*ks*ls + y*ls + z]) ;
 			}
 		}
 	}
 	else if (strcmp(point_group, "1") == 0) {
 		long x ;
 		for (x = 0 ; x < vol ; ++x)
+		if (bg != NULL)
 			out[x] = sqrtf(powf(cabsf(in[x]), 2.f) + powf(bg[x], 2.f)) ;
+		else
+			out[x] = cabsf(in[x]) ;
 	}
 }
 
