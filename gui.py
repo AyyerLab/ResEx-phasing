@@ -45,6 +45,10 @@ class GUI():
         self.output_prefix = Tk.StringVar()
         self.point_group = Tk.StringVar()
         self.config_fname = Tk.StringVar()
+        self.bgfitting_flag = Tk.IntVar()
+        self.variation_flag = Tk.IntVar()
+        self.positivity_flag = Tk.IntVar()
+        self.histogram_flag = Tk.IntVar()
 
         self.merge_fname.set(merge_fname)
         self.map_fname.set(map_fname)
@@ -65,6 +69,10 @@ class GUI():
         self.output_prefix.set('data/recon/test')
         self.point_group.set('222')
         self.config_fname.set('config.ini')
+        self.bgfitting_flag.set(0)
+        self.variation_flag.set(0)
+        self.positivity_flag.set(0)
+        self.histogram_flag.set(0)
         self.size = None
         self.vol = None
         self.rad = None
@@ -259,7 +267,7 @@ class GUI():
         self.slider.configure(from_=0,to=self.size-1)
         if self.rangelock.get() == 0:
             rmax = self.vol[self.vol>0].mean()
-            rmax = 10*self.vol[(self.vol>0.01*rmax) & (self.vol<100*rmax)].mean()
+            rmax = 5*self.vol[(self.vol>0.01*rmax) & (self.vol<100*rmax)].mean()
             self.rangemaxstr.set('%.1e' % rmax)
         if not self.vol_image_exists:
             self.layernum.set(self.size/2)
@@ -559,6 +567,12 @@ class GUI():
         line = ttk.Frame(self.recon_frame)
         line.pack(fill=Tk.X)
         ttk.Button(line, text='Gen. Config', command=self.gen_config).pack(side=Tk.LEFT)
+        ttk.Checkbutton(line, text='BG fitting', variable=self.bgfitting_flag).pack(side=Tk.LEFT)
+        ttk.Checkbutton(line, text='Variation support', variable=self.variation_flag).pack(side=Tk.LEFT)
+        ttk.Checkbutton(line, text='Positivity', variable=self.positivity_flag).pack(side=Tk.LEFT)
+        
+        line = ttk.Frame(self.recon_frame)
+        line.pack(fill=Tk.X)
         ttk.Button(line, text='Launch Recon', command=self.launch_recon).pack(side=Tk.LEFT)
         ttk.Checkbutton(line,text='Keep Checking',variable=self.checkflag,command=self.keep_checking).pack(side=Tk.LEFT)
         ttk.Checkbutton(line,text='Fourier Slices',variable=self.fslices).pack(side=Tk.LEFT)
@@ -588,8 +602,15 @@ class GUI():
             f.write('# By default, the end iterations are averaged. To use ER set avg_algorithm = ER\n')
             f.write('algorithm = DM\n')
             f.write('beta = 1.\n')
-            f.write('histogram = 1\n')
-            f.write('hist_fname = data/3wu2_hist.dat\n')
+            if self.positivity_flag == 1:
+                f.write('positivity = 1\n')
+            if self.bgfitting_flag == 1:
+                f.write('bg_fitting = 1\n')
+            if self.variation_flag == 1:
+                f.write('local_variation = 1\n')
+            if self.histogram_flag == 1:
+                f.write('histogram = 1\n')
+                f.write('hist_fname = data/3wu2_hist.dat\n')
         print 'Generated %s:' % self.config_fname.get()
         os.system('cat %s' % self.config_fname.get())
 
