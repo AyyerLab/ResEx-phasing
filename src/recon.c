@@ -141,12 +141,12 @@ int main(int argc, char *argv[]) {
 	fwrite(average_p2, sizeof(float), vol, fp) ;
 	fclose(fp) ;
 	
-	sprintf(fname, "%s-bg.raw", output_prefix) ;
-	fp = fopen(fname, "wb") ;
-	fwrite(&(algorithm_p1[vol]), sizeof(float), vol, fp) ;
-	fclose(fp) ;
-	
 	if (do_bg_fitting) {
+		sprintf(fname, "%s-bg.raw", output_prefix) ;
+		fp = fopen(fname, "wb") ;
+		fwrite(&(algorithm_p1[vol]), sizeof(float), vol, fp) ;
+		fclose(fp) ;
+		
 		sprintf(fname, "%s-radavg.raw", output_prefix) ;
 		fp = fopen(fname, "wb") ;
 		fwrite(radavg, sizeof(float), size/2, fp) ;
