@@ -22,9 +22,11 @@ int setup(char *config_fname) {
 	size = 0 ;
 	output_prefix[0] = '\0' ;
 	strcpy(point_group, "222") ;
+	do_blurring = 0 ;
 	do_histogram = 0 ;
 	do_positivity = 0 ;
 	do_local_variation = 0 ;
+	do_bg_fitting = 0 ;
 	strcpy(algorithm_name, "DM") ;
 	strcpy(avg_algorithm_name, "Avg") ;
 	
@@ -71,6 +73,10 @@ int setup(char *config_fname) {
 			strcpy(avg_algorithm_name, strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "beta") == 0)
 			algorithm_beta = atof(strtok(NULL, " =\n")) ;
+		else if (strcmp(token, "bg_fitting") == 0)
+			do_bg_fitting = atoi(strtok(NULL, " =\n")) ;
+		else if (strcmp(token, "blurring") == 0)
+			do_blurring = atoi(strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "histogram") == 0)
 			do_histogram = atoi(strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "local_variation") == 0)
@@ -81,6 +87,8 @@ int setup(char *config_fname) {
 			strcpy(hist_fname, strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "sigma_deg") == 0)
 			sigma = atof(strtok(NULL, " =\n")) ;
+		else
+			fprintf(stderr, "Unable to recognise option: \"%s\"\n", token) ;
 	}
 	
 	if (size == 0) {
@@ -123,11 +131,14 @@ int setup(char *config_fname) {
 		if (read_histogram(hist_fname, num_supp))
 			return 1 ;
 	}
-	if (parse_quat(quat_fname, sigma))
-		return 1 ;
+	if (do_blurring) {
+		if (parse_quat(quat_fname, sigma))
+			return 1 ;
+	}
 	gen_input(input_fname, inputbg_fname, 0) ;
 	create_plans(wisdom_fname) ;
-	init_radavg() ;
+	if (do_bg_fitting)
+		init_radavg() ;
 	
 	sprintf(line, "%s-log.dat", output_prefix) ;
 	fp = fopen(line, "w") ;
@@ -136,10 +147,16 @@ int setup(char *config_fname) {
 	fprintf(fp, "Support: %s (%ld)\n", support_fname, num_supp) ;
 	fprintf(fp, "Algorithm: %s with beta = %.2f\n", algorithm_name, algorithm_beta) ;
 	fprintf(fp, "Averaging algorithm: %s\n", avg_algorithm_name) ;
+	if (do_positivity)
+		fprintf(fp, "Assuming electron density is positive\n") ;
 	if (do_histogram)
 		fprintf(fp, "Applying histogram constraint: %s\n", hist_fname) ;
-	else
-		fprintf(fp, "No histogram constraint\n") ;
+	if (do_local_variation)
+		fprintf(fp, "Updating support using local variation\n") ;
+	if (do_bg_fitting)
+		fprintf(fp, "Fitting spherically symmetric background\n") ;
+	if (do_blurring)
+		fprintf(fp, "Rotationally blurring model using %s\n", quat_fname) ;
 	fprintf(fp, "Output prefix: %s\n", output_prefix) ;
 	fprintf(fp, "-------------------------\n") ;
 	fprintf(fp, "iter    time    error\n") ;
@@ -150,17 +167,21 @@ int setup(char *config_fname) {
 }	
 
 int allocate_memory(int flag, int do_shrinkwrap) {
-	algorithm_iterate = malloc(2 * vol * sizeof(float)) ;
+	long num_vox = vol ;
+	if (do_bg_fitting)
+		num_vox *= 2 ;
+	
+	algorithm_iterate = malloc(num_vox * sizeof(float)) ;
 	exp_mag = malloc(vol * sizeof(float)) ;
 	
 	if (flag == 1) {
 		obs_mag = malloc(vol * sizeof(float)) ;
 		bragg_calc = fftwf_malloc(vol * sizeof(fftwf_complex)) ;
-		algorithm_p1 = calloc(2 * vol, sizeof(float)) ;
-		algorithm_p2 = malloc(2 * vol * sizeof(float)) ;
-		algorithm_r1 = malloc(2 * vol * sizeof(float)) ;
+		algorithm_p1 = calloc(num_vox, sizeof(float)) ;
+		algorithm_p2 = malloc(num_vox * sizeof(float)) ;
+		algorithm_r1 = malloc(num_vox * sizeof(float)) ;
 		if (algorithm_beta != 1.)
-			algorithm_r2 = malloc(2 * vol * sizeof(float)) ;
+			algorithm_r2 = malloc(num_vox * sizeof(float)) ;
 		supp_loc = malloc(vol / 8 * sizeof(long)) ;
 		if (do_shrinkwrap)
 			shrinkwrap_kernel = malloc(vol * sizeof(float)) ;
@@ -329,21 +350,26 @@ int gen_input(char *fname, char *bg_fname, int flag) {
 		fclose(fp) ;
 	}
 	
-	fp = fopen(bg_fname, "rb") ;
-	if (fp == NULL) {
-		if (flag == 0) {
-			fprintf(stderr, " and with uniform background\n") ;
-			init_bg = 1 ;
+	if (do_bg_fitting) {
+		fp = fopen(bg_fname, "rb") ;
+		if (fp == NULL) {
+			if (flag == 0) {
+				fprintf(stderr, " and with uniform background\n") ;
+				init_bg = 1 ;
+			}
+			else {
+				fprintf(stderr, "Cannot find background %s\n", fname) ;
+				return 1 ;
+			}
 		}
 		else {
-			fprintf(stderr, "Cannot find background %s\n", fname) ;
-			return 1 ;
+			fprintf(stderr, " with background from %s\n", fname) ;
+			fread(&(algorithm_iterate[vol]), sizeof(float), vol, fp) ;
+			fclose(fp) ;
 		}
 	}
 	else {
-		fprintf(stderr, " with background from %s\n", fname) ;
-		fread(&(algorithm_iterate[vol]), sizeof(float), vol, fp) ;
-		fclose(fp) ;
+		fprintf(stderr, "\n") ;
 	}
 	
 	init_model(algorithm_iterate, random_model, init_bg) ;

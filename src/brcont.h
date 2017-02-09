@@ -32,6 +32,9 @@ float * restrict algorithm_iterate, * restrict algorithm_p1 ;
 float * restrict algorithm_p2, * restrict algorithm_r1, * restrict algorithm_r2 ;
 int do_histogram, do_positivity, do_local_variation ;
 
+// Radial background fitting
+int do_bg_fitting ;
+
 // Histogram matching
 long num_supp, *supp_loc, *supp_index ;
 float *supp_val, *inverse_cdf ;
@@ -42,7 +45,7 @@ float *local_variation ;
 long *voxel_pos ;
 
 // Intensity blurring
-int num_rot ;
+int do_blurring, num_rot ;
 double *quat ;
 
 // Functions

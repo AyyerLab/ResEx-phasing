@@ -23,10 +23,12 @@ void init_model(float *model, int random_model, int init_bg) {
 		memset(&(model[vol]), 0, vol*sizeof(float)) ;
 	
 	if (random_model || init_bg) {
-		for (i = 0 ; i < vol ; ++i) {
-			if (random_model && support[i])
-				model[i] = gsl_rng_uniform(r) ;
-			
+		for (i = 0 ; i < vol ; ++i)
+		if (random_model && support[i])
+			model[i] = gsl_rng_uniform(r) ;
+		
+		if (do_bg_fitting) {
+			for (i = 0 ; i < vol ; ++i)
 			if (init_bg && obs_mag[i] > 0.)
 				model[vol+i] = val ;
 		}

@@ -30,8 +30,10 @@ int main(int argc, char *argv[]) {
 	mkdir(fname, S_IRWXU|S_IRGRP|S_IROTH) ;
 	sprintf(fname, "%s-fslices", output_prefix) ;
 	mkdir(fname, S_IRWXU|S_IRGRP|S_IROTH) ;
-	sprintf(fname, "%s-radavg", output_prefix) ;
-	mkdir(fname, S_IRWXU|S_IRGRP|S_IROTH) ;
+	if (do_bg_fitting) {
+		sprintf(fname, "%s-radavg", output_prefix) ;
+		mkdir(fname, S_IRWXU|S_IRGRP|S_IROTH) ;
+	}
 	if (do_local_variation) {
 		sprintf(fname, "%s-support", output_prefix) ;
 		mkdir(fname, S_IRWXU|S_IRGRP|S_IROTH) ;
@@ -94,13 +96,15 @@ int main(int argc, char *argv[]) {
 			sprintf(fname, "%s-fslices/%.4d.raw", output_prefix, iter) ;
 			dump_slices(exp_mag, fname, 1) ;
 			if (do_local_variation) {
-				sprintf(fname, "%s-support/%.4d.raw", output_prefix, iter) ;
+				sprintf(fname, "%s-support/%.4d.supp", output_prefix, iter) ;
 				dump_support_slices(support, fname) ;
 			}
-			sprintf(fname, "%s-radavg/%.4d.raw", output_prefix, iter) ;
-			fp = fopen(fname, "wb") ;
-			fwrite(radavg, sizeof(double), size/2, fp) ;
-			fclose(fp) ;
+			if (do_bg_fitting) {
+				sprintf(fname, "%s-radavg/%.4d.raw", output_prefix, iter) ;
+				fp = fopen(fname, "wb") ;
+				fwrite(radavg, sizeof(double), size/2, fp) ;
+				fclose(fp) ;
+			}
 		}
 
 //		if (iter > 250 && iter % 20 == 0)
@@ -142,10 +146,12 @@ int main(int argc, char *argv[]) {
 	fwrite(&(algorithm_p1[vol]), sizeof(float), vol, fp) ;
 	fclose(fp) ;
 	
-	sprintf(fname, "%s-radavg.raw", output_prefix) ;
-	fp = fopen(fname, "wb") ;
-	fwrite(radavg, sizeof(float), size/2, fp) ;
-	fclose(fp) ;
+	if (do_bg_fitting) {
+		sprintf(fname, "%s-radavg.raw", output_prefix) ;
+		fp = fopen(fname, "wb") ;
+		fwrite(radavg, sizeof(float), size/2, fp) ;
+		fclose(fp) ;
+	}
 	
 	if (do_local_variation) {
 		sprintf(fname, "%s-supp.supp", output_prefix) ;
