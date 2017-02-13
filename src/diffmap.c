@@ -76,7 +76,7 @@ void proj_fourier(float * restrict in, float * restrict out) {
  * Can be applied in-place (out = in)
  */
 void proj_direct(float * restrict in, float * restrict out) {
-	if (do_local_variation)
+	if (do_local_variation > 0 && iter % do_local_variation == 0)
 		variation_support(in, support, 2) ;
 	
 	if (do_histogram) {
