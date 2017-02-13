@@ -29,7 +29,7 @@ int main(int argc, char *argv[]) {
 	
 	if (argc < 3) {
 		fprintf(stderr, "Format: %s <map_fname> <voxres>\n", argv[0]) ;
-		fprintf(stderr, "\twhere <voxres> is the resolution at 1 pixel in nm\n") ;
+		fprintf(stderr, "\twhere <voxres> is the resolution at 1 pixel in Angstroms\n") ;
 		fprintf(stderr, "One can also give three different <voxres> parameters for different axes\n") ;
 		return 1 ;
 	}
