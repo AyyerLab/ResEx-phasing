@@ -22,6 +22,7 @@ typestr = 'f4'
 typesize = 4
 rangemax = 1e1
 rangemin = 0
+cmap = 'jet'
 
 fname = Tk.StringVar()
 rangeminstr = Tk.StringVar()
@@ -141,15 +142,15 @@ def plot_vol_slices(layernum):
             c = vol[:,:,layernum]
     
     s1 = fig.add_subplot(131)
-    s1.matshow(a, vmin=rangemin, vmax=rangemax, cmap='jet')
+    s1.matshow(a, vmin=rangemin, vmax=rangemax, cmap=cmap)
     plt.title("h = 0, YZ plane", y = 1.01)
     plt.axis('off')
     s2 = fig.add_subplot(132)
-    s2.matshow(b, vmin=rangemin, vmax=rangemax, cmap='jet')
+    s2.matshow(b, vmin=rangemin, vmax=rangemax, cmap=cmap)
     plt.title("k = 0, XZ plane", y = 1.01)
     plt.axis('off')
     s3 = fig.add_subplot(133)
-    s3.matshow(c, vmin=rangemin, vmax=rangemax, cmap='jet')
+    s3.matshow(c, vmin=rangemin, vmax=rangemax, cmap=cmap)
     plt.title("l = 0, XY plane", y = 1.01)
     plt.axis('off')
     
