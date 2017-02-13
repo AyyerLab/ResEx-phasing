@@ -29,7 +29,14 @@ config=config.ini
 
 prefix=`grep output_prefix $config |awk -F" ?= ?" '{print $2}'`
 size=`grep size $config |awk -F" ?= ?" '{print $2}'`
-supp_fname=`grep support_fname config.ini|awk -F" ?= ?" '{print $2}'`
+variation=`grep local_variation config.ini|awk -F" ?= ?" '{print $2}'`
+if [ -z $variation ] || [ $variation -eq 0 ]
+then
+	supp_fname=`grep support_fname config.ini|awk -F" ?= ?" '{print $2}'`
+else	
+	supp_fname=${prefix}-supp.supp
+fi
+echo Support: $supp_fname
 center=$((size/2))
 voxsize=$((voxres / 2. / center))
 
