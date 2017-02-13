@@ -38,9 +38,12 @@ void init_model(float *model, int random_model, int init_bg) {
 }
 
 void average_model(float *current, float *sum) {
-	long i ;
+	long i, num_vox = vol ;
 	
-	for (i = 0 ; i < 2 * vol ; ++i)
+	if (do_bg_fitting)
+		num_vox *= 2 ;
+	
+	for (i = 0 ; i < num_vox ; ++i)
 		sum[i] += current[i] ;
 }
 
@@ -79,7 +82,6 @@ void gen_prtf(float *model) {
 		obs_val = obs_mag[x*size*size + y*size + z] ;
 		
 		if (bin < num_bins && obs_val > 0.) {
-//			contrast[bin] += cabs(fdensity[x*size*size + y*size + z]) / 
 			contrast[bin] += exp_mag[x*size*size + y*size + z]
 			                 / obs_mag[x*size*size + y*size + z] ;
 			bin_count[bin]++ ;
@@ -88,8 +90,6 @@ void gen_prtf(float *model) {
 			bin_count[bin]++ ;
 	}
 	
-	memset(algorithm_p2, 0, 2*vol*sizeof(float)) ;
-	symmetrize_incoherent(fdensity, exp_mag, &(algorithm_p2[vol])) ;
 	sprintf(fname, "%s-expmag.raw", output_prefix) ;
 	dump_slices(exp_mag, fname, 1) ;
 	
@@ -262,6 +262,9 @@ void symmetrize_incoherent(fftwf_complex *in, float *out, float *bg) {
 			out[x] = sqrtf(powf(cabsf(in[x]), 2.f) + powf(bg[x], 2.f)) ;
 		else
 			out[x] = cabsf(in[x]) ;
+	}
+	else {
+		fprintf(stderr, "Unrecognized point group: %s\n", point_group) ;
 	}
 }
 

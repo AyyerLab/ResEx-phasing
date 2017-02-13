@@ -4,7 +4,8 @@ int parse_args(int, char*[], int*, int*, char*) ;
 int get_algorithm_type(char*, char*) ;
 
 int main(int argc, char *argv[]) {
-	int i, alg_type, num_iter = -1, start_ave = -1 ;
+	int alg_type, num_iter = -1, start_ave = -1 ;
+	long i, num_vox ;
 	double error ;
 	float *average_p1, *average_p2 ;
 	struct timeval t1, t2 ;
@@ -18,9 +19,13 @@ int main(int argc, char *argv[]) {
 		return 2 ;
 	
 	omp_set_num_threads(omp_get_max_threads()) ;
+	if (do_bg_fitting)
+		num_vox = 2 * vol ;
+	else
+		num_vox = vol ;
 	
-	average_p1 = calloc(2 * vol, sizeof(float)) ;
-	average_p2 = calloc(2 * vol, sizeof(float)) ;
+	average_p1 = calloc(num_vox, sizeof(float)) ;
+	average_p2 = calloc(num_vox, sizeof(float)) ;
 	alg_type = get_algorithm_type(algorithm_name, avg_algorithm_name) ;
 	if (alg_type < 0) {
 		fprintf(stderr, "Could not understand algorithm name: %s\n", algorithm_name) ;
@@ -86,7 +91,7 @@ int main(int argc, char *argv[]) {
 		if (iter == start_ave) {
 			sprintf(fname, "%s-last.raw", output_prefix) ;
 			fp = fopen(fname, "w") ;
-			fwrite(algorithm_iterate, sizeof(float), vol, fp) ;
+			fwrite(algorithm_iterate, sizeof(float), num_vox, fp) ;
 			fclose(fp) ;
 		}
 		
@@ -119,13 +124,13 @@ int main(int argc, char *argv[]) {
 	fprintf(stderr, "\nCalculating prtf and writing to file.\n") ;
 	
 	if (alg_type % 2 == 0) {
-		for (i = 0 ; i < 2 * vol ; ++i) {
+		for (i = 0 ; i < num_vox ; ++i) {
 			average_p1[i] /= (num_iter - start_ave + 1) ;
 			average_p2[i] /= (num_iter - start_ave + 1) ;
 		}
 	}
 	else {
-		for (i = 0 ; i < 2 * vol ; ++i) {
+		for (i = 0 ; i < num_vox ; ++i) {
 			average_p1[i] = algorithm_p1[i] ;
 			average_p2[i] = algorithm_p2[i] ;
 		}
