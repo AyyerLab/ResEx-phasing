@@ -482,7 +482,7 @@ class GUI():
                 words = f.read().split()
                 warray = np.array(words)
                 self.resedge.set(float(words[words.index('./utils/read_map')+2])/(self.vol_size/2))
-                self.point_group.set(words[words.index('data/convert/'+mapnoext+'-srecon.raw')+2])
+                self.point_group.set(words[np.where(warray=='data/convert/'+mapnoext+'-srecon.raw')[0][0]+3])
                 self.suppradstr.set('%.1f'%float(words[np.where(warray=='./utils/create_support')[0][-1]+3]))
                 self.suppthreshstr.set('%.1f'%float(words[np.where(warray=='./utils/create_support')[0][-1]+4]))
         else:
@@ -543,10 +543,13 @@ class GUI():
             print 'Need resolution at edge of volume'
             return
         mapnoext = os.path.splitext(os.path.basename(self.map_fname.get()))[0]
+        resedge = float(self.resedge.get())
         supp_radius = float(self.suppradstr.get())
         supp_thresh = float(self.suppthreshstr.get())
         print '-'*80
-        os.system('./process_map.sh %s %d %f 1 %f %f %s' % (self.map_fname.get(), self.vol_size, float(self.resedge.get()), supp_radius, supp_thresh, self.point_group.get()))
+        command = './process_map.sh %s %d %f 1 %f %f %s' % (self.map_fname.get(), self.vol_size, resedge, supp_radius, supp_thresh, self.point_group.get())
+        print command
+        os.system(command)
         print '-'*80
         self.replot(force=True, zoom='current')
 
