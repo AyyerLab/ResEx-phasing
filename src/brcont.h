@@ -75,3 +75,4 @@ void radial_average(float*, float*) ;
 void match_histogram(float*, float*) ;
 float positive_mode(float*) ;
 void variation_support(float*, uint8_t*, long) ;
+void match_bragg(fftwf_complex*, float) ;

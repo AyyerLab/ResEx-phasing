@@ -621,3 +621,27 @@ void blur_intens(float *in, float *out) {
 		free(priv_out) ;
 	}
 }
+
+void match_bragg(fftwf_complex *fdens, float sigma) {
+	long i ;
+	fftwf_complex temp ;
+	float mag ;
+	
+	if (sigma == 0.f) {
+		for (i = 0 ; i < vol ; ++i)
+		if (bragg_calc[i] != FLT_MAX)
+			fdens[i] = bragg_calc[i] ;
+	}
+	else {
+		for (i = 0 ; i < vol ; ++i) 
+		if (bragg_calc[i] != FLT_MAX) {
+			temp = fdens[i] - bragg_calc[i] ;
+			mag = cabsf(temp) ;
+			if (mag < sigma)
+				fdens[i] = bragg_calc[i] ;
+			else
+				fdens[i] = bragg_calc[i] + sigma / mag * temp ;
+		}
+	}
+}
+		

@@ -30,9 +30,7 @@ void proj_fourier(float * restrict in, float * restrict out) {
 	if (do_blurring)
 		blur_intens(exp_mag, exp_mag) ;
 	
-	for (i = 0 ; i < vol ; ++i)
-	if (bragg_calc[i] != FLT_MAX)
-		fdensity[i] = bragg_calc[i] ;
+	match_bragg(fdensity, 0.f) ;
 	
 	if (do_bg_fitting) {
 		for (i = 0 ; i < vol ; ++i) {
