@@ -24,7 +24,8 @@ fftwf_plan forward_plan, inverse_plan ;
 char output_prefix[999], point_group[999] ;
 
 // Algorithm parameters
-char algorithm_name[999], avg_algorithm_name[999] ;
+int num_iter, num_avg_iter ;
+char (*algorithms)[8], (*avg_algorithms)[8] ;
 int *intrad ;
 double *radavg, *radcount, *obs_radavg ;
 float algorithm_beta ;

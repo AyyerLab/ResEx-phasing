@@ -8,6 +8,7 @@ void create_plans(char*) ;
 int gen_input(char*, char*, int) ;
 int parse_quat(char*, double) ;
 int read_histogram(char*, long) ;
+int parse_algorithm_strings(char*, char*) ;
 
 int setup(char *config_fname) {
 	char line[999], *token ;
@@ -15,6 +16,7 @@ int setup(char *config_fname) {
 	char intens_fname[999], bragg_fname[999] ;
 	char support_fname[999], wisdom_fname[999] ;
 	char inputbg_fname[999], quat_fname[999] ;
+	char algorithm_name[9999], avg_algorithm_name[9999] ;
 	double bragg_qmax = 0., sigma = 0. ;
 	float scale_factor = 0. ;
 	int num_threads = -1 ;
@@ -68,9 +70,9 @@ int setup(char *config_fname) {
 			strcpy(quat_fname, strtok(NULL, " =\n")) ;
 		// Algorithm
 		else if (strcmp(token, "algorithm") == 0)
-			strcpy(algorithm_name, strtok(NULL, " =\n")) ;
+			strcpy(algorithm_name, strtok(NULL, "=\n")) ;
 		else if (strcmp(token, "avg_algorithm") == 0)
-			strcpy(avg_algorithm_name, strtok(NULL, " =\n")) ;
+			strcpy(avg_algorithm_name, strtok(NULL, "=\n")) ;
 		else if (strcmp(token, "beta") == 0)
 			algorithm_beta = atof(strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "bg_fitting") == 0)
@@ -119,6 +121,8 @@ int setup(char *config_fname) {
 	fftwf_init_threads() ;
 	fftwf_plan_with_nthreads(num_threads) ;
 	
+	if (parse_algorithm_strings(algorithm_name, avg_algorithm_name))
+		return 1 ;
 	if (allocate_memory(1, 0))
 		return 1 ;
 	if (parse_intens(intens_fname, scale_factor))
@@ -164,7 +168,101 @@ int setup(char *config_fname) {
 	fclose(fp) ;
 	
 	return 0 ;
-}	
+}
+
+int test_alg_name(char *name) {
+	if (strcmp(name, "DM") != 0 &&
+	    strcmp(name, "HIO") != 0 &&
+	    strcmp(name, "RAAR") != 0 &&
+	    strcmp(name, "mod-DM") != 0 &&
+	    strcmp(name, "ER") != 0)
+		return 1 ;
+	else
+		return 0 ;
+}
+
+int parse_algorithm_strings(char *alg_string, char *avg_string) {
+	char *token, string[9999] ;
+	int i, current_num = 0, is_num = 1 ;
+	num_iter = 0 ;
+	num_avg_iter = 0 ;
+	
+	strcpy(string, alg_string) ;
+	token = strtok(string, " \n") ;
+	while (token != NULL) {
+		if (is_num) {
+			num_iter += atoi(token) ;
+			is_num = 0 ;
+		}
+		else {
+			if (test_alg_name(token)) {
+				fprintf(stderr, "Unknown algorithm %s in algorithm %s\n", token, alg_string) ;
+				return 1 ;
+			}
+			is_num = 1 ;
+		}
+		token = strtok(NULL, " \n") ;
+	}
+	fprintf(stderr, "Total number of normal iterations = %d\n", num_iter) ;
+	
+	algorithms = malloc(num_iter * sizeof(*algorithms)) ;
+	is_num = 1 ;
+	num_iter = 0 ;
+	strcpy(string, alg_string) ;
+	token = strtok(string, " \n") ;
+	while (token != NULL) {
+		if (is_num) {
+			current_num = atoi(token) ;
+			is_num = 0 ;
+		}
+		else {
+			for (i = num_iter ; i < num_iter + current_num ; ++i)
+				strcpy(algorithms[i], token) ;
+			num_iter += current_num ;
+			is_num = 1 ;
+		}
+		token = strtok(NULL, " \n") ;
+	}
+	
+	strcpy(string, avg_string) ;
+	token = strtok(string, " \n") ;
+	while (token != NULL) {
+		if (is_num) {
+			num_avg_iter += atoi(token) ;
+			is_num = 0 ;
+		}
+		else {
+			if (test_alg_name(token)) {
+				fprintf(stderr, "Unknown algorithm %s in avg_algorithm %s\n", token, avg_string) ;
+				return 1 ;
+			}
+			is_num = 1 ;
+		}
+		token = strtok(NULL, " \n") ;
+	}
+	fprintf(stderr, "Total number of averaging iterations = %d\n", num_avg_iter) ;
+	
+	avg_algorithms = malloc(num_avg_iter * sizeof(*avg_algorithms)) ;
+	is_num = 1 ;
+	num_avg_iter = 0 ;
+	strcpy(string, avg_string) ;
+	token = strtok(string, " \n") ;
+	while (token != NULL) {
+		if (is_num) {
+			current_num = atoi(token) ;
+			is_num = 0 ;
+		}
+		else {
+			for (i = num_avg_iter ; i < num_avg_iter + current_num ; ++i)
+				strcpy(avg_algorithms[i], token) ;
+			num_avg_iter += current_num ;
+			is_num = 1 ;
+		}
+		token = strtok(NULL, " \n") ;
+	}
+	
+	return 0 ;
+}
 
 int allocate_memory(int flag, int do_shrinkwrap) {
 	long num_vox = vol ;

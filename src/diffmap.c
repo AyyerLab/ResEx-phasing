@@ -66,6 +66,7 @@ void proj_fourier(float * restrict in, float * restrict out) {
  * Applies the finite support constraint in direct/real-space
  * In addition one can apply the following additional constraints by
  * setting the following global variables.
+ * 	do_bg_fitting - Azimuthally average background part of iterate
  * 	do_positivity - Set negative values inside support to zero
  * 	do_histogram - Project values inside support such that they match a 
  * 	               target histogram.
