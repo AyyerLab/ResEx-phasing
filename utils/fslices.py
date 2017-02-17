@@ -27,14 +27,13 @@ config = ConfigParser.ConfigParser()
 config.read(args.config)
 size = config.getint('parameters', 'size')
 prefix = config.get('files', 'output_prefix')
-scale = float(config.get('parameters', 'scale_factor'))
-rangemax = 3e4
 
 with open(prefix+'-log.dat', 'r') as f:
     last_iteration = int(f.readlines()[-1].split()[0])
 flist = np.array([prefix+'-fslices/%.4d.raw'%i for i in range(1, last_iteration+1)])[:args.num]
-print len(flist), 'slices will be plotted'
 
+rangemax = np.fromfile(flist[-1], '=f4').mean()*5.
+print '%d slices will be plotted with rangemax %.3e' % (len(flist), rangemax)
 fig = P.figure(figsize=(15,5))
 fig.subplots_adjust(left=0.0, bottom=0.00, right=0.99, wspace=0.0)
 

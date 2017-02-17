@@ -31,9 +31,9 @@ prefix = config.get('files', 'output_prefix')
 with open(prefix+'-log.dat', 'r') as f:
     last_iteration = int(f.readlines()[-1].split()[0])
 flist = np.array([prefix+'-slices/%.4d.raw'%i for i in range(1, last_iteration+1)])[:args.num]
-print len(flist), 'slices will be plotted'
 
-rangemax = 60 
+rangemax = np.fromfile(flist[-1], '=f4').max()/2.
+print '%d slices will be plotted with rangemax %.3f' % (len(flist), rangemax)
 bmin = size/3
 bmax = 2*size/3
 
