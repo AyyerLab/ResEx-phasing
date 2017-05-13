@@ -66,8 +66,6 @@ int setup(char *config_fname) {
 			strcpy(support_fname, strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "output_prefix") == 0)
 			strcpy(output_prefix, strtok(NULL, " =\n")) ;
-		else if (strcmp(token, "quat_fname") == 0)
-			strcpy(quat_fname, strtok(NULL, " =\n")) ;
 		// Algorithm
 		else if (strcmp(token, "algorithm") == 0)
 			strcpy(algorithm_name, strtok(NULL, "=\n")) ;
@@ -85,6 +83,8 @@ int setup(char *config_fname) {
 			do_local_variation = atoi(strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "positivity") == 0)
 			do_positivity = atoi(strtok(NULL, " =\n")) ;
+		else if (strcmp(token, "quat_fname") == 0)
+			strcpy(quat_fname, strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "hist_fname") == 0)
 			strcpy(hist_fname, strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "sigma_deg") == 0)
@@ -558,10 +558,10 @@ int parse_quat(char *fname, double sigma) {
 	int num_rel = 0 ;
 	for (r = 0 ; r < num_rot ; ++r) {
 		quat[r*5 + 4] /= total_weight ;
-		if (quat[r*5 + 4] > 0.1 / num_rot) {
+		if (quat[r*5 + 4] > 0.1 / num_rot)
 			num_rel++ ;
+		else
 			quat[r*5 + 4] = -1. ;
-		}
 	}
 	fprintf(stderr, "Number of relevant orientations = %d/%d\n", num_rel, num_rot) ;
 	
