@@ -33,6 +33,7 @@ int main(int argc, char *argv[]) {
 	
 	if (argc < 7) {
 		fprintf(stderr, "Format: %s <recon_fname> <size> <vox_x> <vox_y> <vox_z> <supp_fname>\n", argv[0]) ;
+		fprintf(stderr, "Set <supp_fname> = all if you want no sub-setting\n") ;
 		return 1 ;
 	}
 	s = atoi(argv[2]) ;
@@ -48,9 +49,16 @@ int main(int argc, char *argv[]) {
 	fclose(fp) ;
 	
 	support = malloc(vol * sizeof(uint8_t)) ;
-	fp = fopen(argv[6], "rb") ;
-	fread(support, sizeof(uint8_t), vol, fp) ;
-	fclose(fp) ;
+	if (strncmp(argv[6], "all", 3) == 0) {
+		fprintf(stderr, "Assuming full cube to be within support\n") ;
+		for (x = 0 ; x < vol ; ++x)
+			support[x] = 1 ;
+	}
+	else {
+		fp = fopen(argv[6], "rb") ;
+		fread(support, sizeof(uint8_t), vol, fp) ;
+		fclose(fp) ;
+	}
 
 	// From support, calculate size and position of bounding box
 	// 	Also calculate model min, max and std inside support
