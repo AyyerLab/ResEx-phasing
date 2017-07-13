@@ -136,11 +136,13 @@ int main(int argc, char *argv[]) {
 	fprintf(stderr, "sums: (%e, %e)\n", edge_sum, central_sum) ;
 	// --------------------------------------------------------------------------------
 	 
+	/*
 	sprintf(fname, "data/%s-map.raw", remove_ext(extract_fname(argv[1]))) ;
 	fprintf(stderr, "Saving model to %s\n", fname) ;
 	fp = fopen(fname, "wb") ;
 	fwrite(model, sizeof(float), nx*ny*nz, fp) ;
 	fclose(fp) ;
+	*/
 	
 	px = voxres[0]*mx/lx ;
 	py = voxres[1]*my/ly ;
