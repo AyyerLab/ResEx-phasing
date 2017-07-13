@@ -45,9 +45,9 @@ s3 = fig.add_subplot(133)
 
 fslices = np.fromfile(flist[0], '=f4').reshape(3,size,size)
 v = []
-v.append(s1.matshow(fslices[0], vmax=rangemax))
-v.append(s2.matshow(fslices[1], vmax=rangemax))
-v.append(s3.matshow(fslices[2], vmax=rangemax))
+v.append(s1.matshow(fslices[0], vmax=rangemax, cmap='cubehelix'))
+v.append(s2.matshow(fslices[1], vmax=rangemax, cmap='cubehelix'))
+v.append(s3.matshow(fslices[2], vmax=rangemax, cmap='cubehelix'))
 
 s1.set_title("YZ plane", y = 1.01)
 s1.axis('off')

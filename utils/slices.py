@@ -34,10 +34,12 @@ if args.last is None:
         args.last = int(f.readlines()[-1].split()[0])
 flist = np.array([prefix+'-slices/%.4d.raw'%i for i in range(args.start, args.last+1)])
 
-rangemax = np.fromfile(flist[-1], '=f4').max()/2.
+rangemax = np.fromfile(flist[-1], '=f4').max()/1.5
 print '%d slices will be plotted with rangemax %.3f' % (len(flist), rangemax)
 bmin = size/3
 bmax = 2*size/3
+#rangemin=0
+rangemin=-rangemax
 
 fig = P.figure(figsize=(15,5))
 fig.subplots_adjust(left=0.0, bottom=0.00, right=0.99, wspace=0.0)
@@ -48,9 +50,9 @@ s3 = fig.add_subplot(133)
 
 fslices = np.fromfile(flist[0], '=f4').reshape(3,size,size)
 v = []
-v.append(s1.matshow(fslices[0,bmin:bmax,bmin:bmax], vmax=rangemax, vmin=0))
-v.append(s2.matshow(fslices[1,bmin:bmax,bmin:bmax], vmax=rangemax, vmin=0))
-v.append(s3.matshow(fslices[2,bmin:bmax,bmin:bmax], vmax=rangemax, vmin=0))
+v.append(s1.matshow(fslices[0,bmin:bmax,bmin:bmax], vmax=rangemax, vmin=rangemin, cmap='cubehelix'))
+v.append(s2.matshow(fslices[1,bmin:bmax,bmin:bmax], vmax=rangemax, vmin=rangemin, cmap='cubehelix'))
+v.append(s3.matshow(fslices[2,bmin:bmax,bmin:bmax], vmax=rangemax, vmin=rangemin, cmap='cubehelix'))
 
 s1.set_title("YZ plane", y = 1.01)
 s1.axis('off')
