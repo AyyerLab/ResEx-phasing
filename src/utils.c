@@ -431,6 +431,10 @@ int compare_indices_histogram(const void *a, const void *b) {
 	return supp_val[ia] < supp_val[ib] ? -1 : supp_val[ia] > supp_val[ib] ;
 }
 
+/* Histogram matching
+ * Matches histogram within support volume using inverse_cdf array.
+ * Can be done in-place
+ */
 void match_histogram(float *in, float *out) {
 	long i ; 
 	
@@ -446,6 +450,8 @@ void match_histogram(float *in, float *out) {
 		out[supp_loc[supp_index[i]]] = inverse_cdf[i] ;
 }
 
+/*Get mode of positive values with support volume
+ */
 float positive_mode(float *model) {
 	long i, valbin, maxhist = 0, hist[99] ;
 	float bin[99], maxval = 0. ;
@@ -483,6 +489,9 @@ int compare_indices_variation(const void *a, const void *b) {
 	return local_variation[ia] > local_variation[ib] ? -1 : local_variation[ia] < local_variation[ib] ;
 }
 
+/* Local variation support update
+ * Similar to solvent flattening, keeping number of support voxels the same
+ */
 void variation_support(float *model, uint8_t *supp, long box_rad) {
 	long i, num_vox = 0 ;
 	
@@ -557,6 +566,10 @@ void gen_rot(float rot[3][3], double *q) {
 	rot[2][2] = (1. - 2.*(q11 + q22)) ;
 }
 
+/* Rotate and average intensity distribution using given quaternions and weights
+ * Note: q=0 is at (0,0,0) and not (c,c,c)
+ * Can set out = in
+ */
 void blur_intens(float *in, float *out) {
 	#pragma omp parallel default(shared)
 	{
@@ -597,17 +610,18 @@ void blur_intens(float *in, float *out) {
 				w = in[((vox[0]+size)%size)*size*size + ((vox[1]+size)%size)*size + ((vox[2]+size)%size)] * 
 				    quat[r*5 + 4] ;
 				
-				priv_out[x*size*size + y*size + z] += cx*cy*cz*w ;
-				priv_out[x*size*size + y*size + ((z+1)%size)] += cx*cy*fz*w ;
-				priv_out[x*size*size + ((y+1)%size)*size + z] += cx*fy*cz*w ;
-				priv_out[x*size*size + ((y+1)%size)*size + ((z+1)%size)] += cx*fy*fz*w ;
-				priv_out[((x+1)%size)*size*size + y*size + z] += fx*cy*cz*w ;
-				priv_out[((x+1)%size)*size*size + y*size + ((z+1)%size)] += fx*cy*fz*w ;
-				priv_out[((x+1)%size)*size*size + ((y+1)%size)*size + z] += fx*fy*cz*w ;
+				priv_out[x*size*size + y*size + z]                                  += cx*cy*cz*w ;
+				priv_out[x*size*size + y*size + ((z+1)%size)]                       += cx*cy*fz*w ;
+				priv_out[x*size*size + ((y+1)%size)*size + z]                       += cx*fy*cz*w ;
+				priv_out[x*size*size + ((y+1)%size)*size + ((z+1)%size)]            += cx*fy*fz*w ;
+				priv_out[((x+1)%size)*size*size + y*size + z]                       += fx*cy*cz*w ;
+				priv_out[((x+1)%size)*size*size + y*size + ((z+1)%size)]            += fx*cy*fz*w ;
+				priv_out[((x+1)%size)*size*size + ((y+1)%size)*size + z]            += fx*fy*cz*w ;
 				priv_out[((x+1)%size)*size*size + ((y+1)%size)*size + ((z+1)%size)] += fx*fy*fz*w ;
 			}
 		}
 		
+		#pragma omp barrier
 		if (omp_get_thread_num() == 0)
 			memset(out, 0, vol*sizeof(float)) ;
 		#pragma omp barrier
@@ -622,6 +636,9 @@ void blur_intens(float *in, float *out) {
 	}
 }
 
+/* Match Bragg Fourier components
+ * sigma parameter allows for small distance from input value at each voxel
+ */
 void match_bragg(fftwf_complex *fdens, float sigma) {
 	long i ;
 	fftwf_complex temp ;
