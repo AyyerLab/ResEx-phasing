@@ -50,9 +50,9 @@ int main(int argc, char *argv[]) {
 		
 		if (rad < rmin)
 			model[x*size*size + y*size + z] = -1.f ;
-		else if (rad > rmax + 3)
+		else if (rad > rmax + 6)
 			model[x*size*size + y*size + z] = 0.f ;
-		else if (rad > rmax - 3)
+		else if (rad > rmax - 6)
 			model[x*size*size + y*size + z] = -1.f ;
 		else if (model[x*size*size + y*size + z] < minmodel && model[x*size*size + y*size + z] > -1000.)
 			minmodel = model[x*size*size + y*size + z] ;

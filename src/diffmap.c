@@ -249,6 +249,9 @@ double ER_algorithm(float *x) {
 		voxel_range = 2. * vol ;
 	
 	proj_fourier(x, algorithm_p1) ;
+	FILE *fp = fopen("data/pf.raw", "wb") ;
+	fwrite(algorithm_p1, sizeof(float), vol, fp) ;
+	fclose(fp) ;
 	proj_direct(algorithm_p1, algorithm_p2) ;
 	
 	for (i = 0 ; i < voxel_range ; ++i) {
