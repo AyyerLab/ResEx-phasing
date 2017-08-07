@@ -23,6 +23,7 @@ gen_data
 # Data files
 *.log
 *.dat
+*.txt
 *.png
 *.bin
 *.raw
