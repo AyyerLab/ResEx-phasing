@@ -32,6 +32,7 @@ float algorithm_beta ;
 float * restrict algorithm_iterate, * restrict algorithm_p1 ;
 float * restrict algorithm_p2, * restrict algorithm_r1, * restrict algorithm_r2 ;
 int do_histogram, do_positivity, do_local_variation ;
+float *true_solution ;
 
 // Radial background fitting
 int do_bg_fitting ;

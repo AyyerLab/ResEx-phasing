@@ -1,0 +1,27 @@
+[parameters]
+size = 301
+bragg_qmax = 0.5
+scale_factor = 1.
+num_threads = 32
+point_group = 222
+
+[files]
+intens_fname = /home/harshmos/work/ktk1/bragg-cont/data/4et8_full_2mFo-DFc-sym-zero.raw
+bragg_fname = /home/harshmos/work/ktk1/bragg-cont/data/4et8_full_2mFo-DFc.cpx
+support_fname = /home/harshmos/work/ktk1/bragg-cont/data/4et8_full_2mFo-DFc.supp
+#input_fname = /home/harshmos/work/ktk1/bragg-cont/data/4et8_full_2mFo-DFc-srecon.raw
+input_fname = /home/harshmos/work/ktk1/bragg-cont/data/recon_test4/4et8_full-ITER1.raw
+output_prefix = data/recon_test6/4et8_full
+
+[algorithm]
+# Algorithm choices: DM, HIO, RAAR, mod-DM, ER
+# With beta = 1, all algorithms except ER are equivalent
+# algorithm and avg_algorithm are space separated with alternating numbers and names
+algorithm = 500 DM
+avg_algorithm = 200 DM
+beta = 1.
+bg_fitting = 0
+blurring = 0
+histogram = 0
+local_variation = 0
+positivity = 0

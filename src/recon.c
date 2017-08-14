@@ -37,6 +37,11 @@ int main(int argc, char *argv[]) {
 		mkdir(fname, S_IRWXU|S_IRGRP|S_IROTH) ;
 	}
 	
+	true_solution = malloc(vol * sizeof(float)) ;
+	fp = fopen("data/4et8_full_2mFo-DFc-srecon.raw", "rb") ;
+	fread(true_solution, sizeof(float), vol, fp) ;
+	fclose(fp) ;
+	
 	for (iter = 1 ; iter <= num_iter+num_avg_iter ; ++iter) {
 		gettimeofday(&t1, NULL) ;
 		
@@ -69,7 +74,7 @@ int main(int argc, char *argv[]) {
 		sprintf(fname, "%s-log.dat", output_prefix) ;
 		fp = fopen(fname, "a") ;
 		fprintf(fp,
-		        "%.4d\t%.2f s\t%f\n",
+		        "%.4d\t%.2f s\t%e\n",
 		        iter,
 			    (double)(t2.tv_sec - t1.tv_sec) + (t2.tv_usec - t1.tv_usec) / 1000000.,
 			    error) ;
