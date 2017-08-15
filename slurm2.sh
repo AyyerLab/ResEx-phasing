@@ -23,8 +23,8 @@ echo Saving to data/results_par_search_4et8_full_2mFo-DFc-sym_run_sequence/${1}/
 cfile_iter='4et8_config_run_sequence_iter.ini'
 cfile_DM='4et8_config_run_sequence_DM.ini'
 cfile_ER='4et8_config_run_sequence_ER.ini'
-fsc_file_DM='FSC_run_sequence_DM_run4.txt'
-fsc_file_ER='FSC_run_sequence_ER_run4.txt'
+fsc_file_DM='FSC_run_sequence_DM_run6.txt'
+fsc_file_ER='FSC_run_sequence_ER_run6.txt'
 fsc_value='0.400'
 dirname_DM="data/results_par_search_4et8_full_2mFo-DFc-sym_run_sequence_DM/$1/"
 dirname_ER="data/results_par_search_4et8_full_2mFo-DFc-sym_run_sequence_ER/$1/"
