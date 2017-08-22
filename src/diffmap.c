@@ -127,9 +127,10 @@ double DM_algorithm(float *x) {
 	for (i = 0 ; i < voxel_range ; ++i) {
 		diff = algorithm_beta * (algorithm_p2[i] - algorithm_p1[i]) ;
 		x[i] += diff ;
-		diff = algorithm_p2[i] - true_solution[i] ;
-		if (i < vol)
+		if (i < vol) {
+			diff = algorithm_p2[i] - true_solution[i] ;
 			change += diff*diff ;
+		}
 	}
 	
 	return sqrt(change / vol) ;
