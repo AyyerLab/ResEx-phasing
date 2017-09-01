@@ -1,0 +1,1 @@
+set terminal pngcairo size 640,480 font Verdana,10 fontscale 1.0 gnuplot_termset.txt

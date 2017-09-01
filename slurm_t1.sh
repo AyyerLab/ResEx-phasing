@@ -7,14 +7,14 @@ then
 fi
 echo Saving to data/results_par_search_4et8_full_2mFo-DFc-sym_run_sequence/${1}/
 
-cfile_iter='4et8_config_run_sequence_iter_2.ini'
-cfile_DM='4et8_config_run_sequence_DM_2.ini'
-cfile_ER='4et8_config_run_sequence_ER_2.ini'
-fsc_file_DM='data/recon_P1-ph1-manyDM-ERDM-3/FSC-DM.txt'
-fsc_file_ER='data/recon_P1-ph1-manyDM-ERDM-3/FSC-ER.txt'
+cfile_iter='4et8_config_run_sequence_iter.ini'
+cfile_DM='4et8_config_run_sequence_DM.ini'
+cfile_ER='4et8_config_run_sequence_ER.ini'
+fsc_file_DM='data/recon_liq-mod-0.8-100-outer150-bgfit-manyDM-ERDM/FSC-DM.txt'
+fsc_file_ER='data/recon_liq-mod-0.8-100-outer150-bgfit-manyDM-ERDM/FSC-ER.txt'
 fsc_value='0.400'
-dirname_DM="data/recon_P1-ph1-manyDM-ERDM-3/DM/$1/"
-dirname_ER="data/recon_P1-ph1-manyDM-ERDM-3/ER/$1/"
+dirname_DM="data/recon_liq-mod-0.8-100-outer150-bgfit-manyDM-ERDM/DM/$1/"
+dirname_ER="data/recon_liq-mod-0.8-100-outer150-bgfit-manyDM-ERDM/ER/$1/"
 
 ls > /dev/null
 ls .. > /dev/null
