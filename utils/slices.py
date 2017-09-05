@@ -39,7 +39,7 @@ print '%d slices will be plotted with rangemax %.3f' % (len(flist), rangemax)
 bmin = size/3
 bmax = 2*size/3
 #rangemin=0
-rangemin=-rangemax
+rangemin=-rangemax*0.25
 
 fig = P.figure(figsize=(15,5))
 fig.subplots_adjust(left=0.0, bottom=0.00, right=0.99, wspace=0.0)
