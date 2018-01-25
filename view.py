@@ -4,8 +4,10 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sys
 import Tkinter as Tk
+import tkFileDialog
 import os
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.colors import LogNorm
 import matplotlib.patches as patches
 
 if len(sys.argv) < 2:
@@ -22,22 +24,24 @@ typestr = 'f4'
 typesize = 4
 rangemax = 1e1
 rangemin = 0
-cmap = 'jet'
+cmap = 'cubehelix'
 
 fname = Tk.StringVar()
 rangeminstr = Tk.StringVar()
 rangemaxstr = Tk.StringVar()
 imagename = Tk.StringVar()
 layernum = Tk.IntVar()
-radiusmin = Tk.StringVar()
-radiusmax = Tk.StringVar()
+radius_x = Tk.StringVar()
+radius_y = Tk.StringVar()
+radius_z = Tk.StringVar()
 flag = Tk.IntVar()
 circleflag = Tk.IntVar()
 
 fname.set(sys.argv[1])
 imagename.set('images/' + os.path.splitext(os.path.basename(fname.get()))[0] + '.png')
-radiusmin.set('100')
-radiusmax.set('200')
+radius_x.set('200')
+radius_y.set('200')
+radius_z.set('200')
 circleflag.set(0)
 flag.set(0)
 if len(sys.argv) > 2:
@@ -155,19 +159,17 @@ def plot_vol_slices(layernum):
     plt.axis('off')
     
     if flag.get() is 1:
-        [a.remove() for a in list(set(s1.findobj(patches.Circle)))]
-        [a.remove() for a in list(set(s2.findobj(patches.Circle)))]
-        [a.remove() for a in list(set(s3.findobj(patches.Circle)))]
+        [a.remove() for a in list(set(s1.findobj(patches.Ellipse)))]
+        [a.remove() for a in list(set(s2.findobj(patches.Ellipse)))]
+        [a.remove() for a in list(set(s3.findobj(patches.Ellipse)))]
     
     if circleflag.get() is 1 and flag.get() is 1:
-        rmin = float(radiusmin.get())
-        rmax = float(radiusmax.get())
-        s1.add_artist(patches.Circle((size/2,size/2), rmin, ec='white', fc='none'))
-        s1.add_artist(patches.Circle((size/2,size/2), rmax, ec='white', fc='none'))
-        s2.add_artist(patches.Circle((size/2,size/2), rmin, ec='white', fc='none'))
-        s2.add_artist(patches.Circle((size/2,size/2), rmax, ec='white', fc='none'))
-        s3.add_artist(patches.Circle((size/2,size/2), rmin, ec='white', fc='none'))
-        s3.add_artist(patches.Circle((size/2,size/2), rmax, ec='white', fc='none'))
+        rx = 2*float(radius_x.get())
+        ry = 2*float(radius_y.get())
+        rz = 2*float(radius_z.get())
+        s1.add_artist(patches.Ellipse((size/2,size/2), rz, ry, 0, ec='white', fc='none'))
+        s2.add_artist(patches.Ellipse((size/2,size/2), rz, rx, 0, ec='white', fc='none'))
+        s3.add_artist(patches.Ellipse((size/2,size/2), ry, rx, 0, ec='white', fc='none'))
     
     canvas.show()
     
@@ -194,6 +196,11 @@ def force_plot(event=None):
     print "Reparsing volume:", fname.get()
     parse_vol()
     plot_vol_slices(layernum.get())
+
+def open_file(event=None):
+    filename = tkFileDialog.askopenfilename(initialdir=os.path.dirname(fname.get()), title='Choose file')
+    fname.set(filename)
+    parse_and_plot()
 
 def increment_layer(event=None):
     layernum.set(min(layernum.get()+1, len(vol)-1))
@@ -236,10 +243,15 @@ config_frame.grid(row=0, column=1,sticky=Tk.N)
 
 Tk.Label(config_frame, text="Filename: ").grid(row=0,column=0,sticky=Tk.E)
 Tk.Entry(
-    config_frame, 
+    config_frame,
     textvariable = fname,
     width = 35
     ).grid(row=0,column=1,columnspan=2,sticky=Tk.W)
+Tk.Button(
+    config_frame,
+    text='Browse',
+    command=open_file
+    ).grid(row=0,column=3,sticky=Tk.W)
 
 Tk.Label(config_frame, text="Range: ").grid(row=2,column=0,sticky=Tk.E)
 Tk.Entry(
@@ -315,14 +327,19 @@ Tk.Checkbutton(
 
 Tk.Entry(
     config_frame,
-    textvariable = radiusmin,
+    textvariable = radius_x,
     width = 10
     ).grid(row=7,column=1,columnspan=1,sticky=Tk.W)
 Tk.Entry(
     config_frame,
-    textvariable = radiusmax,
+    textvariable = radius_y,
     width = 10
     ).grid(row=7,column=2,columnspan=1,sticky=Tk.W)
+Tk.Entry(
+    config_frame,
+    textvariable = radius_z,
+    width = 10
+    ).grid(row=7,column=3,columnspan=1,sticky=Tk.W)
 
 parse_and_plot()
 
