@@ -509,7 +509,7 @@ class GUI():
         line = ttk.Frame(self.map_frame)
         line.pack(fill=Tk.X)
         ttk.Label(line,text='Complex: ').pack(side=Tk.LEFT)
-        ttk.Button(line,text=prefix+'cpx',command=lambda: self.plot_vol(fname=prefix+'.cpx')).pack(side=Tk.LEFT)
+        ttk.Button(line,text=prefix+'.cpx',command=lambda: self.plot_vol(fname=prefix+'.cpx')).pack(side=Tk.LEFT)
         
         line = ttk.Frame(self.map_frame)
         line.pack(fill=Tk.X)
@@ -606,13 +606,13 @@ class GUI():
             f.write('algorithm = 100 DM\n')
             f.write('avg_algorithm = 50 DM\n')
             f.write('beta = 1.\n')
-            if self.positivity_flag == 1:
+            if self.positivity_flag.get() == 1:
                 f.write('positivity = 1\n')
-            if self.bgfitting_flag == 1:
+            if self.bgfitting_flag.get() == 1:
                 f.write('bg_fitting = 1\n')
-            if self.variation_flag == 1:
+            if self.variation_flag.get() == 1:
                 f.write('local_variation = 1\n')
-            if self.histogram_flag == 1:
+            if self.histogram_flag.get() == 1:
                 f.write('histogram = 1\n')
                 f.write('hist_fname = data/3wu2_hist.dat\n')
         print 'Generated %s:' % self.config_fname.get()
