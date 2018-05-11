@@ -49,31 +49,34 @@ void average_model(float *current, float *sum) {
 
 /* Calculate PRTF and save estimated intensities due to
 */
-void gen_prtf(float *model) {
-	long x, y, z, bin, num_bins = 50 ;
+void calc_prtf(float *model1, float *model2, int num_bins) {
+	long x, y, z, bin ;
 	long dx, dy, dz, c = size/2, c1 = size/2+1 ;
-	float obs_val, *contrast = calloc(num_bins, sizeof(float)) ;
+	float obs_val, *prtf = calloc(num_bins, sizeof(float)) ;
 	long *bin_count = calloc(num_bins, sizeof(long)) ;
 	FILE *fp ;
 	char fname[999] ;
 	
-	// Continuous part
+	// FFT average p2 model
 	for (x = 0 ; x < vol ; ++x)
-		rdensity[x] = model[x] ;
+		rdensity[x] = model2[x] ;
 	
 	fftwf_execute(forward_plan) ;
 	
+	// Calculate exp_mag for average p2 model
 	if (do_bg_fitting)
-		symmetrize_incoherent(fdensity, exp_mag, &(model[vol])) ;
+		symmetrize_incoherent(fdensity, exp_mag, &(model2[vol])) ;
 	else
 		symmetrize_incoherent(fdensity, exp_mag, NULL) ;
 	
+	// Save exp_mag
+	sprintf(fname, "%s-expmag.raw", output_prefix) ;
+	dump_slices(exp_mag, fname, 1) ;
+	
+	// Calculate PRTF by comparing with obs_mag
 	for (x = 0 ; x < size ; ++x)
 	for (y = 0 ; y < size ; ++y)
 	for (z = 0 ; z < size ; ++z) {
-		model[((x+c)%size)*size*size + ((y+c)%size)*size + ((z+c)%size)]
-			= pow(cabsf(fdensity[x*size*size + y*size + z]), 2.) ;
-		
 		dx = (x + c1) % size - c1 ;
 		dy = (y + c1) % size - c1 ;
 		dz = (z + c1) % size - c1 ;
@@ -82,32 +85,81 @@ void gen_prtf(float *model) {
 		obs_val = obs_mag[x*size*size + y*size + z] ;
 		
 		if (bin < num_bins && obs_val > 0.) {
-			contrast[bin] += exp_mag[x*size*size + y*size + z]
-			                 / obs_mag[x*size*size + y*size + z] ;
+			prtf[bin] += exp_mag[x*size*size + y*size + z] / obs_val ;
 			bin_count[bin]++ ;
 		}
 		else if (bin < num_bins && obs_val == 0.)
 			bin_count[bin]++ ;
+		
+		algorithm_p2[((x+c)%size)*size*size + ((y+c)%size)*size + ((z+c)%size)]
+			= pow(cabsf(fdensity[x*size*size + y*size + z]), 2.) ;
 	}
 	
-	sprintf(fname, "%s-expmag.raw", output_prefix) ;
-	dump_slices(exp_mag, fname, 1) ;
+	for (bin = 0 ; bin < num_bins ; ++bin)
+	if (bin_count[bin] > 0)
+		prtf[bin] /= bin_count[bin] ;
+	else 
+		prtf[bin] = 1. ;
 	
-	sprintf(fname, "%s-frecon.raw", output_prefix) ;
-	fp = fopen(fname, "wb") ;
-	fwrite(model, sizeof(float), vol, fp) ;
-	fclose(fp) ;
-	
+	// Save PRTF
 	sprintf(fname, "%s-prtf.dat", output_prefix) ;
 	fp = fopen(fname, "w") ;
 	for (bin = 0 ; bin < num_bins ; ++bin)
-	if (bin_count[bin] > 0)
-		fprintf(fp, "%.4f\t%.6f\n", (bin + 1.) / num_bins, contrast[bin]/bin_count[bin]) ;
-	else 
-		fprintf(fp, "%.4f\t%.6f\n", (bin + 1.) / num_bins, 1.) ;
+		fprintf(fp, "%.4f\t%.6f\n", (bin + 1.) / num_bins, prtf[bin]) ;
 	fclose(fp) ;
 	
-	free(contrast) ;
+	// Save frecon (intensity from model)
+	sprintf(fname, "%s-frecon.raw", output_prefix) ;
+	fp = fopen(fname, "wb") ;
+	fwrite(algorithm_p2, sizeof(float), vol, fp) ;
+	fclose(fp) ;
+	
+	// If needed, normalize models by PRTF
+	if (do_normalize_prtf) {
+		fprintf(stderr, "Normalizing p2 model by PRTF\n") ;
+		for (x = 0 ; x < size ; ++x)
+		for (y = 0 ; y < size ; ++y)
+		for (z = 0 ; z < size ; ++z) {
+			dx = (x + c1) % size - c1 ;
+			dy = (y + c1) % size - c1 ;
+			dz = (z + c1) % size - c1 ;
+			bin = sqrt(dx*dx + dy*dy + dz*dz) / c1 * num_bins + 0.5 ;
+			
+			if (bin < num_bins && prtf[bin] > 0.)
+				fdensity[x*size*size + y*size + z] /= prtf[bin] ;
+			else
+				fdensity[x*size*size + y*size + z] = 0. ;
+		}
+		
+		fftwf_execute(inverse_plan) ;
+		
+		for (x = 0 ; x < vol ; ++x) {
+			model2[x] = crealf(rdensity[x]) / vol ;
+			rdensity[x] = model1[x] ;
+		}
+		fftwf_execute(forward_plan) ;
+		
+		fprintf(stderr, "Normalizing p1 model by PRTF\n") ;
+		for (x = 0 ; x < size ; ++x)
+		for (y = 0 ; y < size ; ++y)
+		for (z = 0 ; z < size ; ++z) {
+			dx = (x + c1) % size - c1 ;
+			dy = (y + c1) % size - c1 ;
+			dz = (z + c1) % size - c1 ;
+			bin = sqrt(dx*dx + dy*dy + dz*dz) / c1 * num_bins + 0.5 ;
+			
+			if (bin < num_bins && prtf[bin] > 0.)
+				fdensity[x*size*size + y*size + z] /= prtf[bin] ;
+			else
+				fdensity[x*size*size + y*size + z] = 0. ;
+		}
+		
+		fftwf_execute(inverse_plan) ;
+		for (x = 0 ; x < vol ; ++x)
+			model1[x] = crealf(rdensity[x]) / vol ;
+	}
+	
+	free(prtf) ;
 	free(bin_count) ;
 }
 
