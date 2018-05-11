@@ -29,6 +29,7 @@ int setup(char *config_fname) {
 	do_positivity = 0 ;
 	do_local_variation = 0 ;
 	do_bg_fitting = 0 ;
+	do_normalize_prtf = 0 ;
 	strcpy(algorithm_name, "DM") ;
 	strcpy(avg_algorithm_name, "Avg") ;
 	
@@ -83,6 +84,8 @@ int setup(char *config_fname) {
 			do_local_variation = atoi(strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "positivity") == 0)
 			do_positivity = atoi(strtok(NULL, " =\n")) ;
+		else if (strcmp(token, "normalize_prtf") == 0)
+			do_normalize_prtf = atoi(strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "quat_fname") == 0)
 			strcpy(quat_fname, strtok(NULL, " =\n")) ;
 		else if (strcmp(token, "hist_fname") == 0)
@@ -161,6 +164,8 @@ int setup(char *config_fname) {
 		fprintf(fp, "Fitting spherically symmetric background\n") ;
 	if (do_blurring)
 		fprintf(fp, "Rotationally blurring model using %s\n", quat_fname) ;
+	if (do_normalize_prtf)
+		fprintf(fp, "Normalizing output by PRTF\n") ;
 	fprintf(fp, "Output prefix: %s\n", output_prefix) ;
 	fprintf(fp, "-------------------------\n") ;
 	fprintf(fp, "iter    time    error\n") ;
@@ -392,7 +397,7 @@ int parse_support(char *fname) {
 	fprintf(stderr, "num_supp = %ld\nSupport bounds: (", num_supp) ;
 	for (x = 0 ; x < 6 ; ++x)
 		fprintf(stderr, "%ld ", support_bounds[x]) ;
-	fprintf(stderr, ")\n") ;
+	fprintf(stderr, "\b)\n") ;
 	if (do_histogram) {
 		supp_index = malloc(num_supp * sizeof(long)) ;
 		supp_val = malloc(num_supp * sizeof(float)) ;
