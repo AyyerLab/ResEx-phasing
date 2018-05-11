@@ -103,7 +103,7 @@ void proj_direct(float * restrict in, float * restrict out) {
  * x_{n+1} = x_n + \beta \left\{P_D\left[\left(1+\frac{1}{\beta}\right)P_F(x_n) - \frac{x_n}{\beta}\right] - P_F\left[\left(1-\frac{1}{\beta}\right)P_D(x_n) + \frac{x_n}{\beta}\right]\right\}
  * Same as all other algorithms for beta = 1
  */
-double DM_algorithm(float *x) {
+float DM_algorithm(float *x) {
 	long i, voxel_range = vol ;
 	float diff, change = 0. ;
 	
@@ -131,7 +131,7 @@ double DM_algorithm(float *x) {
 			change += diff*diff ;
 	}
 	
-	return sqrt(change / vol) ;
+	return sqrtf(change / vol) ;
 }
 
 /* Modified Difference Map algorithm
@@ -140,7 +140,7 @@ double DM_algorithm(float *x) {
  * x_{n+1} = x_n' + P_F\left[2 P_D(x_n') - x_n'\right] - P_D(x_n')
  * Same as all other algorithms for beta = 1
  */
-double mod_DM_algorithm(float *x) {
+float mod_DM_algorithm(float *x) {
 	long i, voxel_range = vol ;
 	float diff, change = 0. ;
 	
@@ -168,7 +168,7 @@ double mod_DM_algorithm(float *x) {
 			change += diff*diff ;
 	}
 	
-	return sqrt(change / vol) ;
+	return sqrtf(change / vol) ;
 }
 
 /* RAAR algorithm
@@ -180,7 +180,7 @@ double mod_DM_algorithm(float *x) {
  * 
  * Same as all other algorithms for beta = 1
  */
-double RAAR_algorithm(float *x) {
+float RAAR_algorithm(float *x) {
 	long i, voxel_range = vol ;
 	float diff, change = 0. ;
 	
@@ -204,7 +204,7 @@ double RAAR_algorithm(float *x) {
 			change += diff*diff ;
 	}
 	
-	return sqrt(change / vol) ;
+	return sqrtf(change / vol) ;
 }
 
 /* HIO algorithm
@@ -212,7 +212,7 @@ double RAAR_algorithm(float *x) {
  * x_{n+1} = x_n + \beta \left\{P_D\left[\left(1+\frac{1}{\beta}\right) P_F(x_n) - \frac{x_n}{\beta}\right] - P_F(x_n)\right\}
  * Same as all other algorithms for beta = 1
  */
-double HIO_algorithm(float *x) {
+float HIO_algorithm(float *x) {
 	long i, voxel_range = vol ;
 	float diff, change = 0. ;
 	
@@ -233,7 +233,7 @@ double HIO_algorithm(float *x) {
 			change += diff*diff ;
 	}
 	
-	return sqrt(change / vol) ;
+	return sqrtf(change / vol) ;
 }
 
 /* Error Reduction algorithm
@@ -241,7 +241,7 @@ double HIO_algorithm(float *x) {
  * x_{n+1} = P_D[P_F(x_n)]
  * Obviously different from others. Use only in averaging phase.
  */
-double ER_algorithm(float *x) {
+float ER_algorithm(float *x) {
 	long i, voxel_range = vol ;
 	float diff, change = 0. ;
 	
@@ -259,10 +259,10 @@ double ER_algorithm(float *x) {
 		}
 	}
 	
-	return sqrt(change / vol) ;
+	return sqrtf(change / vol) ;
 }
 
-double modified_hio(float *x) {
+float modified_hio(float *x) {
 	long i, voxel_range = vol ;
 	float diff, change = 0. ;
 	float thresh = 0.1 ;
@@ -288,5 +288,5 @@ double modified_hio(float *x) {
 		change += diff*diff ;
 	}
 	
-	return sqrt(change / 2. / vol) ;
+	return sqrtf(change / 2. / vol) ;
 }

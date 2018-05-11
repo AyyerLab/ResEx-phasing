@@ -16,10 +16,10 @@
 
 int iter ;
 long size, vol, support_bounds[6] ;
-float *restrict obs_mag, *restrict exp_mag ;
-uint8_t *restrict support ;
-fftwf_complex *restrict fdensity, *restrict rdensity ;
-float complex *restrict bragg_calc ;
+float *obs_mag, *exp_mag ;
+uint8_t *support ;
+fftwf_complex *fdensity, *rdensity ;
+float complex *bragg_calc ;
 fftwf_plan forward_plan, inverse_plan ;
 char output_prefix[999], point_group[999] ;
 
@@ -29,9 +29,9 @@ char (*algorithms)[8], (*avg_algorithms)[8] ;
 int *intrad ;
 double *radavg, *radcount, *obs_radavg ;
 float algorithm_beta ;
-float * restrict algorithm_iterate, * restrict algorithm_p1 ;
-float * restrict algorithm_p2, * restrict algorithm_r1, * restrict algorithm_r2 ;
-int do_histogram, do_positivity, do_local_variation ;
+float *algorithm_iterate, *algorithm_p1 ;
+float *algorithm_p2, *algorithm_r1, *algorithm_r2 ;
+int do_histogram, do_positivity, do_local_variation, do_normalize_prtf ;
 
 // Radial background fitting
 int do_bg_fitting ;
@@ -51,12 +51,12 @@ double *quat ;
 
 // Functions
 // diffmap.c
-double DM_algorithm(float*) ;
-double HIO_algorithm(float*) ;
-double RAAR_algorithm(float*) ;
-double mod_DM_algorithm(float*) ;
-double ER_algorithm(float*) ;
-double modified_hio(float*) ;
+float DM_algorithm(float*) ;
+float HIO_algorithm(float*) ;
+float RAAR_algorithm(float*) ;
+float mod_DM_algorithm(float*) ;
+float ER_algorithm(float*) ;
+float modified_hio(float*) ;
 
 // setup.c
 int setup() ;
@@ -65,7 +65,7 @@ int setup_gen() ;
 // utils.c
 void init_model(float*, int, int) ;
 void average_model(float*, float*) ;
-void gen_prtf(float*) ;
+void calc_prtf(float*, float*, int) ;
 void symmetrize_incoherent(fftwf_complex*, float*, float*) ;
 void blur_intens(float*, float*) ;
 void apply_shrinkwrap(float*, float, float) ;
