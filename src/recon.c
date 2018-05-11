@@ -1,14 +1,18 @@
 #include "brcont.h"
 
 int parse_args(int, char*[], char*) ;
+void make_recon_folders() ;
+float run_iteration(float*, int) ;
+void save_current(int, struct timeval, struct timeval, float) ;
+void save_output(float*, float*) ;
 
 int main(int argc, char *argv[]) {
 	long i, num_vox ;
-	double error ;
+	float error ;
 	float *average_p1, *average_p2 ;
 	struct timeval t1, t2 ;
 	FILE *fp ;
-	char algo[8], fname[999], config_fname[999] ;
+	char fname[1024], config_fname[1024] ;
 	
 	if (parse_args(argc, argv, config_fname))
 		return 1 ;
@@ -24,41 +28,15 @@ int main(int argc, char *argv[]) {
 	
 	average_p1 = calloc(num_vox, sizeof(float)) ;
 	average_p2 = calloc(num_vox, sizeof(float)) ;
-	sprintf(fname, "%s-slices", output_prefix) ;
-	mkdir(fname, S_IRWXU|S_IRGRP|S_IROTH) ;
-	sprintf(fname, "%s-fslices", output_prefix) ;
-	mkdir(fname, S_IRWXU|S_IRGRP|S_IROTH) ;
-	if (do_bg_fitting) {
-		sprintf(fname, "%s-radavg", output_prefix) ;
-		mkdir(fname, S_IRWXU|S_IRGRP|S_IROTH) ;
-	}
-	if (do_local_variation) {
-		sprintf(fname, "%s-support", output_prefix) ;
-		mkdir(fname, S_IRWXU|S_IRGRP|S_IROTH) ;
-	}
+	
+	make_recon_folders() ;
 	
 	for (iter = 1 ; iter <= num_iter+num_avg_iter ; ++iter) {
 		gettimeofday(&t1, NULL) ;
 		
-		if (iter <= num_iter)
-			strcpy(algo, algorithms[iter-1]) ;
-		else
-			strcpy(algo, avg_algorithms[iter-num_iter-1]) ;
-		
-		if (strcmp(algo, "DM") == 0)
-			error = DM_algorithm(algorithm_iterate) ;
-		else if (strcmp(algo, "HIO") == 0)
-			error = HIO_algorithm(algorithm_iterate) ;
-		else if (strcmp(algo, "RAAR") == 0)
-			error = RAAR_algorithm(algorithm_iterate) ;
-		else if (strcmp(algo, "mod-DM") == 0)
-			error = mod_DM_algorithm(algorithm_iterate) ;
-		else if (strcmp(algo, "ER") == 0)
-			error = ER_algorithm(algorithm_iterate) ;
-		else {
-			fprintf(stderr, "Could not understand algorithm name: %s\n", algo) ;
+		error = run_iteration(algorithm_iterate, iter) ;
+		if (error < 0)
 			return 1 ;
-		}
 		
 		if (iter > num_iter) {
 			average_model(algorithm_p1, average_p1) ;
@@ -66,14 +44,7 @@ int main(int argc, char *argv[]) {
 		}
 		
 		gettimeofday(&t2, NULL) ;
-		sprintf(fname, "%s-log.dat", output_prefix) ;
-		fp = fopen(fname, "a") ;
-		fprintf(fp,
-		        "%.4d\t%.2f s\t%f\n",
-		        iter,
-			    (double)(t2.tv_sec - t1.tv_sec) + (t2.tv_usec - t1.tv_usec) / 1000000.,
-			    error) ;
-		fclose(fp) ;
+		save_current(iter, t1, t2, error) ;
 		
 		if (iter == num_iter) {
 			sprintf(fname, "%s-last.raw", output_prefix) ;
@@ -82,28 +53,7 @@ int main(int argc, char *argv[]) {
 			fclose(fp) ;
 		}
 		
-		if (iter%1 == 0) {
-			sprintf(fname, "%s-slices/%.4d.raw", output_prefix, iter) ;
-			dump_slices(algorithm_p1, fname, 0) ;
-			sprintf(fname, "%s-fslices/%.4d.raw", output_prefix, iter) ;
-			dump_slices(exp_mag, fname, 1) ;
-			if (do_local_variation) {
-				sprintf(fname, "%s-support/%.4d.supp", output_prefix, iter) ;
-				dump_support_slices(support, fname) ;
-			}
-			if (do_bg_fitting) {
-				sprintf(fname, "%s-radavg/%.4d.raw", output_prefix, iter) ;
-				fp = fopen(fname, "wb") ;
-				fwrite(radavg, sizeof(double), size/2, fp) ;
-				fclose(fp) ;
-			}
-		}
-
-//		if (iter > 250 && iter % 20 == 0)
-//			num_supp = (0.99 * num_supp) ;
-		
 		fprintf(stderr, "\rFinished %d/%d iterations. ", iter, num_iter+num_avg_iter) ;
-//		fprintf(stderr, "\rFinished %d/%d iterations. num_supp = %ld. ", iter, num_iter+num_avg_iter, num_supp) ;
 		if (iter > num_iter)
 			fprintf(stderr, "Now averaging") ;
 	}
@@ -122,6 +72,113 @@ int main(int argc, char *argv[]) {
 			average_p2[i] = algorithm_p2[i] ;
 		}
 	}
+	
+	calc_prtf(average_p1, average_p2, 100) ;
+	
+	save_output(average_p1, average_p2) ;
+	
+	free(average_p1) ;
+	free(average_p2) ;
+	
+	return 0 ;
+}
+
+int parse_args(int argc, char *argv[], char *config_fname) {
+	int c ;
+	extern char *optarg ;
+	extern int optind ;
+	
+	strcpy(config_fname, "config.ini") ;
+	
+	while (optind < argc) {
+		if ((c = getopt(argc, argv, "c:")) != -1) {
+			switch (c) {
+				case 'c':
+					strcpy(config_fname, optarg) ;
+					break ;
+			}
+		}
+	}
+	
+	return 0 ;
+}
+
+void make_recon_folders() {
+	char fname[1024] ;
+	
+	sprintf(fname, "%s-slices", output_prefix) ;
+	mkdir(fname, S_IRWXU|S_IRGRP|S_IROTH) ;
+	sprintf(fname, "%s-fslices", output_prefix) ;
+	mkdir(fname, S_IRWXU|S_IRGRP|S_IROTH) ;
+	if (do_bg_fitting) {
+		sprintf(fname, "%s-radavg", output_prefix) ;
+		mkdir(fname, S_IRWXU|S_IRGRP|S_IROTH) ;
+	}
+	if (do_local_variation) {
+		sprintf(fname, "%s-support", output_prefix) ;
+		mkdir(fname, S_IRWXU|S_IRGRP|S_IROTH) ;
+	}
+}
+
+float run_iteration(float *algorithm_iterate, int iter) {
+	char algo[8] ;
+	float error ;
+	
+	if (iter <= num_iter)
+		strcpy(algo, algorithms[iter-1]) ;
+	else
+		strcpy(algo, avg_algorithms[iter-num_iter-1]) ;
+	
+	if (strcmp(algo, "DM") == 0)
+		error = DM_algorithm(algorithm_iterate) ;
+	else if (strcmp(algo, "HIO") == 0)
+		error = HIO_algorithm(algorithm_iterate) ;
+	else if (strcmp(algo, "RAAR") == 0)
+		error = RAAR_algorithm(algorithm_iterate) ;
+	else if (strcmp(algo, "mod-DM") == 0)
+		error = mod_DM_algorithm(algorithm_iterate) ;
+	else if (strcmp(algo, "ER") == 0)
+		error = ER_algorithm(algorithm_iterate) ;
+	else {
+		fprintf(stderr, "Could not understand algorithm name: %s\n", algo) ;
+		return -1 ;
+	}
+	
+	return error ;
+}
+
+void save_current(int iter, struct timeval t1, struct timeval t2, float error) {
+	char fname[1024] ;
+	FILE *fp ;
+	
+	sprintf(fname, "%s-log.dat", output_prefix) ;
+	fp = fopen(fname, "a") ;
+	fprintf(fp,
+			"%.4d\t%.2f s\t%f\n",
+			iter,
+			(double)(t2.tv_sec - t1.tv_sec) + (t2.tv_usec - t1.tv_usec) / 1000000.,
+			error) ;
+	fclose(fp) ;
+	
+	sprintf(fname, "%s-slices/%.4d.raw", output_prefix, iter) ;
+	dump_slices(algorithm_p1, fname, 0) ;
+	sprintf(fname, "%s-fslices/%.4d.raw", output_prefix, iter) ;
+	dump_slices(exp_mag, fname, 1) ;
+	if (do_local_variation) {
+		sprintf(fname, "%s-support/%.4d.supp", output_prefix, iter) ;
+		dump_support_slices(support, fname) ;
+	}
+	if (do_bg_fitting) {
+		sprintf(fname, "%s-radavg/%.4d.raw", output_prefix, iter) ;
+		fp = fopen(fname, "wb") ;
+		fwrite(radavg, sizeof(double), size/2, fp) ;
+		fclose(fp) ;
+	}
+}
+
+void save_output(float *average_p1, float *average_p2) {
+	char fname[1024] ;
+	FILE *fp ;
 	
 	sprintf(fname, "%s-pf.raw", output_prefix) ;
 	fp = fopen(fname, "wb") ;
@@ -151,32 +208,5 @@ int main(int argc, char *argv[]) {
 		fwrite(support, sizeof(uint8_t), vol, fp) ;
 		fclose(fp) ;
 	}
-	
-	gen_prtf(average_p2) ;
-	
-	free(average_p1) ;
-	free(average_p2) ;
-	
-	return 0 ;
-}
-
-int parse_args(int argc, char *argv[], char *config_fname) {
-	int c ;
-	extern char *optarg ;
-	extern int optind ;
-	
-	strcpy(config_fname, "config.ini") ;
-	
-	while (optind < argc) {
-		if ((c = getopt(argc, argv, "c:")) != -1) {
-			switch (c) {
-				case 'c':
-					strcpy(config_fname, optarg) ;
-					break ;
-			}
-		}
-	}
-	
-	return 0 ;
 }
 
