@@ -5,7 +5,7 @@
  * phases unchanged. Applies symmetry depending on the specified point group.
  * Can be applied in-place (out = in)
  */
-void proj_fourier(float * restrict in, float * restrict out) {
+void proj_fourier(float *in, float *out) {
 	long i ;
 	float norm_factor = 1. / (float) vol ;
 	
@@ -74,7 +74,7 @@ void proj_fourier(float * restrict in, float * restrict out) {
  * 	                     support size the same
  * Can be applied in-place (out = in)
  */
-void proj_direct(float * restrict in, float * restrict out) {
+void proj_direct(float *in, float *out) {
 	if (do_local_variation > 0 && iter % do_local_variation == 0)
 		variation_support(in, support, 2) ;
 	
@@ -260,33 +260,4 @@ float ER_algorithm(float *x) {
 	}
 	
 	return sqrtf(change / vol) ;
-}
-
-float modified_hio(float *x) {
-	long i, voxel_range = vol ;
-	float diff, change = 0. ;
-	float thresh = 0.1 ;
-	
-	if (do_bg_fitting)
-		voxel_range = 2. * vol ;
-	
-	proj_fourier(x, algorithm_p1) ;
-	
-	for (i = 0 ; i < voxel_range ; ++i)
-		algorithm_r1[i] = (1. + algorithm_beta) * algorithm_p1[i] - x[i] ;
-	
-	proj_direct(algorithm_r1, algorithm_p2) ;
-	proj_direct(algorithm_p1, algorithm_r1) ;
-	
-	for (i = 0 ; i < voxel_range ; ++i) {
-		if (fabs(algorithm_p1[i]) > thresh)
-			diff = algorithm_p2[i] - algorithm_beta*algorithm_p1[i] ;
-		else
-			diff = algorithm_r1[i] - x[i] ;
-		
-		x[i] += diff ;
-		change += diff*diff ;
-	}
-	
-	return sqrtf(change / 2. / vol) ;
 }
