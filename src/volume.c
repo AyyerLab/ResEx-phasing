@@ -12,7 +12,7 @@ void volume_init(struct volume_data *self, long size) {
 
 /* Symmetrize intensity incoherently according to given point group
  * The array is assumed to have q=0 at (0,0,0) instead of in the center of the array
- * Function is parallelized using OpenMP so do not use within parallel block
+ * Function is parallelized using OpenMP and co cannot be used within parallel block
 */
 void volume_symmetrize_incoherent(struct volume_data *self, float complex *in, float *out, float *bg) {
 	long hs, ks, ls, kc, lc ;
@@ -162,6 +162,46 @@ void volume_symmetrize_incoherent(struct volume_data *self, float complex *in, f
 			out[x] = sqrtf(powf(cabsf(in[x]), 2.f) + powf(bg[x], 2.f)) ;
 		else
 			out[x] = cabsf(in[x]) ;
+	}
+	else {
+		fprintf(stderr, "Unrecognized point group: %s\n", self->point_group) ;
+	}
+}
+
+/* Symmetrize intensity according to given point group
+ * The array is assumed to have q=0 in the center of the array
+ * Function is parallelized using OpenMP and co cannot be used within parallel block
+*/
+void volume_symmetrize_centered(struct volume_data *self, float complex *in, float *out) {
+	long x, y, z ;
+	long size = self->size, c = size/2, vol = size*size*size ;
+	
+	if (strcmp(self->point_group, "222") == 0) {
+		#pragma omp parallel for default(shared) schedule(static, 1)
+		for (x = 0 ; x < size ; ++x)
+		for (y = 0 ; y < size ; ++y)
+		for (z = 0 ; z < size ; ++z) {
+			out[x*size*size + y*size + z] = 0.25 * (powf(cabsf(in[x*size*size + y*size + z]), 2.f) +
+													powf(cabsf(in[x*size*size + y*size + (2*c-z)]), 2.f) +
+													powf(cabsf(in[x*size*size + (2*c-y)*size + z]), 2.f) +
+													powf(cabsf(in[x*size*size + (2*c-y)*size + (2*c-z)]), 2.f)) ;
+		}
+	}
+	else if (strcmp(self->point_group, "4") == 0) {
+		#pragma omp parallel for default(shared) schedule(static, 1)
+		for (x = 0 ; x < size ; ++x)
+		for (y = 0 ; y < size ; ++y)
+		for (z = 0 ; z < size ; ++z) {
+			out[x*size*size + y*size + z] = 0.25 * (powf(cabsf(in[x*size*size + y*size + z]), 2.f) +
+													powf(cabsf(in[x*size*size + (2*c-z)*size + y]), 2.f) +
+													powf(cabsf(in[x*size*size + (2*c-y)*size + (2*c-z)]), 2.f) +
+													powf(cabsf(in[x*size*size + z*size + (2*c-y)]), 2.f)) ;
+		}
+	}
+	else if (strcmp(self->point_group, "1") == 0) {
+		#pragma omp parallel for default(shared) schedule(static, 1)
+		for (x = 0 ; x < vol ; ++x)
+			out[x] = powf(cabsf(in[x]), 2.f) ;
 	}
 	else {
 		fprintf(stderr, "Unrecognized point group: %s\n", self->point_group) ;

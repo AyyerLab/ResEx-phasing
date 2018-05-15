@@ -18,6 +18,7 @@ struct volume_data {
 
 void volume_init(struct volume_data*, long) ;
 void volume_symmetrize_incoherent(struct volume_data*, float complex*, float*, float*) ;
+void volume_symmetrize_centered(struct volume_data*, float complex*, float*) ;
 void volume_init_radavg(struct volume_data*) ;
 void volume_radial_average(struct volume_data*, float*, float*) ;
 void volume_rotational_blur(struct volume_data*, float*, float*, struct rotation*) ;
