@@ -13,7 +13,7 @@
 
 struct fft_data {
 	long size ;
-	char *wisdom_fname ;
+	char wisdom_fname[1024] ;
 	fftwf_complex *fdensity, *rdensity ;
 	fftwf_plan forward_plan, inverse_plan ;
 } ;
