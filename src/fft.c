@@ -91,6 +91,162 @@ void fft_inverse(struct fft_data *self) {
 	fftwf_execute(self->inverse_plan) ;
 }
 
+/* Shifts origin from (c,c,c) to (0,0,0) : Complex version
+ */
+void fft_shift_complex(struct fft_data *self, float complex *dest, float complex *source, float rmax) {
+	long x, y, z, size = self->size, c = size/2 ;
+	float distsq, rmaxsq = rmax*rmax ;
+	
+	if (rmax < 0.) {
+		for (x = 0 ; x < size ; ++x)
+		for (y = 0 ; y < size ; ++y)
+		for (z = 0 ; z < size ; ++z)
+			dest[((x+c+1)%size)*size*size + ((y+c+1)%size)*size + ((z+c+1)%size)] = source[x*size*size + y*size + z] ;
+	}
+	else {
+		for (x = 0 ; x < size ; ++x)
+		for (y = 0 ; y < size ; ++y)
+		for (z = 0 ; z < size ; ++z) {
+			distsq = (x-c)*(x-c) + (y-c)*(y-c) + (z-c)*(z-c) ;
+			if (distsq > rmaxsq)
+				dest[((x+c+1)%size)*size*size + ((y+c+1)%size)*size + ((z+c+1)%size)] = 0. ;
+			else
+				dest[((x+c+1)%size)*size*size + ((y+c+1)%size)*size + ((z+c+1)%size)]
+				  = source[x*size*size + y*size + z] ;
+		}
+	}
+}
+
+/* Shifts origin from (c,c,c) to (0,0,0) : Real-valued version
+ */
+void fft_shift_real(struct fft_data *self, float *dest, float complex *source, float rmax) {
+	long x, y, z, size = self->size, c = size/2 ;
+	float distsq, rmaxsq = rmax*rmax ;
+	
+	if (rmax < 0.) {
+		for (x = 0 ; x < size ; ++x)
+		for (y = 0 ; y < size ; ++y)
+		for (z = 0 ; z < size ; ++z)
+			dest[((x+c+1)%size)*size*size + ((y+c+1)%size)*size + ((z+c+1)%size)] = crealf(source[x*size*size + y*size + z]) ;
+	}
+	else {
+		for (x = 0 ; x < size ; ++x)
+		for (y = 0 ; y < size ; ++y)
+		for (z = 0 ; z < size ; ++z) {
+			distsq = (x-c)*(x-c) + (y-c)*(y-c) + (z-c)*(z-c) ;
+			if (distsq > rmaxsq)
+				dest[((x+c+1)%size)*size*size + ((y+c+1)%size)*size + ((z+c+1)%size)] = 0. ;
+			else
+				dest[((x+c+1)%size)*size*size + ((y+c+1)%size)*size + ((z+c+1)%size)]
+				  = crealf(source[x*size*size + y*size + z]) ;
+		}
+	}
+}
+
+/* Shifts origin from (c,c,c) to (0,0,0) : Absolute-valued version
+ */
+void fft_shift_abs(struct fft_data *self, float *dest, float complex *source, float rmax) {
+	long x, y, z, size = self->size, c = size/2 ;
+	float distsq, rmaxsq = rmax*rmax ;
+	
+	if (rmax < 0.) {
+		for (x = 0 ; x < size ; ++x)
+		for (y = 0 ; y < size ; ++y)
+		for (z = 0 ; z < size ; ++z)
+			dest[((x+c+1)%size)*size*size + ((y+c+1)%size)*size + ((z+c+1)%size)] = cabsf(source[x*size*size + y*size + z]) ;
+	}
+	else {
+		for (x = 0 ; x < size ; ++x)
+		for (y = 0 ; y < size ; ++y)
+		for (z = 0 ; z < size ; ++z) {
+			distsq = (x-c)*(x-c) + (y-c)*(y-c) + (z-c)*(z-c) ;
+			if (distsq > rmaxsq)
+				dest[((x+c+1)%size)*size*size + ((y+c+1)%size)*size + ((z+c+1)%size)] = 0. ;
+			else
+				dest[((x+c+1)%size)*size*size + ((y+c+1)%size)*size + ((z+c+1)%size)]
+				  = cabsf(source[x*size*size + y*size + z]) ;
+		}
+	}
+}
+
+/* Shifts origin from (0,0,0) to (c,c,c) : Complex version
+ */
+void fft_ishift_complex(struct fft_data *self, float complex *dest, float complex *source, float rmax) {
+	long x, y, z, size = self->size, c = size/2 ;
+	float distsq, rmaxsq = rmax*rmax ;
+	
+	if (rmax < 0.) {
+		for (x = 0 ; x < size ; ++x)
+		for (y = 0 ; y < size ; ++y)
+		for (z = 0 ; z < size ; ++z)
+			dest[((x+c)%size)*size*size + ((y+c)%size)*size + ((z+c)%size)] = source[x*size*size + y*size + z] ;
+	}
+	else {
+		for (x = 0 ; x < size ; ++x)
+		for (y = 0 ; y < size ; ++y)
+		for (z = 0 ; z < size ; ++z) {
+			distsq = (x-c)*(x-c) + (y-c)*(y-c) + (z-c)*(z-c) ;
+			if (distsq > rmaxsq)
+				dest[((x+c)%size)*size*size + ((y+c)%size)*size + ((z+c)%size)] = 0. ;
+			else
+				dest[((x+c)%size)*size*size + ((y+c)%size)*size + ((z+c)%size)]
+				  = source[x*size*size + y*size + z] ;
+		}
+	}
+}
+
+/* Shifts origin from (0,0,0) to (c,c,c) : Real-valued version
+ */
+void fft_ishift_real(struct fft_data *self, float *dest, float complex *source, float rmax) {
+	long x, y, z, size = self->size, c = size/2 ;
+	float distsq, rmaxsq = rmax*rmax ;
+	
+	if (rmax < 0.) {
+		for (x = 0 ; x < size ; ++x)
+		for (y = 0 ; y < size ; ++y)
+		for (z = 0 ; z < size ; ++z)
+			dest[((x+c)%size)*size*size + ((y+c)%size)*size + ((z+c)%size)] = crealf(source[x*size*size + y*size + z]) ;
+	}
+	else {
+		for (x = 0 ; x < size ; ++x)
+		for (y = 0 ; y < size ; ++y)
+		for (z = 0 ; z < size ; ++z) {
+			distsq = (x-c)*(x-c) + (y-c)*(y-c) + (z-c)*(z-c) ;
+			if (distsq > rmaxsq)
+				dest[((x+c)%size)*size*size + ((y+c)%size)*size + ((z+c)%size)] = 0. ;
+			else
+				dest[((x+c)%size)*size*size + ((y+c)%size)*size + ((z+c)%size)]
+				  = crealf(source[x*size*size + y*size + z]) ;
+		}
+	}
+}
+
+/* Shifts origin from (0,0,0) to (c,c,c) : Absolute-valued version
+ */
+void fft_ishift_abs(struct fft_data *self, float *dest, float complex *source, float rmax) {
+	long x, y, z, size = self->size, c = size/2 ;
+	float distsq, rmaxsq = rmax*rmax ;
+	
+	if (rmax < 0.) {
+		for (x = 0 ; x < size ; ++x)
+		for (y = 0 ; y < size ; ++y)
+		for (z = 0 ; z < size ; ++z)
+			dest[((x+c)%size)*size*size + ((y+c)%size)*size + ((z+c)%size)] = cabsf(source[x*size*size + y*size + z]) ;
+	}
+	else {
+		for (x = 0 ; x < size ; ++x)
+		for (y = 0 ; y < size ; ++y)
+		for (z = 0 ; z < size ; ++z) {
+			distsq = (x-c)*(x-c) + (y-c)*(y-c) + (z-c)*(z-c) ;
+			if (distsq > rmaxsq)
+				dest[((x+c)%size)*size*size + ((y+c)%size)*size + ((z+c)%size)] = 0. ;
+			else
+				dest[((x+c)%size)*size*size + ((y+c)%size)*size + ((z+c)%size)]
+				  = cabsf(source[x*size*size + y*size + z]) ;
+		}
+	}
+}
+
 void fft_free(struct fft_data* self) {
 	fftwf_destroy_plan(self->forward_plan) ;
 	fftwf_destroy_plan(self->inverse_plan) ;
