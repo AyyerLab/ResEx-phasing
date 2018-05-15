@@ -19,6 +19,8 @@ long get_size(char *vol_fname, size_t type_size) {
 	struct stat st ;
 	
 	stat(vol_fname, &st) ;
-	return round(pow(((double) st.st_size) / type_size, 1/3.)) ;
+	long size = round(pow(((double) st.st_size) / type_size, 1/3.)) ;
+	fprintf(stderr, "Calculated volume size = %ld\n", size) ;
+	return size ;
 }
 
