@@ -1,4 +1,4 @@
-#include "brcont.h"
+#include "algorithm.h"
 
 /* Fourier-space projection 
  * Makes model consistent with data. Modifies Fourier magnitudes and keeps

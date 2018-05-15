@@ -1,17 +1,5 @@
 #pragma once
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <string.h>
-#include <stdint.h>
-#include <float.h>
-#include <sys/time.h>
-#include <math.h>
-#include <complex.h>
-#include <gsl/gsl_rng.h>
-#include <omp.h>
-#include <sys/stat.h>
 #include "fft.h"
 #include "input.h"
 #include "volume.h"

@@ -1,4 +1,4 @@
-#include "brcont.h"
+#include "algorithm.h"
 
 int parse_args(int argc, char *argv[], char *config_fname) {
 	int c ;
