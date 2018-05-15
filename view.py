@@ -19,6 +19,9 @@ root = Tk.Tk()
 fig = plt.figure(figsize=(15,5))
 fig.subplots_adjust(left=0.0, bottom=0.00, right=0.99, wspace=0.0)
 mng = plt.get_current_fig_manager()
+s1 = fig.add_subplot(131)
+s2 = fig.add_subplot(132)
+s3 = fig.add_subplot(133)
 
 typestr = 'f4'
 typesize = 4
@@ -145,18 +148,15 @@ def plot_vol_slices(layernum):
             b = vol[:,layernum,:]    
             c = vol[:,:,layernum]
     
-    s1 = fig.add_subplot(131)
     s1.matshow(a, vmin=rangemin, vmax=rangemax, cmap=cmap)
-    plt.title("h = 0, YZ plane", y = 1.01)
-    plt.axis('off')
-    s2 = fig.add_subplot(132)
+    s1.set_title("h = 0, YZ plane", y = 1.01)
+    s1.axis('off')
     s2.matshow(b, vmin=rangemin, vmax=rangemax, cmap=cmap)
-    plt.title("k = 0, XZ plane", y = 1.01)
-    plt.axis('off')
-    s3 = fig.add_subplot(133)
+    s2.set_title("k = 0, XZ plane", y = 1.01)
+    s2.axis('off')
     s3.matshow(c, vmin=rangemin, vmax=rangemax, cmap=cmap)
-    plt.title("l = 0, XY plane", y = 1.01)
-    plt.axis('off')
+    s3.set_title("l = 0, XY plane", y = 1.01)
+    s3.axis('off')
     
     if flag.get() is 1:
         [a.remove() for a in list(set(s1.findobj(patches.Ellipse)))]
