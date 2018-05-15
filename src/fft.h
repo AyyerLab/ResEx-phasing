@@ -20,4 +20,6 @@ void fft_init(struct fft_data*, long, int) ;
 void fft_create_plans(struct fft_data*) ;
 void fft_gaussian_blur(struct fft_data*, float*, float) ;
 void fft_apply_shrinkwrap(struct fft_data*, float*, float, float, uint8_t*, char*) ;
+void fft_forward(struct fft_data*) ;
+void fft_inverse(struct fft_data*) ;
 void fft_free(struct fft_data*) ;

@@ -743,8 +743,8 @@ static void quat_free_mem(int num) {
 		free(cell_points) ;
 }
 
-int quat_gen(struct rotation *quat, int num_div) {
-	int r ;
+int quat_gen(struct rotation *quat, int num_div, double sigma) {
+	int r, num_rel = 0 ;
 	double min_dist2, total_weight = 0. ;
 	
 	make_vertex(num_div) ; 
@@ -770,11 +770,21 @@ int quat_gen(struct rotation *quat, int num_div) {
 	
 	quat_free_mem(num_div) ;
 	
-	for (r = 0 ; r < quat->num_rot ; ++r)
+	for (r = 0 ; r < quat->num_rot ; ++r) {
+		quat->quat[r*5 + 4] *= exp(-0.5*pow(quat->quat[r*5 + 4]/sigma, 2.f)) ;
 		total_weight += quat->quat[r*5 + 4] ;
+	}
 	total_weight = 1. / total_weight ;
-	for (r = 0 ; r < quat->num_rot ; ++r)
+	for (r = 0 ; r < quat->num_rot ; ++r) {
 		quat->quat[r*5 + 4] *= total_weight ;
+		if (quat->quat[r*5 + 4] > 0.1 / quat->num_rot)
+			num_rel++ ;
+		else
+			quat->quat[r*5 + 4] = -1. ;
+	}
+	
+	fprintf(stderr, "Number of relevant orientations = %d/%d\n", num_rel, quat->num_rot) ;
+	quat->num_rot = num_rel ;
 	
 	return quat->num_rot ;
 }

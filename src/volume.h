@@ -16,14 +16,14 @@ struct volume_data {
 	float *radavg, *radcount, *obs_radavg ;
 } ;
 
-void volume_init(struct volume_data*, long, char*) ;
+void volume_init(struct volume_data*, long) ;
 void volume_symmetrize_incoherent(struct volume_data*, float complex*, float*, float*) ;
 void volume_init_radavg(struct volume_data*) ;
 void volume_radial_average(struct volume_data*, float*, float*) ;
 void volume_rotational_blur(struct volume_data*, float*, float*, struct rotation*) ;
-void volume_accumulate(struct volume_data*, float*, float*, int) ;
 void volume_free(struct volume_data*) ;
 
+void volume_accumulate(float*, float*, long) ;
 void volume_dump_slices(float*, char*, long, int) ;
 void volume_dump_support_slices(uint8_t*, char*, long) ;
 float volume_positive_mode(float*, long) ;

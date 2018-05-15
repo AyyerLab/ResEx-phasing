@@ -12,7 +12,7 @@ struct rotation {
 	int icosahedral_flag ;
 } ;
 
-int quat_gen(struct rotation*, int) ;
+int quat_gen(struct rotation*, int, double) ;
 int quat_parse(struct rotation*, char*) ;
 void quat_divide(struct rotation*, int, int) ;
 void quat_free(struct rotation*) ;

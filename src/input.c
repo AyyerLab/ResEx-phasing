@@ -26,6 +26,7 @@ int input_parse_intens(struct input_data *self, char *fname, float scale) {
 	self->obs_mag = malloc(vol * sizeof(float)) ;
 	fread(intens, sizeof(float), vol, fp) ;
 	fclose(fp) ;
+	fprintf(stderr, "Scale factor = %f\n", scale) ;
 	
 	for (i = 0 ; i < s ; ++i)
 	for (j = 0 ; j < s ; ++j)
@@ -120,7 +121,69 @@ int input_parse_support(struct input_data *self, char *fname) {
 	return 0 ;
 }
 
-int input_read_histogram(struct input_data *self, char *fname, long num) {
+void input_init_iterate(struct input_data *self, char *fname, char *bg_fname, float *model, int do_bg_fitting) {
+	long i, size = self->size, vol = size*size*size ;
+	float val = sqrtf(vol) ;
+	struct timeval t1 ;
+	const gsl_rng_type *T ;
+	gsl_rng *r ;
+	FILE *fp ;
+	int do_random_model = 0, do_init_bg = 0 ;
+	
+	fp = fopen(fname, "rb") ;
+	if (fp == NULL) {
+		fprintf(stderr, "Random start") ;
+		do_random_model = 1 ;
+	}
+	else {
+		fprintf(stderr, "Starting from %s", fname) ;
+		fread(model, sizeof(float), vol, fp) ;
+		fclose(fp) ;
+	}
+	
+	if (do_bg_fitting) {
+		fp = fopen(bg_fname, "rb") ;
+		if (fp == NULL) {
+			fprintf(stderr, " and with uniform background\n") ;
+			do_init_bg = 1 ;
+		}
+		else {
+			fprintf(stderr, " with background from %s\n", fname) ;
+			fread(&(model[vol]), sizeof(float), vol, fp) ;
+			fclose(fp) ;
+		}
+	}
+	else {
+		fprintf(stderr, "\n") ;
+	}
+	
+	gsl_rng_env_setup() ;
+	T = gsl_rng_default ;
+	gettimeofday(&t1, NULL) ;
+	r = gsl_rng_alloc(T) ;
+	gsl_rng_set(r, t1.tv_sec + t1.tv_usec) ;
+	
+	if (do_random_model)
+		memset(model, 0, vol*sizeof(float)) ;
+	if (do_init_bg)
+		memset(&(model[vol]), 0, vol*sizeof(float)) ;
+	
+	if (do_random_model || do_init_bg) {
+		for (i = 0 ; i < vol ; ++i)
+		if (do_random_model && self->support[i])
+			model[i] = gsl_rng_uniform(r) ;
+		
+		if (do_bg_fitting) {
+			for (i = 0 ; i < vol ; ++i)
+			if (do_init_bg && self->obs_mag[i] > 0.)
+				model[vol+i] = val ;
+		}
+	}
+	
+	gsl_rng_free(r) ;
+}
+
+int input_read_histogram(struct input_data *self, char *fname) {
 	long m, i, num_hist ;
 	double frac, sum_hist ;
 	
@@ -147,12 +210,12 @@ int input_read_histogram(struct input_data *self, char *fname, long num) {
 	for (i = 0 ; i <= num_hist ; ++i)
 		cdf[i] /= sum_hist ;
 	
-	self->inverse_cdf = malloc(num * sizeof(float)) ;
+	self->inverse_cdf = malloc(self->num_supp * sizeof(float)) ;
 	self->inverse_cdf[0] = val[0] ;
 	
 	i = 1 ;
-	for (m = 1 ; m < num ; ++m) {
-		frac = (double) m / num ;
+	for (m = 1 ; m < self->num_supp ; ++m) {
+		frac = (double) m / self->num_supp ;
 		if (i == num_hist - 1)
 			self->inverse_cdf[m] = val[i] ;
 		else if (frac <= cdf[i])
@@ -167,7 +230,7 @@ int input_read_histogram(struct input_data *self, char *fname, long num) {
 	
 	/*
 	fp = fopen("data/inverse_cdf.raw", "wb") ; // Dump for debugging
-	fwrite(self->inverse_cdf, sizeof(float), num, fp) ;
+	fwrite(self->inverse_cdf, sizeof(float), self->num_supp, fp) ;
 	fclose(fp) ;
 	*/
 	
@@ -252,6 +315,32 @@ void input_update_support(struct input_data *self, float *model, long box_rad) {
 	memset(self->support, 0, vol*sizeof(uint8_t)) ;
 	for (i = 0 ; i < self->num_supp ; ++i)
 		self->support[self->local_variation[i].loc] = 1 ;
+}
+
+/* Match Bragg Fourier components
+ * sigma parameter allows for small distance from input value at each voxel
+ */
+void match_bragg(struct input_data *self, float complex *fdens, float delta) {
+	long i, size = self->size, vol = size*size*size ;
+	float complex temp ;
+	float mag ;
+	
+	if (delta == 0.f) {
+		for (i = 0 ; i < vol ; ++i)
+		if (self->bragg_calc[i] != FLT_MAX)
+			fdens[i] = self->bragg_calc[i] ;
+	}
+	else {
+		for (i = 0 ; i < vol ; ++i) 
+		if (self->bragg_calc[i] != FLT_MAX) {
+			temp = fdens[i] - self->bragg_calc[i] ;
+			mag = cabsf(temp) ;
+			if (mag < delta)
+				fdens[i] = self->bragg_calc[i] ;
+			else
+				fdens[i] = self->bragg_calc[i] + delta / mag * temp ;
+		}
+	}
 }
 
 void input_free(struct input_data *self) {

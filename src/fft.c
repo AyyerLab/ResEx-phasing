@@ -83,6 +83,14 @@ void fft_apply_shrinkwrap(struct fft_data *self, float *model, float blur, float
 	}
 }
 
+void fft_forward(struct fft_data *self) {
+	fftwf_execute(self->forward_plan) ;
+}
+
+void fft_inverse(struct fft_data *self) {
+	fftwf_execute(self->inverse_plan) ;
+}
+
 void fft_free(struct fft_data* self) {
 	fftwf_destroy_plan(self->forward_plan) ;
 	fftwf_destroy_plan(self->inverse_plan) ;

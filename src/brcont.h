@@ -1,4 +1,4 @@
-//#pragma once
+#pragma once
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,71 +9,50 @@
 #include <sys/time.h>
 #include <math.h>
 #include <complex.h>
-#include <fftw3.h>
 #include <gsl/gsl_rng.h>
 #include <omp.h>
 #include <sys/stat.h>
-
-int iter ;
-long size, vol, support_bounds[6] ;
-float *obs_mag, *exp_mag ;
-uint8_t *support ;
-fftwf_complex *fdensity, *rdensity ;
-float complex *bragg_calc ;
-fftwf_plan forward_plan, inverse_plan ;
-char output_prefix[999], point_group[999] ;
+#include "fft.h"
+#include "input.h"
+#include "volume.h"
 
 // Algorithm parameters
-int num_iter, num_avg_iter ;
-char (*algorithms)[8], (*avg_algorithms)[8] ;
-int *intrad ;
-double *radavg, *radcount, *obs_radavg ;
-float algorithm_beta ;
-float *algorithm_iterate, *algorithm_p1 ;
-float *algorithm_p2, *algorithm_r1, *algorithm_r2 ;
-int do_histogram, do_positivity, do_local_variation, do_normalize_prtf ;
+struct algorithm_data {
+	long size, vol, num_vox ;
+	char output_prefix[1024] ;
+	
+	// Other data structs
+	struct volume_data *volume ;
+	struct input_data *input ;
+	struct fft_data *fft ;
+	struct rotation *quat ;
+	
+	// Temporary arrays
+	float *exp_mag, *iterate ;
+	float *p1, *p2, *r1, *r2;
+	float *average_p1, *average_p2 ;
+	
+	// Algorithms per iterate
+	int num_iter, num_avg_iter ;
+	char (*algorithms)[8], (*avg_algorithms)[8] ;
+	
+	// Parameters
+	float beta ;
+	int do_histogram, do_positivity, do_local_variation ;
+	int do_blurring, do_bg_fitting, do_normalize_prtf ;
+} ;
 
-// Radial background fitting
-int do_bg_fitting ;
+// algorithm.c
+float DM_algorithm(struct algorithm_data*) ;
+float HIO_algorithm(struct algorithm_data*) ;
+float RAAR_algorithm(struct algorithm_data*) ;
+float mod_DM_algorithm(struct algorithm_data*) ;
+float ER_algorithm(struct algorithm_data*) ;
 
-// Histogram matching
-long num_supp, *supp_loc, *supp_index ;
-float *supp_val, *inverse_cdf ;
-
-// Support update
-float *shrinkwrap_kernel ;
-float *local_variation ;
-long *voxel_pos ;
-
-// Intensity blurring
-int do_blurring, num_rot ;
-double *quat ;
-
-// Functions
-// diffmap.c
-float DM_algorithm(float*) ;
-float HIO_algorithm(float*) ;
-float RAAR_algorithm(float*) ;
-float mod_DM_algorithm(float*) ;
-float ER_algorithm(float*) ;
-float modified_hio(float*) ;
-
-// setup.c
-int setup() ;
-int setup_gen() ;
-
-// utils.c
-void init_model(float*, int, int) ;
-void average_model(float*, float*) ;
-void calc_prtf(float*, float*, int) ;
-void symmetrize_incoherent(fftwf_complex*, float*, float*) ;
-void blur_intens(float*, float*) ;
-void apply_shrinkwrap(float*, float, float) ;
-void dump_slices(float*, char*, int) ;
-void dump_support_slices(uint8_t*, char*) ;
-void init_radavg() ;
-void radial_average(float*, float*) ;
-void match_histogram(float*, float*) ;
-float positive_mode(float*) ;
-void variation_support(float*, uint8_t*, long) ;
-void match_bragg(fftwf_complex*, float) ;
+void make_recon_folders(struct algorithm_data*) ;
+float run_iteration(struct algorithm_data*, int) ;
+void save_current(struct algorithm_data*, int, struct timeval, struct timeval, float) ;
+void save_output(struct algorithm_data*) ;
+int parse_algorithm_strings(struct algorithm_data*, char*, char*) ;
+void algorithm_allocate_memory(struct algorithm_data*) ;
+void calc_prtf(struct algorithm_data*, int) ;

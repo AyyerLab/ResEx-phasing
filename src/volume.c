@@ -1,8 +1,8 @@
 #include "volume.h"
 
-void volume_init(struct volume_data *self, long size, char *point_group) {
+void volume_init(struct volume_data *self, long size) {
 	self->size = size ;
-	strcpy(self->point_group, point_group) ;
+	fprintf(stderr, "Symmetrizing with point group: %s\n", self->point_group) ;
 
 	self->intrad = NULL ;
 	self->radavg = NULL ;
@@ -318,16 +318,6 @@ void volume_rotational_blur(struct volume_data *self, float *in, float *out, str
 	}
 }
 
-void volume_accumulate(struct volume_data *self, float *current, float *sum, int do_bg_fitting) {
-	long i, size = self->size, num_vox = size*size*size ;
-	
-	if (do_bg_fitting)
-		num_vox *= 2 ;
-	
-	for (i = 0 ; i < num_vox ; ++i)
-		sum[i] += current[i] ;
-}
-
 void volume_free(struct volume_data *self) {
 	if (self->intrad != NULL)
 		free(self->intrad) ;
@@ -337,6 +327,13 @@ void volume_free(struct volume_data *self) {
 		free(self->radcount) ;
 	if (self->obs_radavg != NULL)
 		free(self->obs_radavg) ;
+}
+
+void volume_accumulate(float *current, float *sum, long num_vox) {
+	long i ;
+	
+	for (i = 0 ; i < num_vox ; ++i)
+		sum[i] += current[i] ;
 }
 
 /* Save orthogonal central slices to file
