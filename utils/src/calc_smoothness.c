@@ -22,8 +22,8 @@ int main(int argc, char *argv[]) {
 	int num_bins, *radius, *angle, rad, ang ;
 	double binsize, *angcount, *angavg ;
 	double *cumulant, threshold, *cutoff ;
-	fftw_complex *fdensity, *rdensity ;
-	fftw_plan inverse ;
+	fftwf_complex *fdensity, *rdensity ;
+	fftwf_plan inverse ;
 	char fname[999] ;
 	FILE *fp ;
 	
@@ -47,9 +47,9 @@ int main(int argc, char *argv[]) {
 	angavg = calloc(3 * num_bins * 720, sizeof(double)) ;
 	cumulant = malloc((720 + 1) * sizeof(double)) ;
 	cutoff = calloc(num_bins, sizeof(double)) ;
-	rdensity = fftw_malloc(720 * sizeof(fftw_complex)) ;
-	fdensity = fftw_malloc(720 * sizeof(fftw_complex)) ;
-	inverse = fftw_plan_dft_1d(720, fdensity, rdensity, FFTW_BACKWARD, FFTW_ESTIMATE) ;
+	rdensity = fftwf_malloc(720 * sizeof(fftwf_complex)) ;
+	fdensity = fftwf_malloc(720 * sizeof(fftwf_complex)) ;
+	inverse = fftwf_plan_dft_1d(720, fdensity, rdensity, FFTW_BACKWARD, FFTW_ESTIMATE) ;
 	
 	// Read in model
 	fp = fopen(argv[1], "rb") ;
@@ -96,7 +96,7 @@ int main(int argc, char *argv[]) {
 		// FFT average
 		for (ang = 0 ; ang < 720 ; ++ang)
 			fdensity[ang] = angavg[n*num_bins*720 + rad*720 + ang] ;
-		fftw_execute(inverse) ;
+		fftwf_execute(inverse) ;
 		
 		// Accumulate shifted FFT
 		cumulant[0] = 0. ;
@@ -132,9 +132,9 @@ int main(int argc, char *argv[]) {
 	free(angavg) ;
 	free(cumulant) ;
 	free(cutoff) ;
-	fftw_destroy_plan(inverse) ;
-	fftw_free(rdensity) ;
-	fftw_free(fdensity) ;
+	fftwf_destroy_plan(inverse) ;
+	fftwf_free(rdensity) ;
+	fftwf_free(fdensity) ;
 	
 	return 0 ;
 }
