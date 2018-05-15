@@ -15,3 +15,10 @@ char* extract_fname(char* fullName) {
 			: fullName ;
 }
 
+long get_size(char *vol_fname, size_t type_size) {
+	struct stat st ;
+	
+	stat(vol_fname, &st) ;
+	return round(pow(((double) st.st_size) / type_size, 1/3.)) ;
+}
+
