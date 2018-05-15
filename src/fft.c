@@ -43,7 +43,7 @@ void fft_gaussian_blur(struct fft_data *self, float *model, float blur) {
 		self->rdensity[x] = model[x] ;
 	
 	// Blur density
-	fftwf_execute(self->forward_plan) ;
+	fft_forward(self) ;
 	
 	for (x = 0 ; x < size ; ++x)
 	for (y = 0 ; y < size ; ++y)
@@ -52,35 +52,37 @@ void fft_gaussian_blur(struct fft_data *self, float *model, float blur) {
 		self->fdensity[x*size*size + y*size + z] *= expf(-rsq / 2. / fblur / fblur) ;
 	}
 	
-	fftwf_execute(self->inverse_plan) ;
+	fft_inverse(self) ;
 	
 	for (x = 0 ; x < vol ; ++x)
 		model[x] = crealf(self->rdensity[x]) / vol ;
 }
 
-void fft_apply_shrinkwrap(struct fft_data *self, float *model, float blur, float threshold, uint8_t *support, char *fname) {
-	long x, size = self->size, vol = size*size*size ;
+long fft_apply_shrinkwrap(struct fft_data *self, float *model, float blur, float threshold, uint8_t *support, char *fname) {
+	long x, num_supp = 0, size = self->size, vol = size*size*size ;
 	FILE *fp ;
 	
+	// Blur model
 	fft_gaussian_blur(self, model, blur) ;
 	
 	// Apply threshold
 	for (x = 0 ; x < vol ; ++x)
-	if (model[x] > threshold)
+	if (model[x] > threshold) {
 		support[x] = 1 ;
-	else
+		num_supp++ ;
+	}
+	else {
 		support[x] = 0 ;
+	}
 	
 	if (fname != NULL) {
 		mkdir(dirname(fname), S_IRWXU|S_IRGRP|S_IROTH) ;
 		fp = fopen(fname, "wb") ;
 		fwrite(support, sizeof(uint8_t), vol, fp) ;
 		fclose(fp) ;
-		
-		//fp = fopen("data/smoothed.raw", "wb") ;
-		//fwrite(model, sizeof(float), vol, fp) ;
-		//fclose(fp) ;
 	}
+	
+	return num_supp ;
 }
 
 void fft_forward(struct fft_data *self) {
