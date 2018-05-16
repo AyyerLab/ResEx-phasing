@@ -3,14 +3,8 @@
 #include <math.h>
 #include <complex.h>
 #include <string.h>
-
-char* remove_ext(char *fullName) {
-	char *out = malloc(500 * sizeof(char)) ;
-	strcpy(out,fullName) ;
-	if (strrchr(out,'.') != NULL)
-		*strrchr(out,'.') = 0 ;
-	return out ;
-}
+#include "../../src/utils.h"
+#include "../../src/volume.h"
 
 int main(int argc, char *argv[]) {
 	long x, y, z, size, c, vol ;
@@ -19,16 +13,20 @@ int main(int argc, char *argv[]) {
 	float *intens ;
 	FILE *fp ;
 	char fname[999] ;
+	struct volume_data volume ;
+	strcpy(volume.point_group, "222") ;
 	
-	if (argc < 5) {
-		fprintf(stderr, "Format: %s <cpx_fname> <size> <voxres> <B-factor>\n", argv[0]) ;
+	if (argc < 4) {
+		fprintf(stderr, "Format: %s <cpx_fname> <voxres> <B-factor>\n", argv[0]) ;
 		fprintf(stderr, "\twhere <voxres> is the resolution at 1 pixel in Angstroms\n") ;
 		fprintf(stderr, "\tOptional: <point_group>. Currently support '222', '4', '1'\n") ;
 		return 1 ;
 	}
-	size = atoi(argv[2]) ;
-	voxres = atof(argv[3]) ;
-	bfac = atof(argv[4]) ;
+	size = get_size(argv[1], sizeof(float complex)) ;
+	voxres = atof(argv[2]) ;
+	bfac = atof(argv[3]) ;
+	if (argc > 4)
+		strcpy(volume.point_group, argv[4]) ;
 	
 	c = size / 2 ;
 	vol = size*size*size ;
@@ -62,33 +60,7 @@ int main(int argc, char *argv[]) {
 	
 	// Symmetrize intensities
 	intens = malloc(vol * sizeof(float)) ;
-	if (argc > 5 && strcmp(argv[5], "4") == 0) {
-		fprintf(stderr, "Symmetrizing by point group '4'\n") ;
-		for (x = 0 ; x < size ; ++x)
-		for (y = 0 ; y < size ; ++y)
-		for (z = 0 ; z < size ; ++z)
-			intens[x*size*size + y*size + z] = 0.25 * (powf(cabsf(model[x*size*size + y*size + z]), 2.f) +
-													 powf(cabsf(model[x*size*size + (2*c-z)*size + y]), 2.f) +
-													 powf(cabsf(model[x*size*size + (2*c-y)*size + (2*c-z)]), 2.f) +
-													 powf(cabsf(model[x*size*size + z*size + (2*c-y)]), 2.f)) ;
-	}
-	else if (argc > 5 && strcmp(argv[5], "1") == 0) {
-		fprintf(stderr, "Symmetrizing by point group '1'\n") ;
-		for (x = 0 ; x < size ; ++x)
-		for (y = 0 ; y < size ; ++y)
-		for (z = 0 ; z < size ; ++z)
-			intens[x*size*size + y*size + z] = powf(cabsf(model[x*size*size + y*size + z]), 2.f) ;
-	}
-	else {
-		fprintf(stderr, "Symmetrizing by point group '222'\n") ;
-		for (x = 0 ; x < size ; ++x)
-		for (y = 0 ; y < size ; ++y)
-		for (z = 0 ; z < size ; ++z)
-			intens[x*size*size + y*size + z] = 0.25 * (powf(cabsf(model[x*size*size + y*size + z]), 2.f) +
-													 powf(cabsf(model[x*size*size + y*size + (2*c-z)]), 2.f) +
-													 powf(cabsf(model[x*size*size + (2*c-y)*size + z]), 2.f) +
-													 powf(cabsf(model[x*size*size + (2*c-y)*size + (2*c-z)]), 2.f)) ;
-	}
+	volume_symmetrize_centered(&volume, model, intens) ;
 	
 	// Write symmetrized intensities to file
 	sprintf(fname, "%s-sharp-sym.raw", remove_ext(argv[1])) ;

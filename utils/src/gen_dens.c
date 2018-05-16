@@ -1,41 +1,32 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <complex.h>
-#include <omp.h>
 #include "../../src/fft.h"
-
-char* remove_ext(char *fullName) {
-	char *out = malloc(500 * sizeof(char)) ;
-	strcpy(out,fullName) ;
-	if (strrchr(out,'.') != NULL)
-		*strrchr(out,'.') = 0 ;
-	return out ;
-}
+#include "../../src/utils.h"
 
 int main(int argc, char *argv[]) {
-	long x, y, z, size, c, vol ;
-	float *temp, r_max = -1, dist ;
+	long i, size, vol ;
+	float *temp, r_max = -1 ;
 	FILE *fp ;
 	char fname[999] ;
+	struct fft_data fft ;
 	
-	if (argc < 3) {
-		fprintf(stderr, "Format: %s <cpx_fmodel> <size>\n", argv[0]) ;
+	if (argc < 2) {
+		fprintf(stderr, "Format: %s <cpx_fmodel>\n", argv[0]) ;
 		fprintf(stderr, "Optional: <out_fname>\n") ;
 		fprintf(stderr, "Second option: <r_max> cutoff radius\n") ;
 		return 1 ;
 	}
-	size = atoi(argv[2]) ;
-	c = size / 2 ;
+	size = get_size(argv[1], sizeof(float complex)) ;
 	vol = size*size*size ;
 	
-	if (argc > 4) {
-		r_max = atof(argv[4]) ;
+	if (argc > 2)
+		strcpy(fname, argv[2]) ;
+	else
+		sprintf(fname, "%s-dens.raw", remove_ext(argv[1])) ;
+	
+	if (argc > 3) {
+		r_max = atof(argv[3]) ;
 		fprintf(stderr, "Truncated to radius = %f\n", r_max) ;
 	}
 	
-	struct fft_data fft ;
 	fft_init(&fft, size, omp_get_max_threads()) ;
 	fft_create_plans(&fft) ;
 	
@@ -48,36 +39,17 @@ int main(int argc, char *argv[]) {
 	
 	// Shift coordinates such that origin is at the corner
 	// Also truncate to radius if specified
-	for (x = 0 ; x < size ; ++x)
-	for (y = 0 ; y < size ; ++y)
-	for (z = 0 ; z < size ; ++z) {
-		if (r_max < 0.)
-			fft.fdensity[((x+c+1)%size)*size*size + ((y+c+1)%size)*size + ((z+c+1)%size)]
-			  = fft.rdensity[x*size*size + y*size + z] ;
-		else {
-			dist = sqrtf((x-c)*(x-c) + (y-c)*(y-c) + (z-c)*(z-c)) ;
-			if (dist > r_max)
-				fft.fdensity[((x+c+1)%size)*size*size + ((y+c+1)%size)*size + ((z+c+1)%size)] = 0. ;
-			else
-				fft.fdensity[((x+c+1)%size)*size*size + ((y+c+1)%size)*size + ((z+c+1)%size)]
-				  = fft.rdensity[x*size*size + y*size + z] ;
-		}
-	}
+	fft_shift_complex(&fft, fft.fdensity, fft.rdensity, r_max) ;
 	
 	// Do inverse Fourier transform
 	fft_inverse(&fft) ;
 	
 	// Shift real space density such that it is in the center of the cube
-	for (x = 0 ; x < size ; ++x)
-	for (y = 0 ; y < size ; ++y)
-	for (z = 0 ; z < size ; ++z)
-		temp[((x+c)%size)*size*size + ((y+c)%size)*size + ((z+c)%size)]
-		  = crealf(fft.rdensity[x*size*size + y*size + z]) / vol ;
+	fft_ishift_real(&fft, temp, fft.rdensity, -1.) ;
+	for (i = 0 ; i < vol ; ++i)
+		temp[i] /= vol ;
 	
-	if (argc > 3)
-		strcpy(fname, argv[3]) ;
-	else
-		sprintf(fname, "%s-dens.raw", remove_ext(argv[1])) ;
+	fprintf(stderr, "Writing density to %s\n", fname) ;
 	fp = fopen(fname, "wb") ;
 	fwrite(temp, sizeof(float), vol, fp) ;
 	fclose(fp) ;

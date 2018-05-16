@@ -3,6 +3,7 @@
 #include <locale.h>
 #include <math.h>
 #include <locale.h>
+#include "../../src/utils.h"
 
 int main(int argc, char *argv[]) {
 	long x, y, z, size, c, vol, bin, num_bins, vox, *num_vox ;
@@ -10,11 +11,11 @@ int main(int argc, char *argv[]) {
 	float *obs_mag, *model_mag ;
 	FILE *fp ;
 	
-	if (argc < 4) {
-		fprintf(stderr, "Format: %s <sym_model_fname> <merge_fname> <size>\n", argv[0]) ;
+	if (argc < 3) {
+		fprintf(stderr, "Format: %s <sym_model_fname> <merge_fname>\n", argv[0]) ;
 		return 1 ;
 	}
-	size = atoi(argv[3]) ;
+	size = get_size(argv[1], sizeof(float)) ;
 	binsize = 2. ;
 	
 	setlocale(LC_ALL, "C") ; // For commas in large integers

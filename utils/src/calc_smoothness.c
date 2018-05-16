@@ -7,14 +7,7 @@
 #include <omp.h>
 #include <complex.h>
 #include <fftw3.h>
-
-char* remove_ext(char *fullName) {
-	char *out = malloc(500 * sizeof(char)) ;
-	strcpy(out,fullName) ;
-	if (strrchr(out,'.') != NULL)
-		*strrchr(out,'.') = 0 ;
-	return out ;
-}
+#include "../../src/utils.h"
 
 int main(int argc, char *argv[]) {
 	long size, i, j, n, vol, area, c ;
@@ -27,13 +20,17 @@ int main(int argc, char *argv[]) {
 	char fname[999] ;
 	FILE *fp ;
 	
-	if (argc < 4) {
-		fprintf(stderr, "Format: %s <intens_fname> <size> <radial_binsize>\n", argv[0]) ;
+	if (argc < 3) {
+		fprintf(stderr, "Format: %s <intens_fname> <radial_binsize>\n", argv[0]) ;
 		fprintf(stderr, "Optional: <output_fname>\n") ;
 		return 1 ;
 	}
-	size = atoi(argv[2]) ;
-	binsize = atof(argv[3]) ;
+	size = get_size(argv[1], sizeof(float)) ;
+	binsize = atof(argv[2]) ;
+	if (argc > 3)
+		strcpy(fname, argv[3]) ;
+	else
+		sprintf(fname, "%s-smoothness.dat", remove_ext(argv[1])) ;
 	vol = size*size*size ;
 	area = size*size ;
 	c = size / 2 ;
@@ -113,10 +110,6 @@ int main(int argc, char *argv[]) {
 		cutoff[rad] += 1. / 3. * (ang+1) / 720 ;
 	}
 	
-	if (argc > 4)
-		strcpy(fname, argv[4]) ;
-	else
-		sprintf(fname, "%s-smoothness.dat", remove_ext(argv[1])) ;
 	fprintf(stderr, "Writing output to %s\n", fname) ;
 	fp = fopen(fname, "w") ;
 	fprintf(fp, "Radius Cutoff\n") ;

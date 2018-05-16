@@ -1,25 +1,12 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <complex.h>
-#include <fftw3.h>
-
-char* remove_ext(char *fullName) {
-	char *out = malloc(500 * sizeof(char)) ;
-	strcpy(out,fullName) ;
-	if (strrchr(out,'.') != NULL)
-		*strrchr(out,'.') = 0 ;
-	return out ;
-}
+#include "../../src/utils.h"
+#include "../../src/fft.h"
 
 int main(int argc, char *argv[]) {
 	long x, y, z, i, size, c, vol ;
-	fftwf_complex *fdensity, *rdensity ;
 	float *recon, *temp ;
 	FILE *fp ;
 	char fname[999] ;
-	fftwf_plan forward ;
+	struct fft_data fft ;
 	
 	if (argc < 3) {
 		fprintf(stderr, "Averages a set of reconstructions in the results folder\n") ;
@@ -30,36 +17,15 @@ int main(int argc, char *argv[]) {
 	c = size / 2 ;
 	vol = size*size*size ;
 	
-	fftwf_init_threads() ;
-	fftwf_plan_with_nthreads(16) ;
+	fft_init(&fft, size, omp_get_max_threads()) ;
+	fft_create_plans(&fft) ;
 	
 	recon = malloc(vol * sizeof(float)) ;
-	rdensity = fftwf_malloc(vol * sizeof(fftwf_complex)) ;
-	fdensity = fftwf_malloc(vol * sizeof(fftwf_complex)) ;
 	temp = malloc(vol * sizeof(float)) ;
-	
-	// Parse FFTW wisdom
-	fp = fopen("data/wisdom_501_16", "rb") ;
-	if (fp == NULL) {
-		fprintf(stderr, "Measuring plans\n") ;
-		forward = fftwf_plan_dft_3d(size, size, size, rdensity, fdensity, FFTW_FORWARD, FFTW_MEASURE) ;
-		
-		fp = fopen("data/wisdom_501_16", "wb") ;
-		fftwf_export_wisdom_to_file(fp) ;
-		fclose(fp) ;
-	
-		fprintf(stderr, "Created plans\n") ;
-	}
-	else {
-		fftwf_import_wisdom_from_file(fp) ;
-		fclose(fp) ;
-		
-		forward = fftwf_plan_dft_3d(size, size, size, rdensity, fdensity, FFTW_FORWARD, FFTW_MEASURE) ;
-	}
 	
 	// Calculate mean real-space density
 	for (x = 0 ; x < vol ; ++x)
-		rdensity[x] = 0.f ;
+		fft.rdensity[x] = 0.f ;
 	
 	for (i = 1 ; i < argc ; ++i) {
 		sprintf(fname, "results/output_%.2d.raw", atoi(argv[i])) ;
@@ -68,13 +34,13 @@ int main(int argc, char *argv[]) {
 		fclose(fp) ;
 		
 		for (x = 0 ; x < vol ; ++x)
-			rdensity[x] += recon[x] ;
+			fft.rdensity[x] += recon[x] ;
 	}
 	
 	if (argc > 1)
 	for (x = 0 ; x < vol ; ++x) {
-		rdensity[x] /= (argc - 1) ;
-		temp[x] = crealf(rdensity[x]) ;
+		fft.rdensity[x] /= (argc - 1) ;
+		temp[x] = crealf(fft.rdensity[x]) ;
 	}
 	
 	// Write mean real-space density to file
@@ -83,13 +49,13 @@ int main(int argc, char *argv[]) {
 	fclose(fp) ;
 	
 	// Calculate mean Fourier intensity
-	fftwf_execute(forward) ;
+	fft_forward(&fft) ;
 	
 	for (x = 0 ; x < size ; ++x)
 	for (y = 0 ; y < size ; ++y)
 	for (z = 0 ; z < size ; ++z)
 		temp[((x+c)%size)*size*size + ((y+c)%size)*size + ((z+c)%size)]
-		  = powf(cabsf(fdensity[x*size*size + y*size + z]), 2.f) ;
+		  = powf(cabsf(fft.fdensity[x*size*size + y*size + z]), 2.f) ;
 	
 	fp = fopen("results/comb_foutput.raw", "wb") ;
 	fwrite(temp, sizeof(float), vol, fp) ;
@@ -97,9 +63,7 @@ int main(int argc, char *argv[]) {
 	
 	free(temp) ;
 	free(recon) ;
-	fftwf_free(fdensity) ;
-	fftwf_free(rdensity) ;
-	fftwf_destroy_plan(forward) ;
+	fft_free(&fft) ;
 	
 	return 0 ;
 }

@@ -1,23 +1,11 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <complex.h>
-#include <fftw3.h>
-#include <omp.h>
-
-char* remove_ext(char *fullName) {
-	char *out = malloc(500 * sizeof(char)) ;
-	strcpy(out,fullName) ;
-	if (strrchr(out,'.') != NULL)
-		*strrchr(out,'.') = 0 ;
-	return out ;
-}
+#include "../../src/utils.h"
+#include "../../src/fft.h"
 
 long factorial(long i) {
-	// Messy factorial function
 	if (i < 2)
 		return i ;
+	if (i > 10) // Using Sterling's approximation anyway
+		return -1 ;
 	return i*factorial(i - 1) ;
 }
 
@@ -26,51 +14,35 @@ int main(int argc, char *argv[]) {
 	float vox_size, qscale, sigma, gamma ;
 	double error, mean ;
 	float *radius, *intens, *autocorr ;
-	fftwf_complex *rdensity, *fdensity ;
-	fftwf_plan forward, inverse ;
 	FILE *fp ;
 	char fname[1024] ;
+	struct fft_data fft ;
 	
-	if (argc < 6) {
-		fprintf(stderr, "Format: %s <cpx_fname> <size> <res_at_edge> <sigma> <gamma>\n", argv[0]) ;
+	if (argc < 5) {
+		fprintf(stderr, "Format: %s <cpx_fname> <res_at_edge> <sigma> <gamma>\n", argv[0]) ;
 		fprintf(stderr, "<res_at_edge>, <sigma> and <gamma> have consistent length units\n") ;
 		return 1 ;
 	}
-	size = atoi(argv[2]) ;
+	size = get_size(argv[1], sizeof(float complex)) ;
 	c = size / 2 ;
 	vol = size*size*size ;
-	vox_size = atof(argv[3]) / 2. ;
+	vox_size = atof(argv[2]) / 2. ;
 	qscale = 1. / (2. * vox_size * c) ;
-	sigma = atof(argv[4]) ;
-	gamma = atof(argv[5]) ;
+	sigma = atof(argv[3]) ;
+	gamma = atof(argv[4]) ;
 
 	// Allocate memory and FFTW plans
-	rdensity = fftwf_malloc(vol * sizeof(fftwf_complex)) ;
-	fdensity = fftwf_malloc(vol * sizeof(fftwf_complex)) ;
+	fft_init(&fft, size, omp_get_max_threads()) ;
+	fprintf(stderr, "Initialized fft\n") ;
+	fft_create_plans(&fft) ;
+	fprintf(stderr, "Created plans\n") ;
 	autocorr = malloc(vol * sizeof(float)) ;
 	intens = calloc(vol, sizeof(float)) ;
 	radius = malloc(vol * sizeof(float)) ;
 	
-	fftwf_init_threads() ;
-	fftwf_plan_with_nthreads(32) ;
-	sprintf(fname, "data/wisdom_%ld_32", size) ;
-	fp = fopen(fname, "rb") ;
-	if (fp == NULL) {
-		forward = fftwf_plan_dft_3d(size, size, size, rdensity, fdensity, FFTW_FORWARD, FFTW_ESTIMATE) ;
-		inverse = fftwf_plan_dft_3d(size, size, size, fdensity, rdensity, FFTW_BACKWARD, FFTW_ESTIMATE) ;
-	}
-	else {
-		fprintf(stderr, "Reading wisdom from %s\n", fname) ;
-		fftwf_import_wisdom_from_file(fp) ;
-		fclose(fp) ;
-		
-		forward = fftwf_plan_dft_3d(size, size, size, rdensity, fdensity, FFTW_FORWARD, FFTW_MEASURE) ;
-		inverse = fftwf_plan_dft_3d(size, size, size, fdensity, rdensity, FFTW_BACKWARD, FFTW_MEASURE) ;
-	}
-
 	// Read complex Fourier amplitudes
 	fp = fopen(argv[1], "rb") ;
-	fread(rdensity, sizeof(fftwf_complex), vol, fp) ;
+	fread(fft.rdensity, sizeof(float complex), vol, fp) ;
 	fclose(fp) ;
 
 	// Calculate intensities and shift origin
@@ -78,19 +50,19 @@ int main(int argc, char *argv[]) {
 	for (x = 0 ; x < size ; ++x)
 	for (y = 0 ; y < size ; ++y)
 	for (z = 0 ; z < size ; ++z) {
-		fdensity[((x+c+1)%size)*size*size + ((y+c+1)%size)*size + ((z+c+1)%size)]
-		  = powf(cabsf(rdensity[x*size*size + y*size + z]), 2.f) ;
+		fft.fdensity[((x+c+1)%size)*size*size + ((y+c+1)%size)*size + ((z+c+1)%size)]
+		  = powf(cabsf(fft.rdensity[x*size*size + y*size + z]), 2.f) ;
 		radius[x*size*size + y*size + z] = sqrtf((x-c)*(x-c) + (y-c)*(y-c) + (z-c)*(z-c)) ;
-		mean += fdensity[((x+c+1)%size)*size*size + ((y+c+1)%size)*size + ((z+c+1)%size)] ;
+		mean += fft.fdensity[((x+c+1)%size)*size*size + ((y+c+1)%size)*size + ((z+c+1)%size)] ;
 	}
 
 	// Get ideal autocorrelation
-	fftwf_execute(inverse) ;
+	fft_inverse(&fft) ;
 	
 	for (x = 0 ; x < size ; ++x)
 	for (y = 0 ; y < size ; ++y)
 	for (z = 0 ; z < size ; ++z)
-		autocorr[((x+c)%size)*size*size + ((y+c)%size)*size + ((z+c)%size)] = crealf(rdensity[x*size*size + y*size + z]) / vol ;
+		autocorr[((x+c)%size)*size*size + ((y+c)%size)*size + ((z+c)%size)] = crealf(fft.rdensity[x*size*size + y*size + z]) / vol ;
 
 	// Calculate modified intensities
 	fprintf(stderr, "Starting convolutions\n") ;
@@ -111,12 +83,12 @@ int main(int argc, char *argv[]) {
 			for (z = 0 ; z < size ; ++z) {
 				vox = x*size*size + y*size + z ;
 				exponent = n * radius[vox] * vox_size / gamma ;
-				rdensity[((x+c+1)%size)*size*size + ((y+c+1)%size)*size + ((z+c+1)%size)]
+				fft.rdensity[((x+c+1)%size)*size*size + ((y+c+1)%size)*size + ((z+c+1)%size)]
 				  = autocorr[vox] * expf(-exponent) ;
 			}
 			
 			if (omp_rank == 0) {
-				fftwf_execute(forward) ;
+				fft_forward(&fft) ;
 				fac = factorial(n) ;
 				error = 0. ;
 			}
@@ -129,11 +101,11 @@ int main(int argc, char *argv[]) {
 				vox = x*size*size + y*size + z ;
 				exponent = powf(2. * M_PI * sigma * radius[vox] * qscale, 2.f) ;
 				if (n < 10) {
-					diff = cabs(fdensity[((x+c+1)%size)*size*size + ((y+c+1)%size)*size + ((z+c+1)%size)]) *
+					diff = cabs(fft.fdensity[((x+c+1)%size)*size*size + ((y+c+1)%size)*size + ((z+c+1)%size)]) *
 						   pow(exponent, n) / fac * exp(-exponent) ;
 				}
 				else { // Stirling's approximation for n >= 10
-					diff = log(cabs(fdensity[((x+c+1)%size)*size*size + ((y+c+1)%size)*size + ((z+c+1)%size)])) +
+					diff = log(cabs(fft.fdensity[((x+c+1)%size)*size*size + ((y+c+1)%size)*size + ((z+c+1)%size)])) +
 						   n*log(exponent) - (log(2.*M_PI*n)/2 + n*log(n) - n) - exponent ;
 					diff = exp(diff) ;
 				}
@@ -166,8 +138,7 @@ int main(int argc, char *argv[]) {
 	fclose(fp) ;
 
 	// Free memory
-	free(rdensity) ;
-	free(fdensity) ;
+	fft_free(&fft) ;
 	free(autocorr) ;
 	free(intens) ;
 	free(radius) ;

@@ -1,14 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-char* remove_ext(char *fullName) {
-	char *out = malloc(500 * sizeof(char)) ;
-	strcpy(out,fullName) ;
-	if (strrchr(out,'.') != NULL)
-		*strrchr(out,'.') = 0 ;
-	return out ;
-}
+#include "../../src/utils.h"
 
 int main(int argc, char *argv[]) {
 	long x, y, z, s, size, red_size, factor ;
@@ -17,16 +10,19 @@ int main(int argc, char *argv[]) {
 	char fname[500] ;
 	FILE *fp  ;
 	
-	if (argc < 4) {
-		fprintf(stderr, "Format: %s <model_fname> <orig_size> <shrink_factor>\n", argv[0]) ;
+	if (argc < 3) {
+		fprintf(stderr, "Format: %s <model_fname> <shrink_factor>\n", argv[0]) ;
 		fprintf(stderr, "Optional: <out_fname>\n") ;
 		return 1 ;
 	}
-	size = strtol(argv[2], NULL, 10) ;
-	factor = strtol(argv[3], NULL, 10) ;
+	size = get_size(argv[1], sizeof(float)) ;
+	factor = strtol(argv[2], NULL, 10) ;
 	red_size = (size / (2 * factor)) * 2 + 1 ;
-	
-	fprintf(stderr, "red_size = %ld\n", red_size) ;
+	fprintf(stderr, "Reduced size = %ld\n", red_size) ;
+	if (argc > 3)
+		strcpy(fname, argv[3]) ;
+	else
+		sprintf(fname, "%s_%ld.raw", remove_ext(argv[1]), red_size) ;
 	
 	row = malloc(size * sizeof(float)) ;
 	model = calloc(red_size*red_size*red_size, sizeof(float)) ;
@@ -62,10 +58,6 @@ int main(int argc, char *argv[]) {
 			model[x] = -1. ;
 	}
 	
-	if (argc > 4)
-		strcpy(fname, argv[4]) ;
-	else
-		sprintf(fname, "%s_%ld.raw", remove_ext(argv[1]), red_size) ;
 	fp = fopen(fname, "wb") ;
 	fwrite(model, sizeof(float), red_size*red_size*red_size, fp) ;
 	fclose(fp) ;

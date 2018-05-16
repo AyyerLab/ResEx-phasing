@@ -3,14 +3,7 @@
 #include <string.h>
 #include <math.h>
 #include <complex.h>
-
-char* remove_ext(char *fullName) {
-	char *out = malloc(500 * sizeof(char)) ;
-	strcpy(out,fullName) ;
-	if (strrchr(out,'.') != NULL)
-		*strrchr(out,'.') = 0 ;
-	return out ;
-}
+#include "../../src/utils.h"
 
 int main(int argc, char *argv[]) {
 	long x, y, z, ix, iy, iz ;
@@ -21,21 +14,21 @@ int main(int argc, char *argv[]) {
 	FILE *fp ;
 	char fname[999] ;
 	
-	if (argc < 7) {
-		fprintf(stderr, "Format: %s <model_fname> <size> <fsize> <fx> <fy> <fz>\n", argv[0]) ;
+	if (argc < 6) {
+		fprintf(stderr, "Format: %s <model_fname> <fsize> <fx> <fy> <fz>\n", argv[0]) ;
 		fprintf(stderr, "Optional: <out_fname>\n") ;
 		return 1 ;
 	}
 	
-	size = atoi(argv[2]) ;
-	fsize = atoi(argv[3]) ;
-	f[0] = atof(argv[4]) ;
-	f[1] = atof(argv[5]) ;
-	f[2] = atof(argv[6]) ;
+	size = get_size(argv[1], sizeof(float complex)) ;
+	fsize = atoi(argv[2]) ;
+	f[0] = atof(argv[3]) ;
+	f[1] = atof(argv[4]) ;
+	f[2] = atof(argv[5]) ;
 	
 	sprintf(fname, "%s_str_%ld.cpx", remove_ext(argv[1]), fsize) ;
-	if (argc > 7)
-		strcpy(fname, argv[7]) ;
+	if (argc > 6)
+		strcpy(fname, argv[6]) ;
 	
 	vol = size*size*size ;
 	fvol = fsize*fsize*fsize ;

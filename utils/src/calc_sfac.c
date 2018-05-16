@@ -4,16 +4,9 @@
 #include <gsl/gsl_sf.h>
 #include <math.h>
 #include <omp.h>
+#include "../../src/utils.h"
 
 long size ;
-
-char* remove_ext(char *fullName) {
-	char *out = malloc(500 * sizeof(char)) ;
-	strcpy(out,fullName) ;
-	if (strrchr(out,'.') != NULL)
-		*strrchr(out,'.') = 0 ;
-	return out ;
-}
 
 long calc_bin(long x, long y, long z) {
 	return (long) sqrt(x*x + y*y + z*z) ;
@@ -52,12 +45,16 @@ int main(int argc, char *argv[]) {
 	char fname[999] ;
 	FILE *fp ;
 	
-	if (argc < 4) {
-		fprintf(stderr, "Format: %s <intens_fname> <sigma_fname> <size>\n", argv[0]) ;
+	if (argc < 3) {
+		fprintf(stderr, "Format: %s <intens_fname> <sigma_fname>\n", argv[0]) ;
 		fprintf(stderr, "Optional: <output_fname>\n") ;
 		return 1 ;
 	}
-	size = atoi(argv[3]) ;
+	size = get_size(argv[1], sizeof(float)) ;
+	if (argc > 3)
+		strcpy(fname, argv[3]) ;
+	else
+		sprintf(fname, "%s-sfac.raw", remove_ext(argv[1])) ;
 	vol = size*size*size ;
 	center = size / 2 ;
 	
@@ -122,10 +119,6 @@ int main(int argc, char *argv[]) {
 	}
 	fprintf(stderr, "\n") ;
 	
-	if (argc > 4)
-		strcpy(fname, argv[4]) ;
-	else
-		sprintf(fname, "%s-sfac.raw", remove_ext(argv[1])) ;
 	fprintf(stderr, "Writing output to %s\n", fname) ;
 	fp = fopen(fname, "wb") ;
 	fwrite(intens, sizeof(float), vol, fp) ;

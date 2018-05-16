@@ -4,14 +4,7 @@
 #include <string.h>
 #include <omp.h>
 #include <stdint.h>
-
-char* remove_ext(char *fullName) {
-	char *out = malloc(500 * sizeof(char)) ;
-	strcpy(out,fullName) ;
-	if (strrchr(out,'.') != NULL)
-		*strrchr(out,'.') = 0 ;
-	return out ;
-}
+#include "../../src/utils.h"
 
 void make_rot(double phi, double rot[3][3]) {
 	double c = cos(phi) ;

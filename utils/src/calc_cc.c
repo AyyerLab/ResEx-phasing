@@ -4,13 +4,7 @@
 #include <complex.h>
 #include <string.h>
 #include <omp.h>
-
-char* extract_fname(char* fullName) {
-	return 
-		strrchr(fullName,'/') != NULL
-			? strrchr(fullName,'/') + 1
-			: fullName ;
-}
+#include "../../src/utils.h"
 
 int main(int argc, char *argv[]) {
 	long x, y, z, size, c, vol, num_bins, vox, *numvox ;
@@ -21,19 +15,30 @@ int main(int argc, char *argv[]) {
 	FILE *fp ;
 	char fname[999] ;
 
-	if (argc < 5) {
-		fprintf(stderr, "Format: %s <intens1> <intens2> <size> <res_at_edge>\n", argv[0]) ;
+	if (argc < 4) {
+		fprintf(stderr, "Format: %s <intens1> <intens2> <res_at_edge>\n", argv[0]) ;
 		fprintf(stderr, "Optional: <cc_fname>\n") ;
 		return 1 ;
 	}
-	size = atoi(argv[3]) ;
-	d_min = atof(argv[4]) ;
+	size = get_size(argv[1], sizeof(float)) ;
+	d_min = atof(argv[3]) ;
+	if (argc > 4) {
+		strcpy(fname, argv[4]) ;
+	}
+	else {
+		sprintf(fname, "%s", extract_fname(argv[1])) ;
+		strtok(fname, "_.") ;
+		int num1 = atoi(strtok(NULL, "_.")) ;
+		sprintf(fname, "%s", extract_fname(argv[2])) ;
+		strtok(fname, "_.") ;
+		int num2 = atoi(strtok(NULL, "_.")) ;
+		sprintf(fname, "cc-%d-%d.dat", num1, num2) ;
+	}
+	
 	vol = size*size*size ;
 	c = size / 2 ;
 	binsize = 1. ;
 	num_bins = ceil(c / binsize) + 1 ;
-	//num_bins = 150 ;
-	//binsize = ((double) c) / num_bins ;
 	fprintf(stderr, "Model size = %ld, num_bins = %ld\n", size, num_bins) ;
 
 	// Allocate memory
@@ -56,7 +61,7 @@ int main(int argc, char *argv[]) {
 	fread(intens2, sizeof(float), vol, fp) ;
 	fclose(fp) ;
 
-	// Substract radial averages
+	// Subtract radial averages
 	for (x = 0 ; x < size ; ++x)
 	for (y = 0 ; y < size ; ++y)
 	for (z = 0 ; z < size ; ++z) {
@@ -98,19 +103,6 @@ int main(int argc, char *argv[]) {
 		cc[x] /= sqrt(norm1[x] * norm2[x]) ;
 
 	// Write to file
-	if (argc > 5) {
-		strcpy(fname, argv[5]) ;
-	}
-	else {
-		sprintf(fname, "%s", extract_fname(argv[1])) ;
-		strtok(fname, "_.") ;
-		int num1 = atoi(strtok(NULL, "_.")) ;
-		sprintf(fname, "%s", extract_fname(argv[2])) ;
-		strtok(fname, "_.") ;
-		int num2 = atoi(strtok(NULL, "_.")) ;
-		sprintf(fname, "cc-%d-%d.dat", num1, num2) ;
-	}
-	
 	fprintf(stderr, "Writing to %s\n", fname) ;
 	fp = fopen(fname, "w") ;
 	for (x = 0 ; x < num_bins ; ++x)
