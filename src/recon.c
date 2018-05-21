@@ -31,14 +31,14 @@ int setup(struct algorithm_data *self, char *config_fname) {
 	float scale_factor = 0. ;
 	int num_threads = -1, num_div = -1 ;
 	long size = 0 ;
+	self->volume = malloc(sizeof(struct volume_data)) ;
+	self->input = malloc(sizeof(struct input_data)) ;
+	self->fft = malloc(sizeof(struct fft_data)) ;
+	self->quat = malloc(sizeof(struct rotation)) ;
 	struct volume_data *volume = self->volume ;
 	struct input_data *input = self->input ;
 	struct fft_data *fft = self->fft ;
 	struct rotation *quat = self->quat ;
-	volume = malloc(sizeof(struct volume_data)) ;
-	input = malloc(sizeof(struct input_data)) ;
-	fft = malloc(sizeof(struct fft_data)) ;
-	quat = malloc(sizeof(struct rotation)) ;
 	
 	self->output_prefix[0] = '\0' ;
 	strcpy(volume->point_group, "222") ;
@@ -139,6 +139,7 @@ int setup(struct algorithm_data *self, char *config_fname) {
 	omp_set_num_threads(num_threads) ;
 	
 	fft_init(fft, size, num_threads) ;
+	fft_create_plans(fft) ;
 	input_init(input, size) ;
 	volume_init(volume, size) ;
 	
