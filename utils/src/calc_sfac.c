@@ -39,7 +39,7 @@ float calc_sfac(float a, int n) {
 }
 
 int main(int argc, char *argv[]) {
-	long x, y, z, center, vol, i, bin ;
+	long center, vol, i ;
 	float *intens, *sigma, *alpha, *radavg ;
 	int num_twin = 4 ; // TODO Make general
 	char fname[999] ;
@@ -75,9 +75,10 @@ int main(int argc, char *argv[]) {
 	fprintf(stderr, "Calculated radial average\n") ;
 	
 	alpha = calloc(vol, sizeof(float)) ;
-	#pragma omp parallel default(shared) private(x,y,z,i,bin)
+	#pragma omp parallel default(shared) private(i)
 	{
 		int rank = omp_get_thread_num() ;
+		long x, y, z, bin ;
 		
 		#pragma omp for schedule(static,1)
 		for (x = 0 ; x < size ; ++x)

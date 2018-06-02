@@ -92,6 +92,7 @@ int main(int argc, char *argv[]) {
 				dot[1*num_bins + bin], num_vox[1*num_bins + bin],
 				dot[2*num_bins + bin], num_vox[2*num_bins + bin]) ;
 	}
+	fclose(fp) ;
 	
 	// Free memory
 	free(model_mag) ;

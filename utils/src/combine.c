@@ -37,7 +37,6 @@ int main(int argc, char *argv[]) {
 			fft.rdensity[x] += recon[x] ;
 	}
 	
-	if (argc > 1)
 	for (x = 0 ; x < vol ; ++x) {
 		fft.rdensity[x] /= (argc - 1) ;
 		temp[x] = crealf(fft.rdensity[x]) ;

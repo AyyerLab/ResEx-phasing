@@ -42,12 +42,10 @@ void calc_radavg(float *model, int *rad, long *count, float *avg) {
 
 void calc_radial_properties(float *model, int *rad, long *count, float *avg, float *min, float *max) {
 	long x, vol = size*size*size ;
-	int bin ;
-	float val ;
 	
 	for (x = 0 ; x < vol ; ++x) {
-		val = model[x] ;
-		bin = rad[x] ;
+		float val = model[x] ;
+		int bin = rad[x] ;
 		avg[bin] += val ;
 		if (val < min[bin])
 			min[bin] = val ;
@@ -84,7 +82,7 @@ int main(int argc, char *argv[]) {
 	float *radavg, *radsqavg, *radmax, *radmin ;
 	int num_bins, *radius, num_histbins = 100 ;
 	long *radcount ;
-	double binsize, *histograms, hist_binsize, p_normal, norm_factor ;
+	double binsize, *histograms, p_normal ;
 	char fname[999] ;
 	FILE *fp ;
 	
@@ -149,8 +147,8 @@ int main(int argc, char *argv[]) {
 	
 	// Calculate KL divergence between Gaussian and measured histogram
 	for (i = 0 ; i < num_bins ; ++i) {
-		norm_factor = 1. / sqrt(2. * M_PI) / sigma[i] ;
-		hist_binsize = (radmax[i] - radmin[i]) / num_histbins ;
+		double norm_factor = 1. / sqrt(2. * M_PI) / sigma[i] ;
+		double hist_binsize = (radmax[i] - radmin[i]) / num_histbins ;
 		
 		for (j = 0 ; j < num_histbins ; ++j) {
 			p_normal = norm_factor * exp(-pow(radmin[i] + j*hist_binsize + 0.5*hist_binsize - radavg[i], 2.) / (2. * sigma[i] * sigma[i])) ;
@@ -184,8 +182,15 @@ int main(int argc, char *argv[]) {
 	fclose(fp) ;
 	
 	free(intens) ;
+	free(radius) ;
+	free(radmax) ;
+	free(radmin) ;
+	free(radcount) ;
 	free(radavg) ;
 	free(radsqavg) ;
+	free(sigma) ;
+	free(kl_div) ;
+	free(histograms) ;
 	
 	return 0 ;
 }

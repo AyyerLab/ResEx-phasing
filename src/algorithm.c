@@ -78,7 +78,7 @@ static void proj_fourier(struct algorithm_data *self, float *in, float *out) {
  * Can be applied in-place (out = in)
  */
 static void proj_direct(struct algorithm_data *self, float *in, float *out) {
-	long i, vol = self->vol ;
+	long vol = self->vol ;
 	struct volume_data *volume = self->volume ;
 	struct input_data *input = self->input ;
 	
@@ -89,6 +89,7 @@ static void proj_direct(struct algorithm_data *self, float *in, float *out) {
 		input_match_histogram(input, in, out) ;
 	}
 	else {
+		long i ;
 		for (i = 0 ; i < vol ; ++i)
 			out[i] = in[i] * input->support[i] ;
 		
@@ -110,7 +111,7 @@ static void proj_direct(struct algorithm_data *self, float *in, float *out) {
  */
 float DM_algorithm(struct algorithm_data *self) {
 	long i ;
-	float diff, change = 0. ;
+	float change = 0. ;
 	
 	proj_fourier(self, self->iterate, self->p1) ;
 	if (self->beta != 1.)
@@ -127,7 +128,7 @@ float DM_algorithm(struct algorithm_data *self) {
 		proj_fourier(self, self->r2, self->p1) ;
 	
 	for (i = 0 ; i < self->num_vox ; ++i) {
-		diff = self->beta * (self->p2[i] - self->p1[i]) ;
+		float diff = self->beta * (self->p2[i] - self->p1[i]) ;
 		self->iterate[i] += diff ;
 		if (i < self->vol)
 			change += diff*diff ;
@@ -144,7 +145,7 @@ float DM_algorithm(struct algorithm_data *self) {
  */
 float mod_DM_algorithm(struct algorithm_data *self) {
 	long i ;
-	float diff, change = 0. ;
+	float change = 0. ;
 	
 	if (self->beta != 1.) {
 		proj_fourier(self, self->iterate, self->p1) ;
@@ -161,7 +162,7 @@ float mod_DM_algorithm(struct algorithm_data *self) {
 	proj_fourier(self, self->r1, self->p1) ;
 	
 	for (i = 0 ; i < self->num_vox ; ++i) {
-		diff = self->p1[i] - self->p2[i] ;
+		float diff = self->p1[i] - self->p2[i] ;
 		self->iterate[i] += diff ;
 		if (i < self->vol)
 			change += diff*diff ;
@@ -181,7 +182,7 @@ float mod_DM_algorithm(struct algorithm_data *self) {
  */
 float RAAR_algorithm(struct algorithm_data *self) {
 	long i ;
-	float diff, change = 0. ;
+	float change = 0. ;
 	
 	proj_fourier(self, self->iterate, self->p1) ;
 	
@@ -194,7 +195,7 @@ float RAAR_algorithm(struct algorithm_data *self) {
 	proj_direct(self, self->r1, self->p2) ;
 	
 	for (i = 0 ; i < self->num_vox ; ++i) {
-		diff = (self->beta - 1.) * self->iterate[i] + self->beta * (self->r2[i] + self->p2[i]) + (1. - 2. * self->beta) * self->p1[i] ;
+		float diff = (self->beta - 1.) * self->iterate[i] + self->beta * (self->r2[i] + self->p2[i]) + (1. - 2. * self->beta) * self->p1[i] ;
 		self->iterate[i] += diff ;
 		if (i < self->vol)
 			change += diff*diff ;
@@ -210,7 +211,7 @@ float RAAR_algorithm(struct algorithm_data *self) {
  */
 float HIO_algorithm(struct algorithm_data *self) {
 	long i ;
-	float diff, change = 0. ;
+	float change = 0. ;
 	
 	proj_fourier(self, self->iterate, self->p1) ;
 	
@@ -220,7 +221,7 @@ float HIO_algorithm(struct algorithm_data *self) {
 	proj_direct(self, self->r1, self->p2) ;
 	
 	for (i = 0 ; i < self->num_vox ; ++i) {
-		diff = self->beta * (self->p2[i] - self->p1[i]) ;
+		float diff = self->beta * (self->p2[i] - self->p1[i]) ;
 		self->iterate[i] += diff ;
 		if (i < self->vol)
 			change += diff*diff ;
@@ -236,7 +237,7 @@ float HIO_algorithm(struct algorithm_data *self) {
  */
 float ER_algorithm(struct algorithm_data *self) {
 	long i ;
-	float diff, change = 0. ;
+	float change = 0. ;
 	
 	proj_fourier(self, self->iterate, self->p1) ;
 	proj_direct(self, self->p1, self->p2) ;
@@ -244,7 +245,7 @@ float ER_algorithm(struct algorithm_data *self) {
 	for (i = 0 ; i < self->num_vox ; ++i) {
 		self->iterate[i] = self->p2[i] ;
 		if (i < self->vol) {
-			diff = self->p2[i] - self->p1[i] ;
+			float diff = self->p2[i] - self->p1[i] ;
 			change += diff*diff ;
 		}
 	}

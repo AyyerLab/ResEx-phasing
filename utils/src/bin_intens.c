@@ -78,6 +78,7 @@ int main(int argc, char *argv[]) {
 	fwrite(temp, sizeof(float), red_size*red_size*red_size, fp) ;
 	fclose(fp) ;
 	
+	free(temp) ;
 	free(counts) ;
 	free(model) ;
 	free(row) ;

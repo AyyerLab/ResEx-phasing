@@ -60,7 +60,6 @@ void fft_gaussian_blur(struct fft_data *self, float *model, float blur) {
 
 long fft_apply_shrinkwrap(struct fft_data *self, float *model, float blur, float threshold, uint8_t *support, char *fname) {
 	long x, num_supp = 0, size = self->size, vol = size*size*size ;
-	FILE *fp ;
 	
 	// Blur model
 	fft_gaussian_blur(self, model, blur) ;
@@ -77,7 +76,7 @@ long fft_apply_shrinkwrap(struct fft_data *self, float *model, float blur, float
 	
 	if (fname != NULL) {
 		mkdir(dirname(fname), S_IRWXU|S_IRGRP|S_IROTH) ;
-		fp = fopen(fname, "wb") ;
+		FILE *fp = fopen(fname, "wb") ;
 		fwrite(support, sizeof(uint8_t), vol, fp) ;
 		fclose(fp) ;
 	}
@@ -97,7 +96,7 @@ void fft_inverse(struct fft_data *self) {
  */
 void fft_shift_complex(struct fft_data *self, float complex *dest, float complex *source, float rmax) {
 	long x, y, z, size = self->size, c = size/2 ;
-	float distsq, rmaxsq = rmax*rmax ;
+	float rmaxsq = rmax*rmax ;
 	
 	if (rmax < 0.) {
 		for (x = 0 ; x < size ; ++x)
@@ -109,6 +108,7 @@ void fft_shift_complex(struct fft_data *self, float complex *dest, float complex
 		for (x = 0 ; x < size ; ++x)
 		for (y = 0 ; y < size ; ++y)
 		for (z = 0 ; z < size ; ++z) {
+			float distsq ;
 			distsq = (x-c)*(x-c) + (y-c)*(y-c) + (z-c)*(z-c) ;
 			if (distsq > rmaxsq)
 				dest[((x+c+1)%size)*size*size + ((y+c+1)%size)*size + ((z+c+1)%size)] = 0. ;
@@ -123,7 +123,7 @@ void fft_shift_complex(struct fft_data *self, float complex *dest, float complex
  */
 void fft_shift_real(struct fft_data *self, float *dest, float complex *source, float rmax) {
 	long x, y, z, size = self->size, c = size/2 ;
-	float distsq, rmaxsq = rmax*rmax ;
+	float rmaxsq = rmax*rmax ;
 	
 	if (rmax < 0.) {
 		for (x = 0 ; x < size ; ++x)
@@ -135,6 +135,7 @@ void fft_shift_real(struct fft_data *self, float *dest, float complex *source, f
 		for (x = 0 ; x < size ; ++x)
 		for (y = 0 ; y < size ; ++y)
 		for (z = 0 ; z < size ; ++z) {
+			float distsq ;
 			distsq = (x-c)*(x-c) + (y-c)*(y-c) + (z-c)*(z-c) ;
 			if (distsq > rmaxsq)
 				dest[((x+c+1)%size)*size*size + ((y+c+1)%size)*size + ((z+c+1)%size)] = 0. ;
@@ -149,7 +150,7 @@ void fft_shift_real(struct fft_data *self, float *dest, float complex *source, f
  */
 void fft_shift_abs(struct fft_data *self, float *dest, float complex *source, float rmax) {
 	long x, y, z, size = self->size, c = size/2 ;
-	float distsq, rmaxsq = rmax*rmax ;
+	float rmaxsq = rmax*rmax ;
 	
 	if (rmax < 0.) {
 		for (x = 0 ; x < size ; ++x)
@@ -161,6 +162,7 @@ void fft_shift_abs(struct fft_data *self, float *dest, float complex *source, fl
 		for (x = 0 ; x < size ; ++x)
 		for (y = 0 ; y < size ; ++y)
 		for (z = 0 ; z < size ; ++z) {
+			float distsq ;
 			distsq = (x-c)*(x-c) + (y-c)*(y-c) + (z-c)*(z-c) ;
 			if (distsq > rmaxsq)
 				dest[((x+c+1)%size)*size*size + ((y+c+1)%size)*size + ((z+c+1)%size)] = 0. ;
@@ -175,7 +177,7 @@ void fft_shift_abs(struct fft_data *self, float *dest, float complex *source, fl
  */
 void fft_ishift_complex(struct fft_data *self, float complex *dest, float complex *source, float rmax) {
 	long x, y, z, size = self->size, c = size/2 ;
-	float distsq, rmaxsq = rmax*rmax ;
+	float rmaxsq = rmax*rmax ;
 	
 	if (rmax < 0.) {
 		for (x = 0 ; x < size ; ++x)
@@ -187,6 +189,7 @@ void fft_ishift_complex(struct fft_data *self, float complex *dest, float comple
 		for (x = 0 ; x < size ; ++x)
 		for (y = 0 ; y < size ; ++y)
 		for (z = 0 ; z < size ; ++z) {
+			float distsq ;
 			distsq = (x-c)*(x-c) + (y-c)*(y-c) + (z-c)*(z-c) ;
 			if (distsq > rmaxsq)
 				dest[((x+c)%size)*size*size + ((y+c)%size)*size + ((z+c)%size)] = 0. ;
@@ -201,7 +204,7 @@ void fft_ishift_complex(struct fft_data *self, float complex *dest, float comple
  */
 void fft_ishift_real(struct fft_data *self, float *dest, float complex *source, float rmax) {
 	long x, y, z, size = self->size, c = size/2 ;
-	float distsq, rmaxsq = rmax*rmax ;
+	float rmaxsq = rmax*rmax ;
 	
 	if (rmax < 0.) {
 		for (x = 0 ; x < size ; ++x)
@@ -213,6 +216,7 @@ void fft_ishift_real(struct fft_data *self, float *dest, float complex *source, 
 		for (x = 0 ; x < size ; ++x)
 		for (y = 0 ; y < size ; ++y)
 		for (z = 0 ; z < size ; ++z) {
+			float distsq ;
 			distsq = (x-c)*(x-c) + (y-c)*(y-c) + (z-c)*(z-c) ;
 			if (distsq > rmaxsq)
 				dest[((x+c)%size)*size*size + ((y+c)%size)*size + ((z+c)%size)] = 0. ;
@@ -227,7 +231,7 @@ void fft_ishift_real(struct fft_data *self, float *dest, float complex *source, 
  */
 void fft_ishift_abs(struct fft_data *self, float *dest, float complex *source, float rmax) {
 	long x, y, z, size = self->size, c = size/2 ;
-	float distsq, rmaxsq = rmax*rmax ;
+	float rmaxsq = rmax*rmax ;
 	
 	if (rmax < 0.) {
 		for (x = 0 ; x < size ; ++x)
@@ -239,6 +243,7 @@ void fft_ishift_abs(struct fft_data *self, float *dest, float complex *source, f
 		for (x = 0 ; x < size ; ++x)
 		for (y = 0 ; y < size ; ++y)
 		for (z = 0 ; z < size ; ++z) {
+			float distsq ;
 			distsq = (x-c)*(x-c) + (y-c)*(y-c) + (z-c)*(z-c) ;
 			if (distsq > rmaxsq)
 				dest[((x+c)%size)*size*size + ((y+c)%size)*size + ((z+c)%size)] = 0. ;

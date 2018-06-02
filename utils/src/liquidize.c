@@ -142,6 +142,7 @@ int main(int argc, char *argv[]) {
 	free(autocorr) ;
 	free(intens) ;
 	free(radius) ;
+	free(diff_array) ;
 
 	return 0 ;
 }

@@ -125,6 +125,10 @@ int main(int argc, char *argv[]) {
 	free(model1) ;
 	free(model2) ;
 	fft_free(&fft) ;
+	free(fsc) ;
+	free(norm1) ;
+	free(norm2) ;
+	free(numvox) ;
 	
 	return 0 ;
 }

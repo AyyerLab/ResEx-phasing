@@ -113,14 +113,14 @@ static void make_vertex(int num) {
 }
 
 static double calc_min_dist2(void) {
-	double tmp, val = 0. ;
+	double val = 0. ;
 	int i, j ;
 	
 	for (i = 0 ; i < 4 ; i++)
 		val += pow(vertices[0][i] - vertices[1][i], 2) ;
 	
 	for (i = 2 ; i < NUM_VERT ; i++) {
-		tmp = 0 ;
+		double tmp = 0 ;
 		for (j = 0 ; j < 4 ; j++)
 			tmp += pow(vertices[0][j] - vertices[i][j], 2) ;
 		if (tmp < val)
@@ -680,17 +680,17 @@ static void print_quat(int num, double *quat) {
 }
 
 static int reduce_icosahedral(int n, double *quat) {
-	int r, t, i, keep_quat, vnum = 8 ;
+	int r, t, i, vnum = 8 ;
 	int old_num_rot = 10*(5*n*n*n + n), num_rot = 0 ;
-	double dist, dist0 ;
+	double dist ;
 	
 	// For all non-vertex quaternions
 	for (r = 60 ; r < old_num_rot ; ++r) {
-		keep_quat = 1 ;
+		int keep_quat = 1 ;
 		
 		// Calculate distance to quat[8]
 		// which should be {1,0,0,0}
-		dist0 = 0. ;
+		double dist0 = 0. ;
 		for (t = 0 ; t < 4 ; ++t)
 			dist0 += quat[r*5+t] * quat[vnum*5+t] ;
 		dist0 = 1. - dist0*dist0 ;

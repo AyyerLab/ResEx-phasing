@@ -9,7 +9,7 @@
 int main(int argc, char *argv[]) {
 	long i, x, y, z, size, c, vol, num_vox = 0 ;
 	float *model, *pmodel ;
-	double rescale, numr, denr, target, dist ;
+	double rescale, numr = 0, denr = 0, target, dist ;
 	FILE *fp ;
 	
 	if (argc < 4) {
@@ -56,7 +56,7 @@ int main(int argc, char *argv[]) {
 		T = gsl_rng_default ;
 		rng = gsl_rng_alloc(T) ;
 		
-		#pragma omp for schedule(static,1)
+		#pragma omp for schedule(static,1) reduction(+:numr,denr)
 		for (x = 0 ; x < size ; ++x)
 		for (y = 0 ; y < size ; ++y)
 		for (z = 0 ; z < size ; ++z) {

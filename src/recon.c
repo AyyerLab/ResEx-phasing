@@ -1,13 +1,13 @@
 #include "algorithm.h"
 
 int parse_args(int argc, char *argv[], char *config_fname) {
-	int c ;
 	extern char *optarg ;
 	extern int optind ;
 	
 	strcpy(config_fname, "config.ini") ;
 	
 	while (optind < argc) {
+		int c ;
 		if ((c = getopt(argc, argv, "c:")) != -1) {
 			switch (c) {
 				case 'c':
@@ -21,7 +21,7 @@ int parse_args(int argc, char *argv[], char *config_fname) {
 }
 
 int setup(struct algorithm_data *self, char *config_fname) {
-	char line[1024], *token ;
+	char line[1024] ;
 	char input_fname[1024], hist_fname[1024] ;
 	char intens_fname[1024], bragg_fname[1024] ;
 	char support_fname[1024] ;
@@ -57,7 +57,7 @@ int setup(struct algorithm_data *self, char *config_fname) {
 		return 1 ;
 	}
 	while (fgets(line, 1024, fp) != NULL) {
-		token = strtok(line, " =") ;
+		char *token = strtok(line, " =") ;
 		if (token[0] == '#' || token[0] == '\n' || token[0] == '[')
 			continue ;
 		
@@ -115,6 +115,7 @@ int setup(struct algorithm_data *self, char *config_fname) {
 		else
 			fprintf(stderr, "Unable to recognise option: \"%s\"\n", token) ;
 	}
+	fclose(fp) ;
 	
 	if (size == 0) {
 		fprintf(stderr, "Need nonzero size in config file\n") ;
@@ -212,7 +213,6 @@ int setup(struct algorithm_data *self, char *config_fname) {
 int main(int argc, char *argv[]) {
 	long i ;
 	int iter ;
-	float error ;
 	struct timeval t1, t2 ;
 	char config_fname[1024] ;
 	
@@ -227,7 +227,7 @@ int main(int argc, char *argv[]) {
 	for (iter = 1 ; iter <= algo.num_iter+algo.num_avg_iter ; ++iter) {
 		gettimeofday(&t1, NULL) ;
 		
-		error = run_iteration(&algo, iter) ;
+		float error = run_iteration(&algo, iter) ;
 		if (error < 0)
 			return 1 ;
 		

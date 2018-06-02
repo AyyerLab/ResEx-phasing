@@ -122,7 +122,7 @@ int input_parse_support(struct input_data *self, char *fname) {
 }
 
 void input_init_iterate(struct input_data *self, char *fname, char *bg_fname, float *model, int do_bg_fitting) {
-	long i, size = self->size, vol = size*size*size ;
+	long size = self->size, vol = size*size*size ;
 	float val = sqrtf(vol) ;
 	struct timeval t1 ;
 	const gsl_rng_type *T ;
@@ -169,6 +169,7 @@ void input_init_iterate(struct input_data *self, char *fname, char *bg_fname, fl
 		memset(&(model[vol]), 0, vol*sizeof(float)) ;
 	
 	if (do_random_model || do_init_bg) {
+		long i ;
 		for (i = 0 ; i < vol ; ++i)
 		if (do_random_model && self->support[i])
 			model[i] = gsl_rng_uniform(r) ;
@@ -185,7 +186,7 @@ void input_init_iterate(struct input_data *self, char *fname, char *bg_fname, fl
 
 int input_read_histogram(struct input_data *self, char *fname) {
 	long m, i, num_hist ;
-	double frac, sum_hist ;
+	double sum_hist ;
 	
 	FILE *fp = fopen(fname, "r") ;
 	if (fp == NULL) {
@@ -215,7 +216,7 @@ int input_read_histogram(struct input_data *self, char *fname) {
 	
 	i = 1 ;
 	for (m = 1 ; m < self->num_supp ; ++m) {
-		frac = (double) m / self->num_supp ;
+		double frac = (double) m / self->num_supp ;
 		if (i == num_hist - 1)
 			self->inverse_cdf[m] = val[i] ;
 		else if (frac <= cdf[i])
@@ -322,8 +323,6 @@ void input_update_support(struct input_data *self, float *model, long box_rad) {
  */
 void match_bragg(struct input_data *self, float complex *fdens, float delta) {
 	long i, size = self->size, vol = size*size*size ;
-	float complex temp ;
-	float mag ;
 	
 	if (delta == 0.f) {
 		for (i = 0 ; i < vol ; ++i)
@@ -331,6 +330,8 @@ void match_bragg(struct input_data *self, float complex *fdens, float delta) {
 			fdens[i] = self->bragg_calc[i] ;
 	}
 	else {
+		float complex temp ;
+		float mag ;
 		for (i = 0 ; i < vol ; ++i) 
 		if (self->bragg_calc[i] != FLT_MAX) {
 			temp = fdens[i] - self->bragg_calc[i] ;
