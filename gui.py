@@ -124,7 +124,7 @@ class GUI():
         self.fig = plt.figure(figsize=(15,5))
         self.fig.subplots_adjust(left=0.0, bottom=0.00, right=0.99, wspace=0.0)
         self.canvas = FigureCanvasTkAgg(self.fig, canvas_frame)
-        self.canvas.show()
+        self.canvas.draw()
         self.canvas.get_tk_widget().pack(fill='both', expand=1)
 
         # Config frame
@@ -279,14 +279,17 @@ class GUI():
 
     def parse_map(self):
         with open(self.fname.get(), 'rb') as f:
-            f.seek(28, 0)
-            grid = np.fromfile(f, '=i4', count=3)
+            grid = np.fromfile(f, '=i4', count=3) # Grid size
+            f.seek(64, 0)
+            ordering = np.fromfile(f, '=i4', count=3) # Axis ordering
+            grid = grid[ordering-1]
             nx, ny, nz = tuple(grid)
-            f.seek(1024, 0)
+            f.seek(1024, 0) # End of header
             vol = np.fromfile(f, '=f4', count=nx*ny*nz).reshape(nx, ny, nz)
         edgesum = (np.abs(vol[:,:,0]).sum() + np.abs(vol[:,:,-1]).sum() + np.abs(vol[:,0]).sum() + np.abs(vol[:,-1]).sum() + np.abs(vol[0]).sum() + np.abs(vol[-1]).sum()) / 6.
         centralsum = (np.abs(vol[:,:,nz/2]).sum() + np.abs(vol[:,ny/2]).sum() + np.abs(vol[nx/2]).sum())/ 3.
         if edgesum > centralsum:
+            print 'Moving corner to center'
             vol = np.roll(vol, nx/2, axis=0)
             vol = np.roll(vol, ny/2, axis=1)
             vol = np.roll(vol, nz/2, axis=2)
@@ -335,6 +338,7 @@ class GUI():
                 b = self.vol[:,layernum,:]	
                 c = self.vol[:,:,layernum]
             
+        self.fig.clear()
         s1 = self.fig.add_subplot(131)
         s1.matshow(a, vmin=rangemin, vmax=rangemax, cmap='jet')
         if space == 'fourier':
@@ -382,7 +386,7 @@ class GUI():
             s3.add_artist(patches.Circle((self.size/2,self.size/2), rmax, ec='white', fc='none', ls='dashed'))
         
         self.space = space
-        self.canvas.show()
+        self.canvas.draw()
 
     def replot(self, event=None, **kwargs):
         if self.map_image_exists:
@@ -453,8 +457,6 @@ class GUI():
             ttk.Label(line,text='Zero-ed volume: ').pack(side=Tk.LEFT)
             ttk.Button(line,text=zero_fname,command=lambda: self.plot_vol(fname=zero_fname)).pack(side=Tk.LEFT)
         self.zeroed = True
-        #if self.calculated_scale and self.processed_map and not self.added_recon_tab:
-        #    self.gen_recon_tab()
 
     def calc_scale(self, event=None):
         rmin = float(self.scaleradmin.get())
@@ -472,8 +474,6 @@ class GUI():
         else:
             self.scale_label.config(text='Scale factor = %.6e' % self.scale_factor)
         self.calculated_scale = True
-        #if self.zeroed and self.processed_map and not self.added_recon_tab:
-        #    self.gen_recon_tab()
 
     def process_map(self, event=None):
         mapnoext = os.path.splitext(os.path.basename(self.map_fname.get()))[0]
@@ -501,8 +501,6 @@ class GUI():
         if not self.processed_map:
             self.add_to_map_frame(mapnoext)
         self.processed_map = True
-        #if self.zeroed and self.calculated_scale and not self.added_recon_tab:
-        #    self.gen_recon_tab()
 
     def add_to_map_frame(self, mapnoext):
         prefix = 'data/convert/'+mapnoext
