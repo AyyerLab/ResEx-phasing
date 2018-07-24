@@ -1,7 +1,7 @@
 .PHONY: mkdir
 CC=gcc
-LDFLAGS=-lgsl -lgslcblas -lfftw3f_threads -lfftw3f -lm
-CFLAGS=-std=gnu99 -fopenmp -O3 -Wall -g
+LDFLAGS=$(shell gsl-config --libs) -lfftw3f_threads -lfftw3f -lm
+CFLAGS=$(shell gsl-config --cflags) -std=gnu99 -fopenmp -O3 -Wall -g
 
 recon_src = $(wildcard src/*.c)
 recon_obj = $(patsubst src/%.c, bin/%.o, $(recon_src)) 
