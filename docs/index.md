@@ -25,7 +25,7 @@ However, there are a few dependencies:
     * matplotlib
 
 ### Usage
-A quick start page for a basic reconstruction from simulated data can be found [here]({{ site.baseurl }}{% link sim-tutorial.md %}).
+A quick start page for a basic reconstruction from simulated data can be found [here]("{{ sim-tutorial.md | relative_url }}").
 
 The inputs to the program are a 3D volume of oversampled intensities and a CCP4/MRC map containing a low-resolution model obtained from the Bragg data. There are helper scripts to extract this map from the output of a PHENIX run (CCP4 support coming soon).
 
