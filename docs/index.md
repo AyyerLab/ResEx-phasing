@@ -31,7 +31,7 @@ However, there are a few dependencies:
 
 ### Usage
 A quick start page for a basic reconstruction from simulated data can be found
-[here]({% link sim-tutorial.md %}).
+[here]({{ site.baseurl }}{% link sim-tutorial.md %}).
 
 The inputs to the program are a 3D volume of oversampled intensities and a
 CCP4/MRC map containing a low-resolution model obtained from the Bragg data.
