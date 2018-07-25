@@ -19,8 +19,10 @@ description: >- # this means to ignore newlines until "baseurl:"
   Continuous Diffraction
 baseurl: "/bragg-cont" # the subpath of your site, e.g. /blog
 url: "" # the base hostname & protocol for your site, e.g. http://example.com
-twitter_username: jekyllrb
-github_username:  jekyll
+github:
+    is_project_page: true
+    owner_name: Kartik Ayyer
+    owner_url: https://github.com/kartikayyer
 
 # Build settings
 markdown: kramdown
