@@ -27,10 +27,13 @@ crystallography program suites like PHENIX or CCP4 and a volume of diffuse
 scattering intensities and generates a higher resolution structure which is
 consistent with both the input data sets.
 
-currently the code works when the disorder is of a certain type, namely a
+Currently the code works when the disorder is of a certain type, namely a
 combination of uncorrelated atomic disorder and rigid body disorder of tha
 asymmetric unit. The ability to deal with other forms of disorder like
 rotational and liquid-like motion are under development.
+
+ * Ayyer, Kartik, Oleksandr M. Yefanov, Dominik Oberthür, Shatabdi Roy-Chowdhury, Lorenzo Galli, Valerio Mariani, Shibom Basu et al. "Macromolecular diffractive imaging using imperfect crystals." *Nature* **530**, no. 7589 (2016): 202.
+ * Chapman, Henry N., Oleksandr M. Yefanov, Kartik Ayyer, Thomas A. White, Anton Barty, Andrew Morgan, Valerio Mariani, Dominik Oberthuer, and Kanupriya Pande. "Continuous diffraction of molecules and disordered molecular crystals." *Journal of applied crystallography* **50**, no. 4 (2017): 1084-1103.
 
 ## Installation
 There is no real installation process to speak of. Just clone the repository and
