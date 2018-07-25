@@ -75,19 +75,19 @@ then
 	padsize=`grep "volume size" $log_name|awk '{print $5}'`
 	padnoext="${padmodel%.*}"
 	echo -------------------------------------------------------------------------------- >> $log_name
-	echo ./utils/gen_fdens $padmodel $padsize ${padnoext}-fdens.cpx 1| tee -a $log_name
-	./utils/gen_fdens $padmodel $padsize ${padnoext}-fdens.cpx 1 >> $log_name 2>&1
+	echo ./utils/gen_fdens $padmodel ${padnoext}-fdens.cpx 1| tee -a $log_name
+	./utils/gen_fdens $padmodel ${padnoext}-fdens.cpx 1 >> $log_name 2>&1
 	
 	sx=`grep Stretch $log_name|awk -F'[=,()]' '{print $3}'`
 	sy=`grep Stretch $log_name|awk -F'[=,()]' '{print $4}'`
 	sz=`grep Stretch $log_name|awk -F'[=,()]' '{print $5}'`
 	echo -------------------------------------------------------------------------------- >> $log_name
-	echo ./utils/fstretch ${padnoext}-fdens.cpx $padsize $size $sx $sy $sz $strmodel | tee -a $log_name
-	./utils/fstretch ${padnoext}-fdens.cpx $padsize $size $sx $sy $sz $strmodel >> $log_name 2>&1
+	echo ./utils/fstretch ${padnoext}-fdens.cpx $size $sx $sy $sz $strmodel | tee -a $log_name
+	./utils/fstretch ${padnoext}-fdens.cpx $size $sx $sy $sz $strmodel >> $log_name 2>&1
 	
 	echo -------------------------------------------------------------------------------- >> $log_name
-	echo ./utils/gen_dens $strmodel $size $lowresmodel_name | tee -a $log_name
-	./utils/gen_dens $strmodel $size $lowresmodel_name >> $log_name 2>&1
+	echo ./utils/gen_dens $strmodel $lowresmodel_name | tee -a $log_name
+	./utils/gen_dens $strmodel $lowresmodel_name >> $log_name 2>&1
 	
 	echo -------------------------------------------------------------------------------- >> $log_name
 	echo Removing temporary files
@@ -98,8 +98,8 @@ fi
 if [ $skip -lt 2 ]
 then
 	echo -------------------------------------------------------------------------------- >> $log_name
-	echo ./utils/create_support $lowresmodel_name $size $supp_radius $supp_thresh $supp_name | tee -a $log_name
-	./utils/create_support $lowresmodel_name $size $supp_radius $supp_thresh $supp_name >> $log_name 2>&1
+	echo ./utils/create_support $lowresmodel_name $supp_radius $supp_thresh $supp_name | tee -a $log_name
+	./utils/create_support $lowresmodel_name $supp_radius $supp_thresh $supp_name >> $log_name 2>&1
 	
 	echo -------------------------------------------------------------------------------- >> $log_name
 	echo Constraining lowresmodel by support | tee -a $log_name
@@ -112,11 +112,11 @@ then
 	EOF
 	
 	echo -------------------------------------------------------------------------------- >> $log_name
-	echo ./utils/gen_fdens $supprecon_name $size $cpx_name $point_group | tee -a $log_name
-	./utils/gen_fdens $supprecon_name $size $cpx_name $point_group >> $log_name 2>&1
+	echo ./utils/gen_fdens $supprecon_name $cpx_name $point_group | tee -a $log_name
+	./utils/gen_fdens $supprecon_name $cpx_name $point_group >> $log_name 2>&1
 	
 	echo -------------------------------------------------------------------------------- >> $log_name
-	echo ./utils/create_support $supprecon_name $size $supp_radius $supp_thresh $supp_name | tee -a $log_name
-	./utils/create_support $supprecon_name $size $supp_radius $supp_thresh $supp_name >> $log_name 2>&1
+	echo ./utils/create_support $supprecon_name $supp_radius $supp_thresh $supp_name | tee -a $log_name
+	./utils/create_support $supprecon_name $supp_radius $supp_thresh $supp_name >> $log_name 2>&1
 fi
 

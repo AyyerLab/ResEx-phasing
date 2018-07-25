@@ -289,7 +289,6 @@ class GUI():
         edgesum = (np.abs(vol[:,:,0]).sum() + np.abs(vol[:,:,-1]).sum() + np.abs(vol[:,0]).sum() + np.abs(vol[:,-1]).sum() + np.abs(vol[0]).sum() + np.abs(vol[-1]).sum()) / 6.
         centralsum = (np.abs(vol[:,:,nz/2]).sum() + np.abs(vol[:,ny/2]).sum() + np.abs(vol[nx/2]).sum())/ 3.
         if edgesum > centralsum:
-            print 'Moving corner to center'
             vol = np.roll(vol, nx/2, axis=0)
             vol = np.roll(vol, ny/2, axis=1)
             vol = np.roll(vol, nz/2, axis=2)
@@ -482,9 +481,9 @@ class GUI():
                 words = f.read().split()
                 warray = np.array(words)
                 self.resedge.set(float(words[words.index('./utils/read_map')+2])/(self.vol_size/2))
-                self.point_group.set(words[np.where(warray=='data/convert/'+mapnoext+'-srecon.raw')[0][0]+3])
-                self.suppradstr.set('%.1f'%float(words[np.where(warray=='./utils/create_support')[0][-1]+3]))
-                self.suppthreshstr.set('%.1f'%float(words[np.where(warray=='./utils/create_support')[0][-1]+4]))
+                self.point_group.set(words[np.where(warray=='data/convert/'+mapnoext+'-srecon.raw')[0][0]+2])
+                self.suppradstr.set('%.1f'%float(words[np.where(warray=='./utils/create_support')[0][-1]+2]))
+                self.suppthreshstr.set('%.1f'%float(words[np.where(warray=='./utils/create_support')[0][-1]+3]))
         else:
             if self.resedge.get() is '':
                 print 'Need resolution at edge of volume'
