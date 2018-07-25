@@ -171,7 +171,7 @@ def plot_vol_slices(layernum):
         s2.add_artist(patches.Ellipse((size/2,size/2), rz, rx, 0, ec='white', fc='none'))
         s3.add_artist(patches.Ellipse((size/2,size/2), ry, rx, 0, ec='white', fc='none'))
     
-    canvas.show()
+    canvas.draw()
     
     image_exists = 1
 
