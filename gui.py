@@ -445,7 +445,7 @@ class GUI():
         rmin = float(self.radiusmin.get())
         rmax = float(self.radiusmax.get())
         print '-'*80
-        os.system('./utils/zero_outer %s %d %d %d' % (self.merge_fname.get(), self.size, rmin, rmax))
+        os.system('./utils/zero_outer %s %d %d' % (self.merge_fname.get(), rmin, rmax))
         print '-'*80
         
         if not self.zeroed:
@@ -462,7 +462,7 @@ class GUI():
         rmax = float(self.scaleradmax.get())
         mapnoext = os.path.splitext(os.path.basename(self.map_fname.get()))[0]
         sym_model = 'data/convert/'+mapnoext+'-sym.raw'
-        cmd = './utils/calc_scale %s %s %d %d %d' % (sym_model, self.merge_fname.get(), self.size, rmin, rmax)
+        cmd = './utils/calc_scale %s %s %d %d' % (sym_model, self.merge_fname.get(), rmin, rmax)
         output = subprocess.check_output(cmd.split(), shell=False)
         self.scale_factor = float(output.split()[4])
         if not self.calculated_scale:
