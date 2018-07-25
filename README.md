@@ -1,8 +1,8 @@
 # ResEx Phasing
 
-A protein crystallography tool
+**RES**olution **EX**tension using continuous diffraction
 
 Extend the resolution of many a protein crystal dataset by using continuous 
-diffraction data beyond the highes resolution Bragg peak.
+diffraction data beyond the highest resolution Bragg peak.
 
-More information can be found on the [wiki pages](https://github.com/kartikayyer/bragg-cont/wiki).
+More information can be found on the [webpage](http://www.kartikayyer.com/bragg-cont/).
