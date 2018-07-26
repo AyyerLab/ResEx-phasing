@@ -4,20 +4,22 @@
 #include <omp.h>
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
+#include "../../src/utils.h"
 
 int main(int argc, char *argv[]) {
-	long i, size, vol ;
+	long i, x, y, z, size, c, vol, num_vox = 0 ;
 	float *model, *pmodel ;
-	double rescale, numr, denr, target ;
+	double rescale, numr = 0, denr = 0, target, dist ;
 	FILE *fp ;
 	
-	if (argc < 5) {
-		fprintf(stderr, "Format: %s <model_fname> <size> <target_count_at_edge> <out_fname>\n", argv[0]) ;
+	if (argc < 4) {
+		fprintf(stderr, "Format: %s <model_fname> <target_count_at_edge> <out_fname>\n", argv[0]) ;
 		return 1 ;
 	}
-	size = atoi(argv[2]) ;
-	target = atof(argv[3]) ;
+	size = get_size(argv[1], sizeof(float)) ;
+	target = atof(argv[2]) ;
 	
+	c = size/2 ;
 	vol = size*size*size ;
 	gsl_rng_env_setup() ;
 	omp_set_num_threads(32) ;
@@ -28,32 +30,33 @@ int main(int argc, char *argv[]) {
 	fread(model, sizeof(float), vol, fp) ;
 	fclose(fp) ;
 	
-	// Poisson sample rescale model
+	// Rescale model to match target_count_at_edge
+	rescale = 0. ;
+	for (x = 0 ; x < size ; ++x)
+	for (y = 0 ; y < size ; ++y)
+	for (z = 0 ; z < size ; ++z) {
+		dist = sqrt((x-c)*(x-c) + (y-c)*(y-c) + (z-c)*(z-c)) ;
+		if ((int) dist == c-1) {
+			rescale += model[x*size*size + y*size + z] ;
+			num_vox++ ;
+		}
+	}
+	
+	rescale = target / (rescale / num_vox) ;
+	
+	// Poisson sample rescaled model
 	pmodel = malloc(vol * sizeof(float)) ;
 	#pragma omp parallel default(shared)
 	{
 		int rank = omp_get_thread_num() ;
-		long vox, x, y, z, c = size / 2, num_vox = 0 ;
-		double val, dist, multip, rescale ;
+		long vox, x, y, z, c = size / 2 ;
+		double val, dist, multip ;
 		const gsl_rng_type *T ;
 		gsl_rng *rng ;
 		T = gsl_rng_default ;
 		rng = gsl_rng_alloc(T) ;
 		
-		val = 0. ;
-		for (x = 0 ; x < size ; ++x)
-		for (y = 0 ; y < size ; ++y)
-		for (z = 0 ; z < size ; ++z) {
-			dist = sqrt((x-c)*(x-c) + (y-c)*(y-c) + (z-c)*(z-c)) ;
-			if ((int) dist == c-1) {
-				val += model[x*size*size + y*size + z] ;
-				num_vox++ ;
-			}
-		}
-		
-		rescale = target / (val / num_vox) ;
-		
-		#pragma omp for schedule(static,1)
+		#pragma omp for schedule(static,1) reduction(+:numr,denr)
 		for (x = 0 ; x < size ; ++x)
 		for (y = 0 ; y < size ; ++y)
 		for (z = 0 ; z < size ; ++z) {
@@ -91,7 +94,7 @@ int main(int argc, char *argv[]) {
 		pmodel[i] *= rescale ;
 	
 	// Save sampled model
-	fp = fopen(argv[4], "wb") ;
+	fp = fopen(argv[3], "wb") ;
 	fwrite(pmodel, sizeof(float), vol, fp) ;
 	fclose(fp) ;
 	

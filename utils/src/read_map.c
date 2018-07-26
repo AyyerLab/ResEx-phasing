@@ -2,21 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
-
-char* extract_fname(char* fullName) {
-	return 
-		strrchr(fullName,'/') != NULL
-			? strrchr(fullName,'/') + 1
-			: fullName ;
-}
-
-char* remove_ext(char *fullName) {
-	char *out = malloc(500 * sizeof(char)) ;
-	strcpy(out,fullName) ;
-	if (strrchr(out,'.') != NULL)
-		*strrchr(out,'.') = 0 ;
-	return out ;
-}
+#include "../../src/utils.h"
 
 int main(int argc, char *argv[]) {
 	int nx, ny, nz, mode, mapx, mapy, mapz ;
@@ -136,11 +122,13 @@ int main(int argc, char *argv[]) {
 	fprintf(stderr, "sums: (%e, %e)\n", edge_sum, central_sum) ;
 	// --------------------------------------------------------------------------------
 	 
+	/*
 	sprintf(fname, "data/%s-map.raw", remove_ext(extract_fname(argv[1]))) ;
 	fprintf(stderr, "Saving model to %s\n", fname) ;
 	fp = fopen(fname, "wb") ;
 	fwrite(model, sizeof(float), nx*ny*nz, fp) ;
 	fclose(fp) ;
+	*/
 	
 	px = voxres[0]*mx/lx ;
 	py = voxres[1]*my/ly ;

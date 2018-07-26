@@ -1,51 +1,26 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <math.h>
-
-float gaussian(double x, float width) {
-	return exp(- x*x / 2 / width/width) ;
-}
-
-void create_kernel(float *kernel, long ksize, float width) {
-	long i, j, k, krad ;
-	
-	krad = (ksize - 1) / 2 ;
-	
-	for (i = 0 ; i < ksize ; ++i)
-	for (j = 0 ; j < ksize ; ++j)
-	for (k = 0 ; k < ksize ; ++k)
-		kernel[i*ksize*ksize + j*ksize + k] = 
-			gaussian(
-				sqrt((krad-i)*(krad-i) + (krad-j)*(krad-j) + (krad-k)*(krad-k)), 
-				width) ;
-}
+#include "../../src/fft.h"
+#include "../../src/utils.h"
 
 int main(int argc, char* argv[]) {
-	long x, y, z, i, j, k ;
-	long ksize, krad, size, vol, num_supp ;
-	float val, blur, thresh ;
-	float *density, *kernel ;
+	long size, vol, num_supp ;
+	float blur, thresh, *density ;
 	uint8_t *support ;
+	char fname[1024] ;
 	FILE *fp ;
+	struct fft_data fft ;
 	
-	if (argc < 5) {
-		fprintf(stderr, "Format: %s <density_fname> <size> <blur> <threshold>\n", argv[0]) ;
+	if (argc < 4) {
+		fprintf(stderr, "Format: %s <density_fname> <blur> <threshold>\n", argv[0]) ;
 		fprintf(stderr, "Optional: <out_fname>\n") ;
 		return 1 ;
 	}
-	size = atoi(argv[2]) ;
-	blur = atof(argv[3]) ;
-	thresh = atof(argv[4]) ;
+	size = get_size(argv[1], sizeof(float)) ;
+	blur = atof(argv[2]) ;
+	thresh = atof(argv[3]) ;
 	
 	vol = size*size*size ;
-	
-	// Create Gaussian kernel of given width
-	ksize = 3 * blur > 1 ? (long)3 * blur : 1 ;
-	krad = (ksize - 1) / 2 ;
-	kernel = malloc(ksize * ksize * ksize * sizeof(float)) ;
-	create_kernel(kernel, ksize, blur) ;
-	fprintf(stderr, "Generated kernel with ksize = %ld\n", ksize) ;
+	fft_init(&fft, size, omp_get_max_threads()) ;
+	fft_create_plans(&fft) ;
 	
 	// Parse density
 	density = malloc(vol * sizeof(float)) ;
@@ -55,43 +30,25 @@ int main(int argc, char* argv[]) {
 	fclose(fp) ;
 	fprintf(stderr, "Parsed density\n") ;
 	
-	// Convolve bright voxels with kernel, threshold and count voxels
-	for (x = 0 ; x < size ; ++x)
-	for (y = 0 ; y < size ; ++y)
-	for (z = 0 ; z < size ; ++z) {
-		val = fabs(density[x*size*size + y*size + z]) ;
-		if (val > 0.2 * thresh)
-		for (i = 0 ; i < ksize ; ++i)
-		for (j = 0 ; j < ksize ; ++j)
-		for (k = 0 ; k < ksize ; ++k)
-		if (val * kernel[i*ksize*ksize + j*ksize + k] > thresh) 
-			support[((i+x-krad)%size)*size*size + ((j+y-krad)%size)*size + ((k+z-krad)%size)] = 1 ;
-	}
-	
-	// Calculate number of voxels in support region
-	num_supp = 0 ;
-	for (x = 0 ; x < vol ; ++x)
-		num_supp += support[x] ;
+	// Apply Shrinkwrap to create support
+	num_supp = fft_apply_shrinkwrap(&fft, density, blur, thresh, support, NULL) ;
 	fprintf(stderr, "Calculated support with %ld voxels\n", num_supp) ;
 	
 	// Write to file
-	if (argc > 5) {
-		fp = fopen(argv[5], "wb") ;
-		fprintf(stderr, "Writing support to %s\n", argv[5]) ;
+	if (argc > 4) {
+		strcpy(fname, argv[4]) ;
 	}
 	else {
-		char fname[999] ;
-		sprintf(fname, "data/support_%ld.supp", size) ;
-		fp = fopen(fname, "wb") ;
-		fprintf(stderr, "Writing support to %s\n", fname) ;
+		sprintf(fname, "%s.supp", remove_ext(argv[1])) ;
 	}
+	fprintf(stderr, "Writing support to %s\n", fname) ;
+	fp = fopen(fname, "wb") ;
 	fwrite(support, sizeof(uint8_t), vol, fp) ;
 	fclose(fp) ;
 	
 	// Free memory
 	free(density) ;
 	free(support) ;
-	free(kernel) ;
 	
 	return 0 ;
 }

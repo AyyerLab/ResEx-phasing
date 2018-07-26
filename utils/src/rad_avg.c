@@ -2,14 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
-
-char* remove_ext(char *fullName) {
-	char *out = malloc(500 * sizeof(char)) ;
-	strcpy(out,fullName) ;
-	if (strrchr(out,'.') != NULL)
-		*strrchr(out,'.') = 0 ;
-	return out ;
-}
+#include "../../src/utils.h"
 
 int main(int argc, char *argv[]) {
 	long x, y, z, vox, size, c, vol ;
@@ -19,11 +12,11 @@ int main(int argc, char *argv[]) {
 	FILE *fp ;
 	char fname[999] ;
 	
-	if (argc < 3) {
-		fprintf(stderr, "Format: %s <model_fname> <size>\n", argv[0]) ;
+	if (argc < 2) {
+		fprintf(stderr, "Format: %s <model_fname>\n", argv[0]) ;
 		return 1 ;
 	}
-	size = atoi(argv[2]) ;
+	size = get_size(argv[1], sizeof(float)) ;
 	
 	vol = size*size*size ;
 	c = size / 2 ;

@@ -7,14 +7,7 @@
 #include <omp.h>
 #include <complex.h>
 #include <fftw3.h>
-
-char* remove_ext(char *fullName) {
-	char *out = malloc(500 * sizeof(char)) ;
-	strcpy(out,fullName) ;
-	if (strrchr(out,'.') != NULL)
-		*strrchr(out,'.') = 0 ;
-	return out ;
-}
+#include "../../src/utils.h"
 
 int main(int argc, char *argv[]) {
 	long size, i, j, n, vol, area, c ;
@@ -22,18 +15,22 @@ int main(int argc, char *argv[]) {
 	int num_bins, *radius, *angle, rad, ang ;
 	double binsize, *angcount, *angavg ;
 	double *cumulant, threshold, *cutoff ;
-	fftw_complex *fdensity, *rdensity ;
-	fftw_plan inverse ;
+	fftwf_complex *fdensity, *rdensity ;
+	fftwf_plan inverse ;
 	char fname[999] ;
 	FILE *fp ;
 	
-	if (argc < 4) {
-		fprintf(stderr, "Format: %s <intens_fname> <size> <radial_binsize>\n", argv[0]) ;
+	if (argc < 3) {
+		fprintf(stderr, "Format: %s <intens_fname> <radial_binsize>\n", argv[0]) ;
 		fprintf(stderr, "Optional: <output_fname>\n") ;
 		return 1 ;
 	}
-	size = atoi(argv[2]) ;
-	binsize = atof(argv[3]) ;
+	size = get_size(argv[1], sizeof(float)) ;
+	binsize = atof(argv[2]) ;
+	if (argc > 3)
+		strcpy(fname, argv[3]) ;
+	else
+		sprintf(fname, "%s-smoothness.dat", remove_ext(argv[1])) ;
 	vol = size*size*size ;
 	area = size*size ;
 	c = size / 2 ;
@@ -47,9 +44,9 @@ int main(int argc, char *argv[]) {
 	angavg = calloc(3 * num_bins * 720, sizeof(double)) ;
 	cumulant = malloc((720 + 1) * sizeof(double)) ;
 	cutoff = calloc(num_bins, sizeof(double)) ;
-	rdensity = fftw_malloc(720 * sizeof(fftw_complex)) ;
-	fdensity = fftw_malloc(720 * sizeof(fftw_complex)) ;
-	inverse = fftw_plan_dft_1d(720, fdensity, rdensity, FFTW_BACKWARD, FFTW_ESTIMATE) ;
+	rdensity = fftwf_malloc(720 * sizeof(fftwf_complex)) ;
+	fdensity = fftwf_malloc(720 * sizeof(fftwf_complex)) ;
+	inverse = fftwf_plan_dft_1d(720, fdensity, rdensity, FFTW_BACKWARD, FFTW_ESTIMATE) ;
 	
 	// Read in model
 	fp = fopen(argv[1], "rb") ;
@@ -96,7 +93,7 @@ int main(int argc, char *argv[]) {
 		// FFT average
 		for (ang = 0 ; ang < 720 ; ++ang)
 			fdensity[ang] = angavg[n*num_bins*720 + rad*720 + ang] ;
-		fftw_execute(inverse) ;
+		fftwf_execute(inverse) ;
 		
 		// Accumulate shifted FFT
 		cumulant[0] = 0. ;
@@ -113,10 +110,6 @@ int main(int argc, char *argv[]) {
 		cutoff[rad] += 1. / 3. * (ang+1) / 720 ;
 	}
 	
-	if (argc > 4)
-		strcpy(fname, argv[4]) ;
-	else
-		sprintf(fname, "%s-smoothness.dat", remove_ext(argv[1])) ;
 	fprintf(stderr, "Writing output to %s\n", fname) ;
 	fp = fopen(fname, "w") ;
 	fprintf(fp, "Radius Cutoff\n") ;
@@ -132,9 +125,9 @@ int main(int argc, char *argv[]) {
 	free(angavg) ;
 	free(cumulant) ;
 	free(cutoff) ;
-	fftw_destroy_plan(inverse) ;
-	fftw_free(rdensity) ;
-	fftw_free(fdensity) ;
+	fftwf_destroy_plan(inverse) ;
+	fftwf_free(rdensity) ;
+	fftwf_free(fdensity) ;
 	
 	return 0 ;
 }

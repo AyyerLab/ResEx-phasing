@@ -3,21 +3,7 @@
 #include <string.h>
 #include <math.h>
 #include <stdint.h>
-
-char* extract_fname(char* fullName) {
-	return 
-		strrchr(fullName,'/') != NULL
-			? strrchr(fullName,'/') + 1
-			: fullName ;
-}
-
-char* remove_ext(char *fullName) {
-	char *out = malloc(500 * sizeof(char)) ;
-	strcpy(out,fullName) ;
-	if (strrchr(out,'.') != NULL)
-		*strrchr(out,'.') = 0 ;
-	return out ;
-}
+#include "../../src/utils.h"
 
 int main(int argc, char *argv[]) {
 	long s, vol, mvol, x, y, z, vox, num_supp = 0 ;
@@ -31,14 +17,15 @@ int main(int argc, char *argv[]) {
 	uint8_t *support ;
 	FILE *fp ;
 	
-	if (argc < 7) {
-		fprintf(stderr, "Format: %s <recon_fname> <size> <vox_x> <vox_y> <vox_z> <supp_fname>\n", argv[0]) ;
+	if (argc < 6) {
+		fprintf(stderr, "Format: %s <recon_fname> <vox_x> <vox_y> <vox_z> <supp_fname>\n", argv[0]) ;
+		fprintf(stderr, "Set <supp_fname> = all if you want no sub-setting\n") ;
 		return 1 ;
 	}
-	s = atoi(argv[2]) ;
-	vox_x = atof(argv[3]) ;
-	vox_y = atof(argv[4]) ;
-	vox_z = atof(argv[5]) ;
+	s = get_size(argv[1], sizeof(float)) ;
+	vox_x = atof(argv[2]) ;
+	vox_y = atof(argv[3]) ;
+	vox_z = atof(argv[4]) ;
 	vol = s*s*s ;
 	
 	// Read model and support
@@ -48,9 +35,16 @@ int main(int argc, char *argv[]) {
 	fclose(fp) ;
 	
 	support = malloc(vol * sizeof(uint8_t)) ;
-	fp = fopen(argv[6], "rb") ;
-	fread(support, sizeof(uint8_t), vol, fp) ;
-	fclose(fp) ;
+	if (strncmp(argv[5], "all", 3) == 0) {
+		fprintf(stderr, "Assuming full cube to be within support\n") ;
+		for (x = 0 ; x < vol ; ++x)
+			support[x] = 1 ;
+	}
+	else {
+		fp = fopen(argv[5], "rb") ;
+		fread(support, sizeof(uint8_t), vol, fp) ;
+		fclose(fp) ;
+	}
 
 	// From support, calculate size and position of bounding box
 	// 	Also calculate model min, max and std inside support
@@ -213,7 +207,7 @@ int main(int argc, char *argv[]) {
 	fwrite(&ival, sizeof(int), 1, fp) ;
 	// LABEL_N
 	char label[800] ;
-	sprintf(label, "%s %ld %s", argv[1], s, argv[6]) ;
+	sprintf(label, "%s %ld %s", argv[1], s, argv[5]) ;
 	fprintf(stderr, "label = %s\n", label) ;
 	fwrite(label, sizeof(char), 800, fp) ;
 

@@ -5,16 +5,9 @@
 #include <gsl/gsl_sf.h>
 #include <gsl/gsl_math.h>
 #include <omp.h>
+#include "../../src/utils.h"
 
 long size ;
-
-char* remove_ext(char *fullName) {
-	char *out = malloc(500 * sizeof(char)) ;
-	strcpy(out,fullName) ;
-	if (strrchr(out,'.') != NULL)
-		*strrchr(out,'.') = 0 ;
-	return out ;
-}
 
 int init_radavg(int *rad, long *rad_count, double binsize) {
 	long x, y, z, c = size/2 ;
@@ -49,12 +42,10 @@ void calc_radavg(float *model, int *rad, long *count, float *avg) {
 
 void calc_radial_properties(float *model, int *rad, long *count, float *avg, float *min, float *max) {
 	long x, vol = size*size*size ;
-	int bin ;
-	float val ;
 	
 	for (x = 0 ; x < vol ; ++x) {
-		val = model[x] ;
-		bin = rad[x] ;
+		float val = model[x] ;
+		int bin = rad[x] ;
 		avg[bin] += val ;
 		if (val < min[bin])
 			min[bin] = val ;
@@ -91,17 +82,21 @@ int main(int argc, char *argv[]) {
 	float *radavg, *radsqavg, *radmax, *radmin ;
 	int num_bins, *radius, num_histbins = 100 ;
 	long *radcount ;
-	double binsize, *histograms, hist_binsize, p_normal, norm_factor ;
+	double binsize, *histograms, p_normal ;
 	char fname[999] ;
 	FILE *fp ;
 	
-	if (argc < 4) {
-		fprintf(stderr, "Format: %s <intens_fname> <size> <binsize>\n", argv[0]) ;
+	if (argc < 3) {
+		fprintf(stderr, "Format: %s <intens_fname> <binsize>\n", argv[0]) ;
 		fprintf(stderr, "Optional: <output_fname>\n") ;
 		return 1 ;
 	}
-	size = atoi(argv[2]) ;
-	binsize = atof(argv[3]) ;
+	size = get_size(argv[1], sizeof(float)) ;
+	binsize = atof(argv[2]) ;
+	if (argc > 3)
+		strcpy(fname, argv[3]) ;
+	else
+		sprintf(fname, "%s-snr.dat", remove_ext(argv[1])) ;
 	vol = size*size*size ;
 	
 	intens = malloc(vol * sizeof(float)) ;
@@ -152,8 +147,8 @@ int main(int argc, char *argv[]) {
 	
 	// Calculate KL divergence between Gaussian and measured histogram
 	for (i = 0 ; i < num_bins ; ++i) {
-		norm_factor = 1. / sqrt(2. * M_PI) / sigma[i] ;
-		hist_binsize = (radmax[i] - radmin[i]) / num_histbins ;
+		double norm_factor = 1. / sqrt(2. * M_PI) / sigma[i] ;
+		double hist_binsize = (radmax[i] - radmin[i]) / num_histbins ;
 		
 		for (j = 0 ; j < num_histbins ; ++j) {
 			p_normal = norm_factor * exp(-pow(radmin[i] + j*hist_binsize + 0.5*hist_binsize - radavg[i], 2.) / (2. * sigma[i] * sigma[i])) ;
@@ -179,10 +174,6 @@ int main(int argc, char *argv[]) {
 			kl_div[i] = 0.f ;
 	}
 */	
-	if (argc > 4)
-		strcpy(fname, argv[4]) ;
-	else
-		sprintf(fname, "%s-snr.dat", remove_ext(argv[1])) ;
 	fprintf(stderr, "Writing output to %s\n", fname) ;
 	fp = fopen(fname, "w") ;
 	fprintf(fp, "Radius Min    Mean   Max    Std    D_KL\n") ;
@@ -191,8 +182,15 @@ int main(int argc, char *argv[]) {
 	fclose(fp) ;
 	
 	free(intens) ;
+	free(radius) ;
+	free(radmax) ;
+	free(radmin) ;
+	free(radcount) ;
 	free(radavg) ;
 	free(radsqavg) ;
+	free(sigma) ;
+	free(kl_div) ;
+	free(histograms) ;
 	
 	return 0 ;
 }

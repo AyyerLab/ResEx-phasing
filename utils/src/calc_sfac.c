@@ -4,16 +4,9 @@
 #include <gsl/gsl_sf.h>
 #include <math.h>
 #include <omp.h>
+#include "../../src/utils.h"
 
 long size ;
-
-char* remove_ext(char *fullName) {
-	char *out = malloc(500 * sizeof(char)) ;
-	strcpy(out,fullName) ;
-	if (strrchr(out,'.') != NULL)
-		*strrchr(out,'.') = 0 ;
-	return out ;
-}
 
 long calc_bin(long x, long y, long z) {
 	return (long) sqrt(x*x + y*y + z*z) ;
@@ -46,18 +39,22 @@ float calc_sfac(float a, int n) {
 }
 
 int main(int argc, char *argv[]) {
-	long x, y, z, center, vol, i, bin ;
+	long center, vol, i ;
 	float *intens, *sigma, *alpha, *radavg ;
 	int num_twin = 4 ; // TODO Make general
 	char fname[999] ;
 	FILE *fp ;
 	
-	if (argc < 4) {
-		fprintf(stderr, "Format: %s <intens_fname> <sigma_fname> <size>\n", argv[0]) ;
+	if (argc < 3) {
+		fprintf(stderr, "Format: %s <intens_fname> <sigma_fname>\n", argv[0]) ;
 		fprintf(stderr, "Optional: <output_fname>\n") ;
 		return 1 ;
 	}
-	size = atoi(argv[3]) ;
+	size = get_size(argv[1], sizeof(float)) ;
+	if (argc > 3)
+		strcpy(fname, argv[3]) ;
+	else
+		sprintf(fname, "%s-sfac.raw", remove_ext(argv[1])) ;
 	vol = size*size*size ;
 	center = size / 2 ;
 	
@@ -78,9 +75,10 @@ int main(int argc, char *argv[]) {
 	fprintf(stderr, "Calculated radial average\n") ;
 	
 	alpha = calloc(vol, sizeof(float)) ;
-	#pragma omp parallel default(shared) private(x,y,z,i,bin)
+	#pragma omp parallel default(shared) private(i)
 	{
 		int rank = omp_get_thread_num() ;
+		long x, y, z, bin ;
 		
 		#pragma omp for schedule(static,1)
 		for (x = 0 ; x < size ; ++x)
@@ -122,10 +120,6 @@ int main(int argc, char *argv[]) {
 	}
 	fprintf(stderr, "\n") ;
 	
-	if (argc > 4)
-		strcpy(fname, argv[4]) ;
-	else
-		sprintf(fname, "%s-sfac.raw", remove_ext(argv[1])) ;
 	fprintf(stderr, "Writing output to %s\n", fname) ;
 	fp = fopen(fname, "wb") ;
 	fwrite(intens, sizeof(float), vol, fp) ;

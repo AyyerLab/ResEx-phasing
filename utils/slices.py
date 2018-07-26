@@ -10,7 +10,8 @@ import ConfigParser
 
 parser = argparse.ArgumentParser(description='Plot real-space slices of predicted intensities')
 parser.add_argument('-c', '--config', help='Path to config file. Default: config.ini', default='config.ini')
-parser.add_argument('-n', '--num', help='Number of iterations to parse if different from log file', type=int, default=None)
+parser.add_argument('-s', '--start', help='First iteration to parse (default: 1)', type=int, default=1)
+parser.add_argument('-L', '--last', help='Last iteration to parse if different from log file', type=int, default=None)
 parser.add_argument('-l', '--loop', help='Loop animation. Default=False', action='store_true', default=False)
 parser.add_argument('-j', '--jump', help='Jump. Do only every j iterations. Default=1', type=int, default=1)
 args = parser.parse_args()
@@ -20,7 +21,7 @@ def update_view(num):
     v[0].set_data(fslices[0,bmin:bmax,bmin:bmax])
     v[1].set_data(fslices[1,bmin:bmax,bmin:bmax])
     v[2].set_data(fslices[2,bmin:bmax,bmin:bmax])
-    iter_text.set_text('%d'%(num+1))
+    iter_text.set_text('%d'%(args.start+num))
     return v[0], v[1], v[2], iter_text
 
 config = ConfigParser.ConfigParser()
@@ -28,14 +29,17 @@ config.read(args.config)
 size = config.getint('parameters', 'size')
 prefix = config.get('files', 'output_prefix')
 
-with open(prefix+'-log.dat', 'r') as f:
-    last_iteration = int(f.readlines()[-1].split()[0])
-flist = np.array([prefix+'-slices/%.4d.raw'%i for i in range(1, last_iteration+1)])[:args.num]
+if args.last is None:
+    with open(prefix+'-log.dat', 'r') as f:
+        args.last = int(f.readlines()[-1].split()[0])
+flist = np.array([prefix+'-slices/%.4d.raw'%i for i in range(args.start, args.last+1)])
 
-rangemax = np.fromfile(flist[-1], '=f4').max()/2.
+rangemax = np.fromfile(flist[-1], '=f4').max()/1.5
 print '%d slices will be plotted with rangemax %.3f' % (len(flist), rangemax)
 bmin = size/3
 bmax = 2*size/3
+#rangemin=0
+rangemin=-rangemax*0.25
 
 fig = P.figure(figsize=(15,5))
 fig.subplots_adjust(left=0.0, bottom=0.00, right=0.99, wspace=0.0)
@@ -46,9 +50,9 @@ s3 = fig.add_subplot(133)
 
 fslices = np.fromfile(flist[0], '=f4').reshape(3,size,size)
 v = []
-v.append(s1.matshow(fslices[0,bmin:bmax,bmin:bmax], vmax=rangemax, vmin=0))
-v.append(s2.matshow(fslices[1,bmin:bmax,bmin:bmax], vmax=rangemax, vmin=0))
-v.append(s3.matshow(fslices[2,bmin:bmax,bmin:bmax], vmax=rangemax, vmin=0))
+v.append(s1.matshow(fslices[0,bmin:bmax,bmin:bmax], vmax=rangemax, vmin=rangemin, cmap='cubehelix'))
+v.append(s2.matshow(fslices[1,bmin:bmax,bmin:bmax], vmax=rangemax, vmin=rangemin, cmap='cubehelix'))
+v.append(s3.matshow(fslices[2,bmin:bmax,bmin:bmax], vmax=rangemax, vmin=rangemin, cmap='cubehelix'))
 
 s1.set_title("YZ plane", y = 1.01)
 s1.axis('off')

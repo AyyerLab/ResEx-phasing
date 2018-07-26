@@ -31,3 +31,4 @@ gen_data
 # External files
 *DS_Store
 *.out
+*.txt

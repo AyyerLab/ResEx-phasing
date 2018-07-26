@@ -4,14 +4,7 @@
 #include <string.h>
 #include <omp.h>
 #include <stdint.h>
-
-char* remove_ext(char *fullName) {
-	char *out = malloc(500 * sizeof(char)) ;
-	strcpy(out,fullName) ;
-	if (strrchr(out,'.') != NULL)
-		*strrchr(out,'.') = 0 ;
-	return out ;
-}
+#include "../../src/utils.h"
 
 void make_rot(double phi, double rot[3][3]) {
 	double c = cos(phi) ;
@@ -35,7 +28,7 @@ int main(int argc, char *argv[]) {
 	double rot[3][3], *det = NULL ;
 	float *model3d, *weight, ave ;
 	unsigned short *frame ;
-	char fname[999], header[512], *token ;
+	char fname[1024], header[512] ;
 	FILE *fp, *fp_list ;
 	long z ;
 	double tx, ty, tz, fx, fy, fz, cx, cy, cz, w, f ;
@@ -72,13 +65,13 @@ int main(int argc, char *argv[]) {
 	
 	fp_list = fopen(argv[1], "r") ;
 	
-	while (fscanf(fp_list, "%s\n", fname) == 1) {
+	while (fscanf(fp_list, "%1023s\n", fname) == 1) {
 		fp = fopen(fname, "rb") ;
 		
 		// Parse header
 		fread(header, sizeof(char), 512, fp) ;
 		
-		token = strtok(header, "{};=\n") ;
+		char *token = strtok(header, "{};=\n") ;
 		x = atoi(strtok(NULL, "{};=\n")) ;
 		
 		while (token != NULL) {
@@ -315,6 +308,7 @@ int main(int argc, char *argv[]) {
 	fclose(fp) ;
 	
 	// Free memory
+	free(mask) ;
 	free(det) ;
 	free(model3d) ;
 	free(weight) ;

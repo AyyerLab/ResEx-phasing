@@ -4,31 +4,23 @@
 #include <string.h>
 #include <math.h>
 #include <complex.h>
-#include <fftw3.h>
 #include <omp.h>
-
-char* remove_ext(char *fullName) {
-	char *out = malloc(500 * sizeof(char)) ;
-	strcpy(out,fullName) ;
-	if (strrchr(out,'.') != NULL)
-		*strrchr(out,'.') = 0 ;
-	return out ;
-}
+#include "../../src/fft.h"
+#include "../../src/utils.h"
 
 int main(int argc, char *argv[]) {
 	long i, size, vol, num_autocorr, num_supp ;
 	float *intens ;
 	uint8_t *support ;
-	fftwf_complex *rdensity, *fdensity ;
-	fftwf_plan forward, inverse ;
 	FILE *fp ;
 	char fname[999] ;
+	struct fft_data fft ;
 	
-	if (argc < 4) {
-		fprintf(stderr, "Format: %s <intens_fname> <size> <support_fname>\n", argv[0]) ;
+	if (argc < 3) {
+		fprintf(stderr, "Format: %s <intens_fname> <support_fname>\n", argv[0]) ;
 		return 1 ;
 	}
-	size = atoi(argv[2]) ;
+	size = get_size(argv[1], sizeof(float)) ;
 	vol = size*size*size ;
 	
 	// Read data
@@ -43,7 +35,7 @@ int main(int argc, char *argv[]) {
 	
 	// Read support
 	support = malloc(vol * sizeof(uint8_t)) ;
-	fp = fopen(argv[3], "rb") ;
+	fp = fopen(argv[2], "rb") ;
 	fread(support, sizeof(uint8_t), vol, fp) ;
 	fclose(fp) ;
 	
@@ -53,37 +45,20 @@ int main(int argc, char *argv[]) {
 		num_supp++ ;
 	
 	// Initialize FFTW
-	fftwf_init_threads() ;
-	fftwf_plan_with_nthreads(omp_get_max_threads()) ;
-	
-	rdensity = fftwf_malloc(vol * sizeof(fftwf_complex)) ;
-	fdensity = fftwf_malloc(vol * sizeof(fftwf_complex)) ;
-	
-	sprintf(fname, "data/wisdom_%ld_%d", size, omp_get_max_threads()) ;
-	fp = fopen(fname, "rb") ;
-	if (fp == NULL) {
-		forward = fftwf_plan_dft_3d(size, size, size, rdensity, fdensity, FFTW_FORWARD, FFTW_ESTIMATE) ;
-		inverse = fftwf_plan_dft_3d(size, size, size, fdensity, rdensity, FFTW_FORWARD, FFTW_ESTIMATE) ;
-	}
-	else {
-		fftwf_import_wisdom_from_file(fp) ;
-		fclose(fp) ;
-		
-		forward = fftwf_plan_dft_3d(size, size, size, rdensity, fdensity, FFTW_FORWARD, FFTW_MEASURE) ;
-		inverse = fftwf_plan_dft_3d(size, size, size, fdensity, rdensity, FFTW_FORWARD, FFTW_MEASURE) ;
-	}
+	fft_init(&fft, size, omp_get_max_threads()) ;
+	fft_create_plans(&fft) ;
 	
 	// Calculate autocorrelation of support
 	for (i = 0 ; i < vol ; ++i)
-		rdensity[i] = support[i] ;
-	fftwf_execute(forward) ;
+		fft.rdensity[i] = support[i] ;
+	fft_forward(&fft) ;
 	for (i = 0 ; i < vol ; ++i)
-		fdensity[i] = powf(cabsf(fdensity[i]), 2.f) / vol ;
-	fftwf_execute(inverse) ;
+		fft.fdensity[i] = powf(cabsf(fft.fdensity[i]), 2.f) / vol ;
+	fft_inverse(&fft) ;
 	
 	num_autocorr = 0 ;
 	for (i = 0 ; i < vol ; ++i)
-	if (crealf(rdensity[i]) > 0.5) {
+	if (crealf(fft.rdensity[i]) > 0.5) {
 		support[i] = 1 ;
 		num_autocorr++ ;
 	}
@@ -94,23 +69,23 @@ int main(int argc, char *argv[]) {
 	
 	// Constrain Patterson function of data by autocorrelation of support
 	for (i = 0 ; i < vol ; ++i)
-		fdensity[i] = intens[i] ;
-	fftwf_execute(inverse) ;
+		fft.fdensity[i] = intens[i] ;
+	fft_inverse(&fft) ;
 	
 	fp = fopen("data/rdensity.cpx", "wb") ;
-	fwrite(rdensity, sizeof(fftwf_complex), vol, fp) ;
+	fwrite(fft.rdensity, sizeof(float complex), vol, fp) ;
 	fclose(fp) ;
 	
 	for (i = 0 ; i < vol ; ++i) {
 		if (support[i] == 0)
-			rdensity[i] = 0.f ;
+			fft.rdensity[i] = 0.f ;
 		else
-			rdensity[i] /= vol ;
+			fft.rdensity[i] /= vol ;
 	}
-	fftwf_execute(forward) ;
+	fft_forward(&fft) ;
 	
 	for (i = 0 ; i < vol ; ++i)
-		intens[i] = crealf(fdensity[i]) ;
+		intens[i] = crealf(fft.fdensity[i]) ;
 	
 	sprintf(fname, "%s-smoothed.raw", remove_ext(argv[1])) ;
 	fprintf(stderr, "Saving band-limited intensity to %s\n", fname) ;
@@ -120,8 +95,7 @@ int main(int argc, char *argv[]) {
 	
 	free(support) ;
 	free(intens) ;
-	free(rdensity) ;
-	free(fdensity) ;
+	fft_free(&fft) ;
 	
 	return 0 ;
 }

@@ -124,7 +124,7 @@ class GUI():
         self.fig = plt.figure(figsize=(15,5))
         self.fig.subplots_adjust(left=0.0, bottom=0.00, right=0.99, wspace=0.0)
         self.canvas = FigureCanvasTkAgg(self.fig, canvas_frame)
-        self.canvas.show()
+        self.canvas.draw()
         self.canvas.get_tk_widget().pack(fill='both', expand=1)
 
         # Config frame
@@ -279,10 +279,12 @@ class GUI():
 
     def parse_map(self):
         with open(self.fname.get(), 'rb') as f:
-            f.seek(28, 0)
-            grid = np.fromfile(f, '=i4', count=3)
+            grid = np.fromfile(f, '=i4', count=3) # Grid size
+            f.seek(64, 0)
+            ordering = np.fromfile(f, '=i4', count=3) # Axis ordering
+            grid = grid[ordering-1]
             nx, ny, nz = tuple(grid)
-            f.seek(1024, 0)
+            f.seek(1024, 0) # End of header
             vol = np.fromfile(f, '=f4', count=nx*ny*nz).reshape(nx, ny, nz)
         edgesum = (np.abs(vol[:,:,0]).sum() + np.abs(vol[:,:,-1]).sum() + np.abs(vol[:,0]).sum() + np.abs(vol[:,-1]).sum() + np.abs(vol[0]).sum() + np.abs(vol[-1]).sum()) / 6.
         centralsum = (np.abs(vol[:,:,nz/2]).sum() + np.abs(vol[:,ny/2]).sum() + np.abs(vol[nx/2]).sum())/ 3.
@@ -335,6 +337,7 @@ class GUI():
                 b = self.vol[:,layernum,:]	
                 c = self.vol[:,:,layernum]
             
+        self.fig.clear()
         s1 = self.fig.add_subplot(131)
         s1.matshow(a, vmin=rangemin, vmax=rangemax, cmap='jet')
         if space == 'fourier':
@@ -382,7 +385,7 @@ class GUI():
             s3.add_artist(patches.Circle((self.size/2,self.size/2), rmax, ec='white', fc='none', ls='dashed'))
         
         self.space = space
-        self.canvas.show()
+        self.canvas.draw()
 
     def replot(self, event=None, **kwargs):
         if self.map_image_exists:
@@ -442,7 +445,7 @@ class GUI():
         rmin = float(self.radiusmin.get())
         rmax = float(self.radiusmax.get())
         print '-'*80
-        os.system('./utils/zero_outer %s %d %d %d' % (self.merge_fname.get(), self.size, rmin, rmax))
+        os.system('./utils/zero_outer %s %d %d' % (self.merge_fname.get(), rmin, rmax))
         print '-'*80
         
         if not self.zeroed:
@@ -453,15 +456,13 @@ class GUI():
             ttk.Label(line,text='Zero-ed volume: ').pack(side=Tk.LEFT)
             ttk.Button(line,text=zero_fname,command=lambda: self.plot_vol(fname=zero_fname)).pack(side=Tk.LEFT)
         self.zeroed = True
-        #if self.calculated_scale and self.processed_map and not self.added_recon_tab:
-        #    self.gen_recon_tab()
 
     def calc_scale(self, event=None):
         rmin = float(self.scaleradmin.get())
         rmax = float(self.scaleradmax.get())
         mapnoext = os.path.splitext(os.path.basename(self.map_fname.get()))[0]
         sym_model = 'data/convert/'+mapnoext+'-sym.raw'
-        cmd = './utils/calc_scale %s %s %d %d %d' % (sym_model, self.merge_fname.get(), self.size, rmin, rmax)
+        cmd = './utils/calc_scale %s %s %d %d' % (sym_model, self.merge_fname.get(), rmin, rmax)
         output = subprocess.check_output(cmd.split(), shell=False)
         self.scale_factor = float(output.split()[4])
         if not self.calculated_scale:
@@ -472,8 +473,6 @@ class GUI():
         else:
             self.scale_label.config(text='Scale factor = %.6e' % self.scale_factor)
         self.calculated_scale = True
-        #if self.zeroed and self.processed_map and not self.added_recon_tab:
-        #    self.gen_recon_tab()
 
     def process_map(self, event=None):
         mapnoext = os.path.splitext(os.path.basename(self.map_fname.get()))[0]
@@ -482,9 +481,9 @@ class GUI():
                 words = f.read().split()
                 warray = np.array(words)
                 self.resedge.set(float(words[words.index('./utils/read_map')+2])/(self.vol_size/2))
-                self.point_group.set(words[np.where(warray=='data/convert/'+mapnoext+'-srecon.raw')[0][0]+3])
-                self.suppradstr.set('%.1f'%float(words[np.where(warray=='./utils/create_support')[0][-1]+3]))
-                self.suppthreshstr.set('%.1f'%float(words[np.where(warray=='./utils/create_support')[0][-1]+4]))
+                self.point_group.set(words[np.where(warray=='data/convert/'+mapnoext+'-srecon.raw')[0][0]+2])
+                self.suppradstr.set('%.1f'%float(words[np.where(warray=='./utils/create_support')[0][-1]+2]))
+                self.suppthreshstr.set('%.1f'%float(words[np.where(warray=='./utils/create_support')[0][-1]+3]))
         else:
             if self.resedge.get() is '':
                 print 'Need resolution at edge of volume'
@@ -501,15 +500,13 @@ class GUI():
         if not self.processed_map:
             self.add_to_map_frame(mapnoext)
         self.processed_map = True
-        #if self.zeroed and self.calculated_scale and not self.added_recon_tab:
-        #    self.gen_recon_tab()
 
     def add_to_map_frame(self, mapnoext):
         prefix = 'data/convert/'+mapnoext
         line = ttk.Frame(self.map_frame)
         line.pack(fill=Tk.X)
         ttk.Label(line,text='Complex: ').pack(side=Tk.LEFT)
-        ttk.Button(line,text=prefix+'cpx',command=lambda: self.plot_vol(fname=prefix+'.cpx')).pack(side=Tk.LEFT)
+        ttk.Button(line,text=prefix+'.cpx',command=lambda: self.plot_vol(fname=prefix+'.cpx')).pack(side=Tk.LEFT)
         
         line = ttk.Frame(self.map_frame)
         line.pack(fill=Tk.X)
@@ -606,13 +603,13 @@ class GUI():
             f.write('algorithm = 100 DM\n')
             f.write('avg_algorithm = 50 DM\n')
             f.write('beta = 1.\n')
-            if self.positivity_flag == 1:
+            if self.positivity_flag.get() == 1:
                 f.write('positivity = 1\n')
-            if self.bgfitting_flag == 1:
+            if self.bgfitting_flag.get() == 1:
                 f.write('bg_fitting = 1\n')
-            if self.variation_flag == 1:
+            if self.variation_flag.get() == 1:
                 f.write('local_variation = 1\n')
-            if self.histogram_flag == 1:
+            if self.histogram_flag.get() == 1:
                 f.write('histogram = 1\n')
                 f.write('hist_fname = data/3wu2_hist.dat\n')
         print 'Generated %s:' % self.config_fname.get()
