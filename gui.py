@@ -272,7 +272,7 @@ class GUI():
         if not self.vol_image_exists:
             self.layernum.set(self.size/2)
             self.radiusmin.set('%d' % (self.size/2/2))
-            self.radiusmax.set('%d' % (self.size/2))
+            self.radiusmax.set('%d' % (self.size))
             self.scaleradmin.set('%d' % (self.size/2/2*0.9))
             self.scaleradmax.set('%d' % (self.size/2/2*1.1))
         self.old_fname = self.fname.get()
