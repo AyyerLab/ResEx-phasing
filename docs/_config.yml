@@ -17,11 +17,11 @@ title: ResEx Phasing
 description: >- # this means to ignore newlines until "baseurl:"
   Resolution Extension using<br/>
   Continuous Diffraction
-baseurl: "/bragg-cont" # the subpath of your site, e.g. /blog
+baseurl: "/ResEx-phasing" # the subpath of your site, e.g. /blog
 url: "" # the base hostname & protocol for your site, e.g. http://example.com
 github:
     is_project_page: true
-    repository_url: https://github.com/kartikayyer/bragg-cont
+    repository_url: https://github.com/kartikayyer/ResEx-phasing
     owner_name: Kartik Ayyer
     owner_url: https://github.com/kartikayyer
 

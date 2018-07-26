@@ -39,8 +39,8 @@ rotational and liquid-like motion are under development.
 There is no real installation process to speak of. Just clone the repository and
 compile the C code:
 ```
-$ git clone https://github.com/kartikayyer/bragg-cont.git
-$ cd bragg-cont
+$ git clone https://github.com/kartikayyer/ResEx-phasing.git
+$ cd ResEx-phasing
 $ make
 ```
 However, there are a few dependencies:
