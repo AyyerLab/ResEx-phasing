@@ -33,13 +33,15 @@ radiusmin = Tk.StringVar()
 radiusmax = Tk.StringVar()
 flag = Tk.IntVar()
 circleflag = Tk.IntVar()
+projectflag = Tk.IntVar()
 
 fname.set(sys.argv[1])
 imagename.set('images/' + os.path.splitext(os.path.basename(fname.get()))[0] + '.png')
 radiusmin.set('100')
 radiusmax.set('200')
-circleflag.set(0)
 flag.set(0)
+circleflag.set(0)
+projectflag.set(0)
 if len(sys.argv) > 2:
     flag.set(int(sys.argv[2]))
 
@@ -127,19 +129,27 @@ def plot_vol_slices(layernum):
             a = vol[0,min:max,min:max]
             b = vol[1,min:max,min:max]
             c = vol[2,min:max,min:max]
-        else:
+        elif projectflag.get() is 0:
             a = vol[layernum,min:max,min:max]
             b = vol[min:max,layernum,min:max]
             c = vol[min:max,min:max,layernum]
+        else:
+            a = vol[:,min:max,min:max].sum(0)
+            b = vol[min:max,:,min:max].sum(1)
+            c = vol[min:max,min:max,:].sum(2)
     elif flag.get() is 1:
         if only_slices:
             a = vol[0]
             b = vol[1]
             c = vol[2]
-        else:
+        elif projectflag.get() is 0:
             a = vol[layernum,:,:]    
             b = vol[:,layernum,:]    
             c = vol[:,:,layernum]
+        else:
+            a = vol.sum(0)
+            b = vol.sum(1)
+            c = vol.sum(2)
     
     s1 = fig.add_subplot(131)
     s1.matshow(a, vmin=rangemin, vmax=rangemax, cmap=cmap)
@@ -313,16 +323,23 @@ Tk.Checkbutton(
     command = flag_changed
     ).grid(row=6,column=2)
 
+Tk.Checkbutton(
+    config_frame,
+    text = "Show projection",
+    variable = projectflag,
+    command = flag_changed
+    ).grid(row=7,column=0,columnspan=2)
+
 Tk.Entry(
     config_frame,
     textvariable = radiusmin,
     width = 10
-    ).grid(row=7,column=1,columnspan=1,sticky=Tk.W)
+    ).grid(row=8,column=1,columnspan=1,sticky=Tk.W)
 Tk.Entry(
     config_frame,
     textvariable = radiusmax,
     width = 10
-    ).grid(row=7,column=2,columnspan=1,sticky=Tk.W)
+    ).grid(row=8,column=2,columnspan=1,sticky=Tk.W)
 
 parse_and_plot()
 
