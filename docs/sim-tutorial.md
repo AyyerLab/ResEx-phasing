@@ -12,7 +12,13 @@ with tricky real data.
 ## Process map
 We will use the provided `4et8_sim.ccp4` map shipped with the code. This map of a
 single lysozyme molecule was made from data collected at LCLS (Boutet et al.
-Science 2011). Since this is a simulation, we will generate the intensity file
+Science 2011). Below are two images of projections through the density along the
+three axes. The first one is of the 2 A map and the other of a version truncated
+to 4 A which is what we will use as the low resolution model.
+![4et8 map]({{"images/4et8_sim-srecon-proj.png" | relative_url }})
+![4et8 map truncated to 4A]({{"images/4et8_sim-lowres-proj.png" | relative_url }})
+
+Since this is a simulation, we will generate the intensity file
 also from the map. The steps to do this are:
 ```
 $ ./process_map.sh data/maps/4et8_sim.ccp4 301 2.0 0 3.0 2.0 222
@@ -33,13 +39,13 @@ You should get something like the image below:
 <a href="images/gui_sim_first.png">![GUI init screen]({{
 "images/gui_sim_first.png" | relative_url }})</a>
 
-Switch to the 'Map' tab and click 'Process Map'. Now since the map has already
+Switch to the 'Map' tab and click 'Process Map'. Since the map has already
 been processed in the previous step, you will get a dialog box asking whether to
 overwrite the output. Click 'No'.
 <a href="images/gui_sim_process.png">![GUI process overwrite]({{
 "images/gui_sim_process.png" | relative_url }})</a>
 
-You can now look at teh various files created from the map including a slice
+You can look at the various files created from the map including a slice
 through the electron density and the support. You can also see the molecular
 transform and the `222`-symmetrized version, which in this case is identical to
 the intensity data.
@@ -90,7 +96,8 @@ The first two files reflect the input data set,
    transform
 The support file is derived from the low resolution Bragg model. `bragg_qmax` is
 the fraction of the edge resolution up to which the Bragg transform is read. In
-this case, it goes halfway (4 A).
+this case, it goes halfway (4 A). The output is stored in files starting with
+the specified `output_prefix`.
 
 The `[algorithm]` section describes the phasing parameters. The algorithms are
 iterative so the `algorithm` option describes what update rule must be applied
@@ -98,4 +105,47 @@ for how many iterations. After stabilizing, `avg_algorithm` describes a set of
 iterations and the solution will be the average of the iterate at the end of
 these steps.
 
+To run the reconstruction locally just type
+```
+$ ./recon -c 4et8_config.ini
+```
+You can also submit it to a job queue but keep in mind to adjust the number of
+threads in the config file appropriately.
+
 ## Examine results
+While the program is running, one can view slices through the density as a
+function of iteration with the `slices.py` utility. To run this, simply type
+```
+$ ./utils/slices.py -c 4et8_config.ini
+```
+You can look at other options to either loop or show only every `j`-th iteration
+by running it with the `-h` argument.
+
+After the final iteration, a few volumes are generated, which can be viewed with
+the `view.py` script. First are the two reconstructed electron densities
+`sim-pd.raw` and `sim-pf.raw`. These are the direct- and Fourier-space
+projections respectively, i.e. they satisfy the support and data constraints. In
+case of full convergence, they should both be identical, but you can look at
+either of them individually to see whether there is any noticeable difference.
+
+Since this is a simulation, we can quantify the difference between the output
+and the ground truth. A common way to compare two models is using the FSC
+metric, using the `calc_fsc` utility:
+```
+$ ./utils/calc_fsc data/recon/sim-pd.raw data/convert/4et8_sim-srecon.raw 2. results/fsc_sim.dat
+```
+This saves the resolution dependent FSC in `fsc_sim.dat`. A simple plot of the
+file in GNUPLOT is shown below where you can see that the agreement is not
+perfect. Below 4 A resolution, the value is unity because the Bragg data from
+the model has been used directly and there is no phasing to be done. It then
+falls to 0.64 by the edge of the volume (2 A resolution). This can be remedied
+by performing more iterations before averaging. Try it for yourself with a
+combination of `1000 DM` followed by `200 DM`.
+
+![Simulation FSC]({{"images/fsc_sim.png" | relative_url }})
+
+## Explore further
+This was the most basic reconstruction one could do and which works reasonably
+well with the default settings. Explore the documentation to understand the
+various steps used and to see what other options are available to process more
+complicated experimental data.
