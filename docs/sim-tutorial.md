@@ -108,7 +108,7 @@ these steps.
 
 To run the reconstruction locally just type
 ```
-$ ./recon -c 4et8_config.ini
+$ ./recon -c sim_config.ini
 ```
 You can also submit it to a job queue but keep in mind to adjust the number of
 threads in the config file appropriately.
@@ -117,7 +117,7 @@ threads in the config file appropriately.
 While the program is running, one can view slices through the density as a
 function of iteration with the `slices.py` utility. To run this, simply type
 ```
-$ ./utils/slices.py -c 4et8_config.ini
+$ ./utils/slices.py -c sim_config.ini
 ```
 You can look at other options to either loop or show only every `j`-th iteration
 by running it with the `-h` argument.
