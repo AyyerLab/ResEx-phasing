@@ -94,6 +94,7 @@ The first two files reflect the input data set,
  * `intens_fname`: Resolution-truncated 3D intensities (`size`-cubed volume)
  * `bragg_fname`: Processed Bragg map containing a low resolution molecular
    transform
+
 The support file is derived from the low resolution Bragg model. `bragg_qmax` is
 the fraction of the edge resolution up to which the Bragg transform is read. In
 this case, it goes halfway (4 A). The output is stored in files starting with
