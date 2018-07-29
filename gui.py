@@ -600,8 +600,8 @@ class GUI():
             f.write('# Algorithm choices: DM, HIO, RAAR, mod-DM, ER\n')
             f.write('# With beta = 1, all algorithms except ER are equivalent\n')
             f.write('# algorithm and avg_algorithm are space separated with alternating numbers and names\n')
-            f.write('algorithm = 100 DM\n')
-            f.write('avg_algorithm = 50 DM\n')
+            f.write('algorithm = 200 DM\n')
+            f.write('avg_algorithm = 100 DM\n')
             f.write('beta = 1.\n')
             if self.positivity_flag.get() == 1:
                 f.write('positivity = 1\n')
