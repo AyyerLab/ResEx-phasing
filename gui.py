@@ -49,6 +49,8 @@ class GUI():
         self.variation_flag = Tk.IntVar()
         self.positivity_flag = Tk.IntVar()
         self.histogram_flag = Tk.IntVar()
+        self.project_flag = Tk.IntVar()
+        self.current_angle = Tk.StringVar()
 
         self.merge_fname.set(merge_fname)
         self.map_fname.set(map_fname)
@@ -73,6 +75,8 @@ class GUI():
         self.variation_flag.set(0)
         self.positivity_flag.set(0)
         self.histogram_flag.set(0)
+        self.project_flag.set(0)
+        self.current_angle.set('XY')
         self.size = None
         self.vol = None
         self.rad = None
@@ -88,6 +92,7 @@ class GUI():
         self.processed_map = False
         self.zoomed = False
         self.added_recon_tab = False
+        self.angle_list = ['XY', 'XZ', 'YZ']
 
         if sys.platform != 'darwin':
             self.master.tk.eval('source [file join themes plastik plastik.tcl]')
@@ -120,13 +125,19 @@ class GUI():
         
         line = ttk.Frame(canvas_frame)
         line.pack(fill=Tk.X)
-        ttk.Label(line, textvariable=self.fname).pack(side=Tk.LEFT)
-        self.fig = plt.figure(figsize=(15,5))
+        ttk.Label(line, textvariable=self.fname).pack(side='left')
+        ttk.Checkbutton(line, text='Projection', variable=self.project_flag,
+                command=lambda: self.replot(zoom='current')).pack(side='left', fill='x', expand=True)
+        ttk.Button(line, text="Prev", command=self.next_angle).pack(side='left')
+        ttk.Label(line, textvariable=self.current_angle).pack(side='left', padx=10)
+        ttk.Button(line, text="Next", command=self.prev_angle).pack(side='left')
+        
+        self.fig = plt.figure(figsize=(7,7))
         self.fig.subplots_adjust(left=0.0, bottom=0.00, right=0.99, wspace=0.0)
         self.canvas = FigureCanvasTkAgg(self.fig, canvas_frame)
         self.canvas.draw()
         self.canvas.get_tk_widget().pack(fill='both', expand=1)
-
+        
         # Config frame
         config_frame = ttk.Frame(self.master)
         config_frame.grid(row=0, column=1, sticky='news')
@@ -306,6 +317,7 @@ class GUI():
         self.imagename.set('images/' + os.path.splitext(os.path.basename(self.fname.get()))[0] + '.png')
         rangemax = float(self.rangemaxstr.get())
         rangemin = float(self.rangeminstr.get())
+        project = (self.project_flag.get() == 1)
         if self.vol is None and slices is None:
             return
         
@@ -327,62 +339,50 @@ class GUI():
                 c = slices[2]
         else:
             if zoom:
-                min = self.size/3
-                max = 2*min
-                a = self.vol[layernum,min:max,min:max]
-                b = self.vol[min:max,layernum,min:max]
-                c = self.vol[min:max,min:max,layernum]
+                minx = self.size/3
+                maxx = 2*minx
+                if project:
+                    a = self.vol[:,minx:maxx,minx:maxx].sum(0)
+                    b = self.vol[minx:maxx,:,minx:maxx].sum(1)
+                    c = self.vol[minx:maxx,minx:maxx,:].sum(2)
+                else:
+                    a = self.vol[layernum,minx:maxx,minx:maxx]
+                    b = self.vol[minx:maxx,layernum,minx:maxx]
+                    c = self.vol[minx:maxx,minx:maxx,layernum]
             else:
-                a = self.vol[layernum,:,:]	
-                b = self.vol[:,layernum,:]	
-                c = self.vol[:,:,layernum]
-            
-        self.fig.clear()
-        s1 = self.fig.add_subplot(131)
-        s1.matshow(a, vmin=rangemin, vmax=rangemax, cmap='jet')
-        if space == 'fourier':
-            plt.title("h = 0, YZ plane", y = 1.01)
-        elif space == 'real':
-            plt.title("YZ plane", y = 1.01)
-        plt.axis('off')
-        s2 = self.fig.add_subplot(132)
-        s2.matshow(b, vmin=rangemin, vmax=rangemax, cmap='jet')
-        if space == 'fourier':
-            plt.title("k = 0, XZ plane", y = 1.01)
-        elif space == 'real':
-            plt.title("YZ plane", y = 1.01)
-        plt.axis('off')
-        s3 = self.fig.add_subplot(133)
-        s3.matshow(c, vmin=rangemin, vmax=rangemax, cmap='jet')
-        if space == 'fourier':
-            plt.title("l = 0, XY plane", y = 1.01)
-        elif space == 'real':
-            plt.title("XY plane", y = 1.01)
-        plt.axis('off')
+                if project:
+                    a = self.vol.sum(0)
+                    b = self.vol.sum(1)
+                    c = self.vol.sum(2)
+                else:
+                    a = self.vol[layernum,:,:]	
+                    b = self.vol[:,layernum,:]	
+                    c = self.vol[:,:,layernum]
         
-        [a.remove() for a in list(set(s1.findobj(patches.Circle)))]
-        [a.remove() for a in list(set(s2.findobj(patches.Circle)))]
-        [a.remove() for a in list(set(s3.findobj(patches.Circle)))]
+        self.fig.clear()
+        s = self.fig.add_subplot(111)
+        if self.current_angle.get() == 'XY':
+            view = a
+        elif self.current_angle.get() == 'XZ':
+            view = b
+        else:
+            view = c
+        s.matshow(view, vmin=rangemin, vmax=rangemax, cmap='jet')
+        plt.title(self.current_angle.get(), y=1.01)
+        plt.axis('off')
+        [a.remove() for a in list(set(s.findobj(patches.Circle)))]
         
         if self.circleflag.get() is 1: 
             rmin = float(self.radiusmin.get())
             rmax = float(self.radiusmax.get())
-            s1.add_artist(patches.Circle((self.size/2,self.size/2), rmin, ec='white', fc='none'))
-            s1.add_artist(patches.Circle((self.size/2,self.size/2), rmax, ec='white', fc='none'))
-            s2.add_artist(patches.Circle((self.size/2,self.size/2), rmin, ec='white', fc='none'))
-            s2.add_artist(patches.Circle((self.size/2,self.size/2), rmax, ec='white', fc='none'))
-            s3.add_artist(patches.Circle((self.size/2,self.size/2), rmin, ec='white', fc='none'))
-            s3.add_artist(patches.Circle((self.size/2,self.size/2), rmax, ec='white', fc='none'))
+            s.add_artist(patches.Circle((self.size/2,self.size/2), rmin, ec='white', fc='none'))
+            s.add_artist(patches.Circle((self.size/2,self.size/2), rmax, ec='white', fc='none'))
         
         if self.scaleradflag.get() is 1: 
             rmin = float(self.scaleradmin.get())
             rmax = float(self.scaleradmax.get())
-            s1.add_artist(patches.Circle((self.size/2,self.size/2), rmin, ec='white', fc='none', ls='dashed'))
-            s1.add_artist(patches.Circle((self.size/2,self.size/2), rmax, ec='white', fc='none', ls='dashed'))
-            s2.add_artist(patches.Circle((self.size/2,self.size/2), rmin, ec='white', fc='none', ls='dashed'))
-            s2.add_artist(patches.Circle((self.size/2,self.size/2), rmax, ec='white', fc='none', ls='dashed'))
-            s3.add_artist(patches.Circle((self.size/2,self.size/2), rmin, ec='white', fc='none', ls='dashed'))
-            s3.add_artist(patches.Circle((self.size/2,self.size/2), rmax, ec='white', fc='none', ls='dashed'))
+            s.add_artist(patches.Circle((self.size/2,self.size/2), rmin, ec='white', fc='none', ls='dashed'))
+            s.add_artist(patches.Circle((self.size/2,self.size/2), rmax, ec='white', fc='none', ls='dashed'))
         
         self.space = space
         self.canvas.draw()
@@ -653,6 +653,18 @@ class GUI():
     def decrement_layer(self, event=None):
         self.layernum.set(max(self.layernum.get()-1, 0))
         self.plot_slices(self.layernum.get(), zoom='current')
+
+    def next_angle(self):
+        curr = self.angle_list.index(self.current_angle.get())
+        curr = (curr + 1) % 3
+        self.current_angle.set(self.angle_list[curr])
+        self.replot(zoom='current')
+
+    def prev_angle(self):
+        curr = self.angle_list.index(self.current_angle.get())
+        curr = (curr - 1) % 3
+        self.current_angle.set(self.angle_list[curr])
+        self.replot(zoom='current')
 
     def save_plot(self, event=None):
         self.fig.savefig(self.imagename.get(), bbox_inches='tight', dpi=150)
