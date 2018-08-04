@@ -129,7 +129,7 @@ class GUI(QtWidgets.QMainWindow):
     def init_UI(self):
         with open('style.css', 'r')as f:
             self.setStyleSheet(f.read())
-        #self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
+        self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
         self.setWindowTitle('ResEx Phasing GUI')
         overall = QtWidgets.QWidget()
         self.setCentralWidget(overall)
@@ -138,11 +138,11 @@ class GUI(QtWidgets.QMainWindow):
         splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
         layout.addWidget(splitter)
 
+        '''
         # Menu items
         menubar = self.menuBar()
         menubar.setNativeMenuBar(False)
 
-        '''
         # File Menu
         filemenu = menubar.addMenu('&File')
         action = QtWidgets.QAction('&Load Volume', self)
@@ -157,7 +157,6 @@ class GUI(QtWidgets.QMainWindow):
         action = QtWidgets.QAction('&Quit', self)
         action.triggered.connect(self.close)
         filemenu.addAction(action)
-        '''
 
         # Color map picker
         cmapmenu = menubar.addMenu('&Color Map')
@@ -168,6 +167,7 @@ class GUI(QtWidgets.QMainWindow):
                 action.setChecked(True)
             action.triggered.connect(lambda: self.replot(zoom='current'))
             cmapmenu.addAction(action)
+        '''
 
         # Config frame
         config_frame = QtWidgets.QWidget(self)
@@ -192,9 +192,6 @@ class GUI(QtWidgets.QMainWindow):
         self.notebook.addTab(self.recon_tab, 'Recon')
         vbox.addWidget(self.notebook)
         '''
-        self.notebook = ttk.Notebook(config_frame)
-        self.notebook.pack(fill=Tk.X)
-        self.notebook.enable_traversal()
         self.gen_merge_tab()
         self.gen_map_tab()
         self.gen_recon_tab()
@@ -216,15 +213,21 @@ class GUI(QtWidgets.QMainWindow):
         button.clicked.connect(self.save_plot)
         hbox.addWidget(button)
 
-        '''
-        line = ttk.Frame(config_frame)
-        line.pack(fill=Tk.X)
-        ttk.Button(line,text="-",command=self.decrement_layer).pack(side=Tk.LEFT)
-        self.slider = ttk.Scale(line,from_=0,to=0,orient=Tk.HORIZONTAL,length=300,variable=self.layernum)
-        self.slider.pack(side=Tk.LEFT,fill=Tk.X,expand=1)
-        self.slider.bind('<ButtonRelease-1>', lambda event: self.replot(zoom='current'))
-        ttk.Button(line,text="+",command=self.increment_layer).pack(side=Tk.LEFT)
-        '''
+        hbox = QtWidgets.QHBoxLayout()
+        vbox.addLayout(hbox)
+        self.layer_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal, self)
+        self.layer_slider.setRange(0, 100)
+        self.layer_slider.sliderMoved.connect(self.layer_slider_moved)
+        self.layer_slider.sliderReleased.connect(lambda: self.replot(zoom='current'))
+        hbox.addWidget(self.layer_slider, stretch=1)
+        self.layernum = QtWidgets.QSpinBox(self)
+        self.layernum.setValue(self.layer_slider.value())
+        self.layernum.setMinimum(0)
+        self.layernum.setMaximum(100)
+        self.layernum.valueChanged.connect(self.layernum_changed)
+        self.layernum.editingFinished.connect(self.layernum_changed)
+        self.layernum.setFixedWidth(48)
+        hbox.addWidget(self.layernum)
 
         hbox = QtWidgets.QHBoxLayout()
         vbox.addLayout(hbox)
@@ -240,6 +243,15 @@ class GUI(QtWidgets.QMainWindow):
         hbox.addWidget(self.rangelock)
         hbox.addStretch(1)
 
+        hbox = QtWidgets.QHBoxLayout()
+        vbox.addLayout(hbox)
+        hbox.addStretch(1)
+        button = QtWidgets.QPushButton("Preprocess", self)
+        button.clicked.connect(self.preprocess)
+        hbox.addWidget(button)
+        button = QtWidgets.QPushButton("Quit", self)
+        button.clicked.connect(self.close)
+        hbox.addWidget(button)
         '''
         line = ttk.Frame(config_frame)
         line.pack(fill=Tk.X)
@@ -379,10 +391,12 @@ class GUI(QtWidgets.QMainWindow):
             rmax = self.vol[self.vol>0].mean()
             rmax = 5*self.vol[(self.vol>0.01*rmax) & (self.vol<100*rmax)].mean()
             self.rangemax.setText('%.1e' % rmax)
-            '''
-        self.slider.configure(from_=0,to=self.size-1)
-        if not self.vol_image_exists:
-            self.layernum.set(self.size/2)
+        self.layer_slider.setRange(0, size-1)
+        if not self.vol_image_exists or self.layernum.maximum() != self.size-1:
+            self.layernum.setMaximum(self.size-1)
+            self.layer_slider.setValue(self.size//2)
+            self.layer_slider_moved(self.size//2)
+        '''
             self.radiusmin.set('%d' % (self.size/2/2))
             self.radiusmax.set('%d' % (self.size))
             self.scaleradmin.set('%d' % (self.size/2/2*0.9))
@@ -410,7 +424,7 @@ class GUI(QtWidgets.QMainWindow):
         self.vol = np.pad(vol, (((s-nx)/2,s-nx-(s-nx)/2),((s-ny)/2,s-ny-(s-ny)/2),((s-nz)/2,s-nz-(s-nz)/2)), mode='constant', constant_values=0)
         self.slider.configure(from_=0,to=self.size-1)
         if not self.map_image_exists:
-            self.layernum.set(self.size/2)
+            self.layernum.setValue(self.size//2)
         self.old_fname = self.current_fname.text()
 
     def plot_slices(self, layernum, space=None, zoom=False, slices=None):
@@ -471,7 +485,8 @@ class GUI(QtWidgets.QMainWindow):
             view = b
         else:
             view = c
-        cmap = self.color_map.checkedAction().text()
+        #cmap = self.color_map.checkedAction().text()
+        cmap = 'cubehelix'
         s.matshow(view, vmin=rangemin, vmax=rangemax, cmap=cmap)
         plt.title(self.current_angle.text(), y=1.01)
         plt.axis('off')
@@ -531,8 +546,7 @@ class GUI(QtWidgets.QMainWindow):
                     self.sigma.tofile('data/sigma_%d.bin' % self.size)
             self.vol *= (1. - self.sigma)
         '''
-        #self.plot_slices(self.layernum.text(), space='fourier', **kwargs)
-        self.plot_slices(150, space='fourier', **kwargs)
+        self.plot_slices(self.layernum.value(), space='fourier', **kwargs)
         self.vol_image_exists = True
         self.map_image_exists = False
 
@@ -545,7 +559,7 @@ class GUI(QtWidgets.QMainWindow):
         elif self.old_fname != self.current_fname.text() or force == True:
             print("Reparsing map:", self.current_fname.text())
             self.parse_map()
-        self.plot_slices(self.layernum.text(), space='real', **kwargs)
+        self.plot_slices(self.layernum.value(), space='real', **kwargs)
         self.map_image_exists = True
         self.vol_image_exists = False
 
@@ -754,14 +768,15 @@ class GUI(QtWidgets.QMainWindow):
         self.calc_scale()
         self.process_map()
 
-    def increment_layer(self, event=None):
-        self.layernum.set(min(self.layernum.text()+1, self.size))
-        self.plot_slices(self.layernum.text(), zoom='current')
+    def layer_slider_moved(self, value):
+        self.layernum.setValue(value)
 
-    def decrement_layer(self, event=None):
-        self.layernum.set(max(self.layernum.text()-1, 0))
-        self.plot_slices(self.layernum.text(), zoom='current')
-
+    def layernum_changed(self, value=None):
+        if value == self.layernum.value():
+            self.layer_slider.setValue(value)
+        elif value is None:
+            self.replot(zoom='current')
+    
     def next_angle(self):
         curr = self.angle_list.index(self.current_angle.text())
         curr = (curr + 1) % 3
