@@ -9,15 +9,6 @@ import matplotlib
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
-# TK Stuff
-'''
-matplotlib.use('TkAgg')
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-import Tkinter as Tk
-import ttk
-import tkMessageBox
-'''
-# Qt Stuff
 try:
     from PyQt5 import QtCore, QtWidgets, QtGui # pylint: disable=import-error
     import matplotlib
@@ -41,66 +32,6 @@ class GUI(QtWidgets.QMainWindow):
         self.map_fname = map_fname
 
         self.typestr = 'f4'
-        '''
-        self.merge_fname = Tk.StringVar()
-        self.map_fname = Tk.StringVar()
-        self.current_fname = Tk.StringVar()
-        self.rangeminstr = Tk.StringVar()
-        self.rangemaxstr = Tk.StringVar()
-        self.imagename = Tk.StringVar()
-        self.layernum = Tk.IntVar()
-        self.radiusmin = Tk.StringVar()
-        self.radiusmax = Tk.StringVar()
-        self.scaleradmin = Tk.StringVar()
-        self.scaleradmax = Tk.StringVar()
-        self.resedge = Tk.StringVar()
-        self.circleflag = Tk.IntVar()
-        self.checkflag = Tk.IntVar()
-        self.fslices = Tk.IntVar()
-        self.scaleradflag = Tk.IntVar()
-        self.suppressflag = Tk.IntVar()
-        self.rangelock = Tk.IntVar()
-        self.suppradstr = Tk.StringVar()
-        self.suppthreshstr = Tk.StringVar()
-        self.output_prefix = Tk.StringVar()
-        self.point_group = Tk.StringVar()
-        self.config_fname = Tk.StringVar()
-        self.bgfitting_flag = Tk.IntVar()
-        self.variation_flag = Tk.IntVar()
-        self.positivity_flag = Tk.IntVar()
-        self.histogram_flag = Tk.IntVar()
-        self.project_flag = Tk.IntVar()
-        self.current_angle = Tk.StringVar()
-
-        self.merge_fname.set(merge_fname)
-        self.map_fname.set(map_fname)
-        self.current_fname.set(merge_fname)
-        self.imagename.set('images/' + os.path.splitext(os.path.basename(self.current_fname.get()))[0] + '.png')
-        self.radiusmin.set('0')
-        self.radiusmax.set('0')
-        self.scaleradmin.set('0')
-        self.scaleradmax.set('0')
-        self.circleflag.set(0)
-        self.checkflag.set(0)
-        self.fslices.set(0)
-        self.scaleradflag.set(0)
-        self.suppressflag.set(0)
-        self.rangelock.set(0)
-        self.suppradstr.set('3.')
-        self.suppthreshstr.set('0.1')
-        self.output_prefix.set('data/recon/test')
-        self.point_group.set('222')
-        self.config_fname.set('config.ini')
-        self.bgfitting_flag.set(0)
-        self.variation_flag.set(0)
-        self.positivity_flag.set(0)
-        self.histogram_flag.set(0)
-        self.project_flag.set(0)
-        self.current_angle.set('XY')
-        self.rangeminstr.set("%.1e" % rangemin)
-        self.rangemaxstr.set("%.1e" % rangemax)
-        self.layernum.set(0)
-        '''
         self.size = None
         self.vol = None
         self.rad = None
@@ -115,22 +46,15 @@ class GUI(QtWidgets.QMainWindow):
         self.added_recon_tab = False
         self.angle_list = ['XY', 'XZ', 'YZ']
 
-        '''
-        if sys.platform != 'darwin':
-            self.master.tk.eval('source [file join themes plastik plastik.tcl]')
-            self.master.tk.eval('source [file join themes clearlooks clearlooks8.5.tcl]')
-            fstyle = ttk.Style()
-            #fstyle.theme_use('clearlooks')
-            fstyle.theme_use('plastik')
-        '''
-
         self.init_UI()
 
     def init_UI(self):
         with open('style.css', 'r')as f:
             self.setStyleSheet(f.read())
-        self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
+        #self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
         self.setWindowTitle('ResEx Phasing GUI')
+        #self.showMaximized()
+        self.resize(1600, 1200)
         overall = QtWidgets.QWidget()
         self.setCentralWidget(overall)
         layout = QtWidgets.QHBoxLayout(overall)
@@ -138,40 +62,9 @@ class GUI(QtWidgets.QMainWindow):
         splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
         layout.addWidget(splitter)
 
-        '''
-        # Menu items
-        menubar = self.menuBar()
-        menubar.setNativeMenuBar(False)
-
-        # File Menu
-        filemenu = menubar.addMenu('&File')
-        action = QtWidgets.QAction('&Load Volume', self)
-        action.triggered.connect(self._load_volume)
-        filemenu.addAction(action)
-        action = QtWidgets.QAction('&Save Image', self)
-        action.triggered.connect(self._save_plot)
-        filemenu.addAction(action)
-        action = QtWidgets.QAction('Save Log &Plot', self)
-        action.triggered.connect(self._save_log_plot)
-        filemenu.addAction(action)
-        action = QtWidgets.QAction('&Quit', self)
-        action.triggered.connect(self.close)
-        filemenu.addAction(action)
-
-        # Color map picker
-        cmapmenu = menubar.addMenu('&Color Map')
-        self.color_map = QtWidgets.QActionGroup(self, exclusive=True)
-        for i, cmap in enumerate(['cubehelix', 'coolwarm', 'CMRmap', 'gray', 'gray_r', 'jet']):
-            action = self.color_map.addAction(QtWidgets.QAction(cmap, self, checkable=True))
-            if i == 0:
-                action.setChecked(True)
-            action.triggered.connect(lambda: self.replot(zoom='current'))
-            cmapmenu.addAction(action)
-        '''
-
         # Config frame
         config_frame = QtWidgets.QWidget(self)
-        config_frame.setMinimumWidth(400)
+        config_frame.setMinimumWidth(700)
         config_frame.setObjectName('config')
         vbox = QtWidgets.QVBoxLayout()
         config_frame.setLayout(vbox)
@@ -184,18 +77,7 @@ class GUI(QtWidgets.QMainWindow):
         hbox.addWidget(label)
 
         self.notebook = QtWidgets.QTabWidget()
-        self.merge_tab = QtWidgets.QWidget()
-        self.notebook.addTab(self.merge_tab, 'Merge')
-        self.map_tab = QtWidgets.QWidget()
-        self.notebook.addTab(self.map_tab, 'Map')
-        self.recon_tab = QtWidgets.QWidget()
-        self.notebook.addTab(self.recon_tab, 'Recon')
         vbox.addWidget(self.notebook)
-        '''
-        self.gen_merge_tab()
-        self.gen_map_tab()
-        self.gen_recon_tab()
-        '''
 
         vbox.addStretch(1)
 
@@ -252,12 +134,6 @@ class GUI(QtWidgets.QMainWindow):
         button = QtWidgets.QPushButton("Quit", self)
         button.clicked.connect(self.close)
         hbox.addWidget(button)
-        '''
-        line = ttk.Frame(config_frame)
-        line.pack(fill=Tk.X)
-        ttk.Button(line,text="Preprocess",command=self.preprocess).pack(side=Tk.LEFT)
-        ttk.Button(line,text="Quit",command=self.master.quit).pack(side=Tk.LEFT)
-        '''
 
         # Canvas frame
         canvas_frame = QtWidgets.QWidget(self)
@@ -289,72 +165,166 @@ class GUI(QtWidgets.QMainWindow):
         self.canvas.draw()
         vbox.addWidget(self.canvas)
 
+        self.gen_merge_tab()
+        self.gen_map_tab()
+        self.gen_recon_tab()
         self.show()
         self.plot_vol()
 
-    def gen_map_tab(self):
-        self.map_frame = ttk.Frame(self.notebook)
-        self.notebook.add(self.map_frame, text='Map')
+    def gen_merge_tab(self, add=True):
+        self.merge_tab = QtWidgets.QWidget()
+        if add:
+            self.notebook.addTab(self.merge_tab, 'Merge')
+        vbox = QtWidgets.QVBoxLayout(self.merge_tab)
 
-        line = ttk.Frame(self.map_frame)
-        line.pack(fill=Tk.X)
-        ttk.Label(line,text="Map File:").pack(side=Tk.LEFT)
-        ttk.Entry(line,textvariable=self.map_fname,width=30).pack(side=Tk.LEFT,fill=Tk.X,expand=1)
-        ttk.Button(line,text="Plot Map",command=self.plot_map).pack(side=Tk.LEFT)
+        hbox = QtWidgets.QHBoxLayout()
+        vbox.addLayout(hbox)
+        label = QtWidgets.QLabel('Merge File', self)
+        hbox.addWidget(label)
+        self.merge_fname = QtWidgets.QLineEdit(self.merge_fname, self)
+        hbox.addWidget(self.merge_fname, stretch=1)
+        button = QtWidgets.QPushButton('Plot Merge', self)
+        button.clicked.connect(self.plot_vol)
+        hbox.addWidget(button)
 
-        line = ttk.Frame(self.map_frame)
-        line.pack(fill=Tk.X)
-        ttk.Label(line,text="Res. at edge (A):").pack(side=Tk.LEFT)
-        ttk.Entry(line,textvariable=self.resedge,width=5).pack(side=Tk.LEFT)
-        ttk.Label(line,text='Point group:').pack(side=Tk.LEFT)
-        ttk.Entry(line,textvariable=self.point_group,width=5).pack(side=Tk.LEFT)
-        ttk.Button(line,text="Process Map",command=self.process_map).pack(side=Tk.LEFT)
-        ttk.Button(line,text='Reset',command=self.reset_map_tab).pack(side=Tk.LEFT)
+        hbox = QtWidgets.QHBoxLayout()
+        vbox.addLayout(hbox)
+        label = QtWidgets.QLabel('Cutoff radii:', self)
+        hbox.addWidget(label)
+        self.radiusmin = QtWidgets.QLineEdit('0', self)
+        self.radiusmin.setFixedWidth(80)
+        hbox.addWidget(self.radiusmin)
+        self.radiusmax = QtWidgets.QLineEdit('200', self)
+        self.radiusmax.setFixedWidth(80)
+        hbox.addWidget(self.radiusmax)
+        self.circleflag = QtWidgets.QCheckBox('Show', self)
+        self.circleflag.stateChanged.connect(lambda: self.replot(zoom=False))
+        hbox.addWidget(self.circleflag)
+        hbox.addStretch(1)
 
-    def reset_map_tab(self, event=None):
-        self.processed_map = True
-        self.map_frame.destroy()
-        self.gen_map_tab()
-        self.notebook.insert(1, self.map_frame)
-        self.notebook.select(self.notebook.tabs()[1])
-
-    def gen_merge_tab(self):
-        self.merge_frame = ttk.Frame(self.notebook)
-        self.notebook.add(self.merge_frame, text='Merge')
-
-        line = ttk.Frame(self.merge_frame)
-        line.pack(fill=Tk.X)
-        ttk.Label(line, text="Merge File: ").pack(side=Tk.LEFT)
-        ttk.Entry(line,textvariable=self.merge_fname,width=30).pack(side=Tk.LEFT,fill=Tk.X,expand=1)
-        ttk.Button(line,text="Plot Merge",command=self.plot_vol).pack(side=Tk.LEFT)
-
-        line = ttk.Frame(self.merge_frame)
-        line.pack(fill=Tk.X)
-        ttk.Label(line,text='Cutoff radii:').pack(side=Tk.LEFT)
-        ttk.Entry(line,textvariable=self.radiusmin,width=5).pack(side=Tk.LEFT)
-        ttk.Entry(line,textvariable=self.radiusmax,width=5).pack(side=Tk.LEFT)
-        ttk.Checkbutton(line,text="Show",variable=self.circleflag,command=lambda: self.replot(zoom=False)).pack(side=Tk.LEFT)
-
-        line = ttk.Frame(self.merge_frame)
-        line.pack(fill=Tk.X)
-        ttk.Label(line,text='Scale radii:').pack(side=Tk.LEFT)
-        ttk.Entry(line,textvariable=self.scaleradmin,width=5).pack(side=Tk.LEFT)
-        ttk.Entry(line,textvariable=self.scaleradmax,width=5).pack(side=Tk.LEFT)
-        ttk.Checkbutton(line,text="Show",variable=self.scaleradflag,command=lambda: self.replot(zoom=False)).pack(side=Tk.LEFT)
+        hbox = QtWidgets.QHBoxLayout()
+        vbox.addLayout(hbox)
+        label = QtWidgets.QLabel('Scale radii:', self)
+        hbox.addWidget(label)
+        self.scaleradmin = QtWidgets.QLineEdit('60', self)
+        self.scaleradmin.setFixedWidth(80)
+        hbox.addWidget(self.scaleradmin)
+        self.scaleradmax = QtWidgets.QLineEdit('80', self)
+        self.scaleradmax.setFixedWidth(80)
+        hbox.addWidget(self.scaleradmax)
+        self.scaleradflag = QtWidgets.QCheckBox('Show', self)
+        self.scaleradflag.stateChanged.connect(lambda: self.replot(zoom=False))
+        hbox.addWidget(self.scaleradflag)
+        hbox.addStretch(1)
         
-        line = ttk.Frame(self.merge_frame)
+        hbox = QtWidgets.QHBoxLayout()
+        vbox.addLayout(hbox)
+        button = QtWidgets.QPushButton('Zero Outer', self)
+        button.clicked.connect(self.zero_outer)
+        hbox.addWidget(button)
+        button = QtWidgets.QPushButton('Calc. Scale', self)
+        button.clicked.connect(self.calc_scale)
+        hbox.addWidget(button)
+        button = QtWidgets.QPushButton('Reset', self)
+        button.clicked.connect(self.reset_merge_tab)
+        hbox.addWidget(button)
+
+    def gen_map_tab(self, add=True):
+        self.map_tab = QtWidgets.QWidget()
+        if add:
+            self.notebook.addTab(self.map_tab, 'Map')
+        vbox = QtWidgets.QVBoxLayout(self.map_tab)
+
+        hbox = QtWidgets.QHBoxLayout()
+        vbox.addLayout(hbox)
+        label = QtWidgets.QLabel('Map File', self)
+        hbox.addWidget(label)
+        self.map_fname = QtWidgets.QLineEdit(self.map_fname, self)
+        hbox.addWidget(self.map_fname, stretch=1)
+        button = QtWidgets.QPushButton('Plot Map', self)
+        button.clicked.connect(self.plot_map)
+        hbox.addWidget(button)
+
+        hbox = QtWidgets.QHBoxLayout()
+        vbox.addLayout(hbox)
+        label = QtWidgets.QLabel('Res. at edge (A):', self)
+        hbox.addWidget(label)
+        self.resedge = QtWidgets.QLineEdit('2.0', self)
+        #self.resedge.setFixedWidth(60)
+        hbox.addWidget(self.resedge)
+        label = QtWidgets.QLabel('Point group:', self)
+        hbox.addWidget(label)
+        self.point_group = QtWidgets.QLineEdit('222', self)
+        #self.point_group.setFixedWidth(60)
+        hbox.addWidget(self.point_group)
+        button = QtWidgets.QPushButton('Process Map', self)
+        button.clicked.connect(self.process_map)
+        hbox.addWidget(button)
+        button = QtWidgets.QPushButton('Reset', self)
+        button.clicked.connect(self.reset_map_tab)
+        hbox.addWidget(button)
+
+    def gen_recon_tab(self):
+        self.recon_tab = QtWidgets.QWidget()
+        self.notebook.addTab(self.recon_tab, 'Recon')
+        vbox = QtWidgets.QVBoxLayout(self.recon_tab)
+
+        hbox = QtWidgets.QHBoxLayout()
+        vbox.addLayout(hbox)
+        label = QtWidgets.QLabel('Output Prefix:', self)
+        hbox.addWidget(label)
+        self.output_prefix = QtWidgets.QLineEdit('data/recon/output', self)
+        hbox.addWidget(self.output_prefix, stretch=1)
+
+        hbox = QtWidgets.QHBoxLayout()
+        vbox.addLayout(hbox)
+        label = QtWidgets.QLabel('Config file name:', self)
+        hbox.addWidget(label)
+        self.config_fname = QtWidgets.QLineEdit('config.ini', self)
+        hbox.addWidget(self.config_fname, stretch=1)
+
+        hbox = QtWidgets.QHBoxLayout()
+        vbox.addLayout(hbox)
+        self.bgfitting_flag = QtWidgets.QCheckBox('BG Fitting', self)
+        hbox.addWidget(self.bgfitting_flag)
+        self.variation_flag = QtWidgets.QCheckBox('Variation support', self)
+        hbox.addWidget(self.variation_flag)
+        self.positivity_flag = QtWidgets.QCheckBox('Positivity', self)
+        hbox.addWidget(self.positivity_flag)
+        hbox.addStretch(1)
+
+        hbox = QtWidgets.QHBoxLayout()
+        vbox.addLayout(hbox)
+        button = QtWidgets.QPushButton('Generate', self)
+        button.clicked.connect(self.gen_config)
+        hbox.addWidget(button)
+        '''
+        line = ttk.Frame(self.recon_frame)
         line.pack(fill=Tk.X)
-        ttk.Button(line,text='Zero Outer',command=self.zero_outer).pack(side=Tk.LEFT)
-        ttk.Button(line,text='Calc. Scale',command=self.calc_scale).pack(side=Tk.LEFT)
-        ttk.Button(line,text='Reset',command=self.reset_merge_tab).pack(side=Tk.LEFT)
+        ttk.Button(line, text='Launch Recon', command=self.launch_recon).pack(side=Tk.LEFT)
+        ttk.Checkbutton(line,text='Keep Checking',variable=self.checkflag,command=self.keep_checking).pack(side=Tk.LEFT)
+        ttk.Checkbutton(line,text='Fourier Slices',variable=self.fslices).pack(side=Tk.LEFT)
+        '''
+        
+        self.added_recon_tab = True
 
     def reset_merge_tab(self, event=None):
         self.zeroed = False
         self.calculated_scale = False
-        self.merge_frame.destroy()
-        self.gen_merge_tab()
-        self.notebook.insert(0, self.merge_frame)
-        self.notebook.select(self.notebook.tabs()[0])
+        self.notebook.removeTab(0)
+        self.merge_tab.delete()
+        self.gen_merge_tab(add=False)
+        self.notebook.insertTab(0, self.merge_tab, 'Merge')
+        self.notebook.setCurrentIndex(0)
+
+    def reset_map_tab(self, event=None):
+        self.processed_map = True
+        self.notebook.removeTab(1)
+        self.map_tab.delete()
+        self.map_tab = None
+        self.gen_map_tab(add=False)
+        self.notebook.insertTab(1, self.map_tab, 'Map')
+        self.notebook.setCurrentIndex(1)
 
     def parse_extension(self, filename):
         ext_string = os.path.splitext(os.path.basename(filename))[1]
@@ -366,7 +336,7 @@ class GUI(QtWidgets.QMainWindow):
         elif ext_string == '.supp':
             self.typestr = 'uint8'
             if self.rangelock.text() == 0:
-                self.rangemaxstr.set('%.1e' % 1)
+                self.rangemax.setText('%.1e' % 1)
         elif ext_string == '.cpx':
             self.typestr = 'complex64'
         else:
@@ -396,12 +366,10 @@ class GUI(QtWidgets.QMainWindow):
             self.layernum.setMaximum(self.size-1)
             self.layer_slider.setValue(self.size//2)
             self.layer_slider_moved(self.size//2)
-        '''
-            self.radiusmin.set('%d' % (self.size/2/2))
-            self.radiusmax.set('%d' % (self.size))
-            self.scaleradmin.set('%d' % (self.size/2/2*0.9))
-            self.scaleradmax.set('%d' % (self.size/2/2*1.1))
-        '''
+            self.radiusmin.setText('%d' % (self.size//2//2))
+            self.radiusmax.setText('%d' % (self.size))
+            self.scaleradmin.setText('%d' % (self.size//2//2*0.9))
+            self.scaleradmax.setText('%d' % (self.size//2//2*1.1))
         self.old_fname = self.current_fname.text()
 
     def parse_map(self):
@@ -414,15 +382,15 @@ class GUI(QtWidgets.QMainWindow):
             f.seek(1024, 0) # End of header
             vol = np.fromfile(f, '=f4', count=nx*ny*nz).reshape(nx, ny, nz)
         edgesum = (np.abs(vol[:,:,0]).sum() + np.abs(vol[:,:,-1]).sum() + np.abs(vol[:,0]).sum() + np.abs(vol[:,-1]).sum() + np.abs(vol[0]).sum() + np.abs(vol[-1]).sum()) / 6.
-        centralsum = (np.abs(vol[:,:,nz/2]).sum() + np.abs(vol[:,ny/2]).sum() + np.abs(vol[nx/2]).sum())/ 3.
+        centralsum = (np.abs(vol[:,:,nz//2]).sum() + np.abs(vol[:,ny//2]).sum() + np.abs(vol[nx//2]).sum())/ 3.
         if edgesum > centralsum:
-            vol = np.roll(vol, nx/2, axis=0)
-            vol = np.roll(vol, ny/2, axis=1)
-            vol = np.roll(vol, nz/2, axis=2)
+            vol = np.roll(vol, nx//2, axis=0)
+            vol = np.roll(vol, ny//2, axis=1)
+            vol = np.roll(vol, nz//2, axis=2)
         s = max(nx, ny, nz)
         self.size = s
-        self.vol = np.pad(vol, (((s-nx)/2,s-nx-(s-nx)/2),((s-ny)/2,s-ny-(s-ny)/2),((s-nz)/2,s-nz-(s-nz)/2)), mode='constant', constant_values=0)
-        self.slider.configure(from_=0,to=self.size-1)
+        self.vol = np.pad(vol, (((s-nx)//2,s-nx-(s-nx)//2),((s-ny)//2,s-ny-(s-ny)//2),((s-nz)//2,s-nz-(s-nz)//2)), mode='constant', constant_values=0)
+        self.layer_slider.setRange(0, self.size-1)
         if not self.map_image_exists:
             self.layernum.setValue(self.size//2)
         self.old_fname = self.current_fname.text()
@@ -444,7 +412,7 @@ class GUI(QtWidgets.QMainWindow):
         
         if slices is not None:
             if zoom:
-                min = self.size/3
+                min = self.size//3
                 max = 2*min
                 a = slices[0,min:max,min:max]
                 b = slices[1,min:max,min:max]
@@ -455,7 +423,7 @@ class GUI(QtWidgets.QMainWindow):
                 c = slices[2]
         else:
             if zoom:
-                minx = self.size/3
+                minx = self.size//3
                 maxx = 2*minx
                 if project:
                     rangemax *= self.size
@@ -492,19 +460,17 @@ class GUI(QtWidgets.QMainWindow):
         plt.axis('off')
         [a.remove() for a in list(set(s.findobj(patches.Circle)))]
         
-        '''
-        if self.circleflag.text() is 1: 
+        if self.circleflag.isChecked(): 
             rmin = float(self.radiusmin.text())
             rmax = float(self.radiusmax.text())
-            s.add_artist(patches.Circle((self.size/2,self.size/2), rmin, ec='white', fc='none'))
-            s.add_artist(patches.Circle((self.size/2,self.size/2), rmax, ec='white', fc='none'))
+            s.add_artist(patches.Circle((self.size//2,self.size//2), rmin, ec='white', fc='none'))
+            s.add_artist(patches.Circle((self.size//2,self.size//2), rmax, ec='white', fc='none'))
         
-        if self.scaleradflag.text() is 1: 
+        if self.scaleradflag.isChecked(): 
             rmin = float(self.scaleradmin.text())
             rmax = float(self.scaleradmax.text())
-            s.add_artist(patches.Circle((self.size/2,self.size/2), rmin, ec='white', fc='none', ls='dashed'))
-            s.add_artist(patches.Circle((self.size/2,self.size/2), rmax, ec='white', fc='none', ls='dashed'))
-        '''
+            s.add_artist(patches.Circle((self.size//2,self.size//2), rmin, ec='white', fc='none', ls='dashed'))
+            s.add_artist(patches.Circle((self.size//2,self.size//2), rmax, ec='white', fc='none', ls='dashed'))
         
         self.space = space
         self.canvas.draw()
@@ -526,8 +492,7 @@ class GUI(QtWidgets.QMainWindow):
             print("Reparsing volume:", self.current_fname.text())
             self.parse_vol()
         
-        '''
-        if sigma and self.suppressflag.text() == 1:
+        if sigma and self.suppressflag.isChecked():
             c = self.vol.shape[0] / 2
             if self.rad is None:
                 if os.path.isfile('data/sigma_%d.bin' % self.size):
@@ -545,17 +510,16 @@ class GUI(QtWidgets.QMainWindow):
                     self.rad.tofile('data/rad_%d.bin' % self.size)
                     self.sigma.tofile('data/sigma_%d.bin' % self.size)
             self.vol *= (1. - self.sigma)
-        '''
         self.plot_slices(self.layernum.value(), space='fourier', **kwargs)
         self.vol_image_exists = True
         self.map_image_exists = False
 
     def plot_map(self, event=None, force=False, sigma=False, **kwargs):
-        self.current_fname.set(self.map_fname.text())
+        self.current_fname.setText(self.map_fname.text())
         if not self.map_image_exists:
             self.parse_map()
-            if self.rangelock.text() == 0:
-                self.rangemaxstr.set('%.1e' % 10)
+            if not self.rangelock.isChecked():
+                self.rangemax.setText('%.1e' % 10)
         elif self.old_fname != self.current_fname.text() or force == True:
             print("Reparsing map:", self.current_fname.text())
             self.parse_map()
@@ -571,12 +535,15 @@ class GUI(QtWidgets.QMainWindow):
         print('-'*80)
         
         if not self.zeroed:
-            #ttk.Separator(self.merge_frame, orient=Tk.HORIZONTAL).pack(fill=Tk.X, padx=5, pady=5)
             zero_fname = os.path.splitext(self.merge_fname.text())[0] + '-zero.raw'
-            line = ttk.Frame(self.merge_frame)
-            line.pack(fill=Tk.X)
-            ttk.Label(line,text='Zero-ed volume: ').pack(side=Tk.LEFT)
-            ttk.Button(line,text=zero_fname,command=lambda: self.plot_vol(fname=zero_fname)).pack(side=Tk.LEFT)
+            hbox = QtWidgets.QHBoxLayout()
+            self.merge_frame.layout.addLayout(hbox)
+            label = QtWidgets.QLabel('Zero-ed volume:', self)
+            hbox.addWidget(label)
+            button = QtWidgets.QPushButton(zero_fname, self)
+            button.clicked.connect(lambda: self.plot_vol(fname=zero_fname))
+            hbox.addWidget(button)
+            hbox.addStretch(1)
         self.zeroed = True
 
     def calc_scale(self, event=None):
@@ -588,25 +555,18 @@ class GUI(QtWidgets.QMainWindow):
         output = subprocess.check_output(cmd.split(), shell=False)
         self.scale_factor = float(output.split()[4])
         if not self.calculated_scale:
-            line = ttk.Frame(self.merge_frame)
-            line.pack(fill=Tk.X)
-            self.scale_label = ttk.Label(line,text='Scale factor = %.6e'%self.scale_factor)
-            self.scale_label.pack(side=Tk.LEFT)
+            hbox = QtWidgets.QHBoxLayout()
+            self.merge_frame.layout.addLayout(hbox)
+            self.scale_label = QtWidgets.QLabel('Scale factor = %.6e'%self.scale_factor, self)
+            hbox.addWidget(self.scale_label)
         else:
-            self.scale_label.config(text='Scale factor = %.6e' % self.scale_factor)
+            self.scale_label.setText('Scale factor = %.6e' % self.scale_factor)
         self.calculated_scale = True
 
     def process_map(self, event=None):
         mapnoext = os.path.splitext(os.path.basename(self.map_fname.text()))[0]
-        if os.path.isfile('data/convert/'+mapnoext+'.cpx') and not tkMessageBox.askyesno('Process Map', 'Found processed map output. Overwrite?', default=tkMessageBox.NO, icon=tkMessageBox.QUESTION, parent=self.master):
-            with open('results/'+mapnoext+'.log', 'r') as f:
-                words = f.read().split()
-                warray = np.array(words)
-                self.resedge.set(float(words[words.index('./utils/read_map')+2])/(self.vol_size/2))
-                self.point_group.set(words[np.where(warray=='data/convert/'+mapnoext+'-srecon.raw')[0][0]+2])
-                self.suppradstr.set('%.1f'%float(words[np.where(warray=='./utils/create_support')[0][-1]+2]))
-                self.suppthreshstr.set('%.1f'%float(words[np.where(warray=='./utils/create_support')[0][-1]+3]))
-        else:
+        #if os.path.isfile('data/convert/'+mapnoext+'.cpx') and not tkMessageBox.askyesno('Process Map', 'Found processed map output. Overwrite?', default=tkMessageBox.NO, icon=tkMessageBox.QUESTION, parent=self.master):
+        if os.path.isfile('data/convert/'+mapnoext+'.cpx') and QtWidgets.QMessageBox.question(self, 'Process Map', 'Found processed map output. Overwrite?', QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No) == QtWidgets.QMessageBox.Yes:
             if self.resedge.text() is '':
                 print('Need resolution at edge of volume')
                 return
@@ -618,44 +578,84 @@ class GUI(QtWidgets.QMainWindow):
             print(command)
             os.system(command)
             print('-'*80)
+            if not self.processed_map:
+                self.add_to_map_frame(mapnoext)
+        else:
+            if not self.processed_map:
+                self.add_to_map_frame(mapnoext)
+            with open('results/'+mapnoext+'.log', 'r') as f:
+                words = f.read().split()
+                warray = np.array(words)
+                self.resedge.setText(str(float(words[words.index('./utils/read_map')+2])/(self.vol_size//2)))
+                self.point_group.setText(words[np.where(warray=='data/convert/'+mapnoext+'-srecon.raw')[0][0]+2])
+                self.suppradstr.setText('%.1f'%float(words[np.where(warray=='./utils/create_support')[0][-1]+2]))
+                self.suppthreshstr.setText('%.1f'%float(words[np.where(warray=='./utils/create_support')[0][-1]+3]))
         
-        if not self.processed_map:
-            self.add_to_map_frame(mapnoext)
         self.processed_map = True
 
     def add_to_map_frame(self, mapnoext):
         prefix = 'data/convert/'+mapnoext
-        line = ttk.Frame(self.map_frame)
-        line.pack(fill=Tk.X)
-        ttk.Label(line,text='Complex: ').pack(side=Tk.LEFT)
-        ttk.Button(line,text=prefix+'.cpx',command=lambda: self.plot_vol(fname=prefix+'.cpx')).pack(side=Tk.LEFT)
+        vbox = self.map_tab.layout()
+
+        hbox = QtWidgets.QHBoxLayout()
+        vbox.addLayout(hbox)
+        label = QtWidgets.QLabel('Complex:', self)
+        hbox.addWidget(label)
+        button = QtWidgets.QPushButton(prefix + '.cpx', self)
+        button.clicked.connect(lambda: self.plot_vol(fname=prefix + '.cpx'))
+        hbox.addWidget(button)
+        hbox.addStretch(1)
         
-        line = ttk.Frame(self.map_frame)
-        line.pack(fill=Tk.X)
-        ttk.Label(line,text='Symmetrized: ').pack(side=Tk.LEFT)
-        ttk.Button(line,text=prefix+'-sym.raw',command=lambda: self.plot_vol(fname=prefix+'-sym.raw', sigma=True)).pack(side=Tk.LEFT)
-        ttk.Checkbutton(line,text='Suppress low-q',variable=self.suppressflag,command=lambda: self.replot(zoom='current', sigma=True)).pack(side=Tk.LEFT)
+        hbox = QtWidgets.QHBoxLayout()
+        vbox.addLayout(hbox)
+        label = QtWidgets.QLabel('Symmetrized:', self)
+        hbox.addWidget(label)
+        button = QtWidgets.QPushButton(prefix + '-sym.raw', self)
+        button.clicked.connect(lambda: self.plot_vol(fname=prefix + '-sym.raw', sigma=True))
+        hbox.addWidget(button)
+        self.suppressflag = QtWidgets.QCheckBox('Supress low-q', self)
+        self.suppressflag.stateChanged.connect(lambda: self.replot(zoom='current', sigma=True))
+        hbox.addWidget(self.suppressflag)
+        hbox.addStretch(1)
         
-        line = ttk.Frame(self.map_frame)
-        line.pack(fill=Tk.X)
-        ttk.Label(line,text='Density: ').pack(side=Tk.LEFT)
-        ttk.Button(line,text=prefix+'-srecon.raw',command=lambda: self.plot_vol(fname=prefix+'-srecon.raw', zoom=True)).pack(side=Tk.LEFT)
+        hbox = QtWidgets.QHBoxLayout()
+        vbox.addLayout(hbox)
+        label = QtWidgets.QLabel('Density:', self)
+        hbox.addWidget(label)
+        button = QtWidgets.QPushButton(prefix + '-srecon.raw', self)
+        button.clicked.connect(lambda: self.plot_vol(fname=prefix + '-srecon.raw', zoom=True))
+        hbox.addWidget(button)
+        hbox.addStretch(1)
         
-        line = ttk.Frame(self.map_frame)
-        line.pack(fill=Tk.X)
-        ttk.Label(line,text='Support: ').pack(side=Tk.LEFT)
-        ttk.Button(line,text=prefix+'.supp',command=lambda: self.plot_vol(fname=prefix+'.supp', zoom=True)).pack(side=Tk.LEFT)
+        hbox = QtWidgets.QHBoxLayout()
+        vbox.addLayout(hbox)
+        label = QtWidgets.QLabel('Support:', self)
+        hbox.addWidget(label)
+        button = QtWidgets.QPushButton(prefix + '.supp', self)
+        button.clicked.connect(lambda: self.plot_vol(fname=prefix + '.supp', zoom=True))
+        hbox.addWidget(button)
+        hbox.addStretch(1)
         
-        line = ttk.Frame(self.map_frame)
-        line.pack(fill=Tk.X)
-        ttk.Label(line,text='Support: Convolution radius = ').pack(side=Tk.LEFT)
-        ttk.Entry(line,textvariable=self.suppradstr,width=5).pack(side=Tk.LEFT)
-        ttk.Label(line,text='vox. Threshold = ').pack(side=Tk.LEFT)
-        ttk.Entry(line,textvariable=self.suppthreshstr,width=5).pack(side=Tk.LEFT)
+        hbox = QtWidgets.QHBoxLayout()
+        vbox.addLayout(hbox)
+        label = QtWidgets.QLabel('Support: Conv. radius = ', self)
+        hbox.addWidget(label)
+        self.suppradstr = QtWidgets.QLineEdit('3', self)
+        self.suppradstr.setFixedWidth(40)
+        hbox.addWidget(self.suppradstr)
+        label = QtWidgets.QLabel('vox. Threshold = ', self)
+        hbox.addWidget(label)
+        self.suppthreshstr = QtWidgets.QLineEdit('1', self)
+        self.suppthreshstr.setFixedWidth(40)
+        hbox.addWidget(self.suppthreshstr)
+        hbox.addStretch(1)
         
-        line = ttk.Frame(self.map_frame)
-        line.pack(fill=Tk.X)
-        ttk.Button(line,text='Update support',command=self.reprocess_map).pack(side=Tk.LEFT)
+        hbox = QtWidgets.QHBoxLayout()
+        vbox.addLayout(hbox)
+        button = QtWidgets.QPushButton('Update support', self)
+        button.clicked.connect(self.reprocess_map)
+        hbox.addWidget(button)
+        hbox.addStretch(1)
 
     def reprocess_map(self, event=None):
         if self.resedge.text() is '':
@@ -672,40 +672,11 @@ class GUI(QtWidgets.QMainWindow):
         print('-'*80)
         self.replot(force=True, zoom='current')
 
-    def gen_recon_tab(self, event=None):
-        self.recon_frame = ttk.Frame(self.notebook)
-        self.notebook.add(self.recon_frame, text='Recon')
-        
-        line = ttk.Frame(self.recon_frame)
-        line.pack(fill=Tk.X)
-        ttk.Label(line, text='Output prefix: ').pack(side=Tk.LEFT)
-        ttk.Entry(line, textvariable=self.output_prefix).pack(side=Tk.LEFT,fill=Tk.X,expand=1)
-        
-        line = ttk.Frame(self.recon_frame)
-        line.pack(fill=Tk.X)
-        ttk.Label(line, text='Config filename: ').pack(side=Tk.LEFT)
-        ttk.Entry(line, textvariable=self.config_fname).pack(side=Tk.LEFT,fill=Tk.X,expand=1)
-        
-        line = ttk.Frame(self.recon_frame)
-        line.pack(fill=Tk.X)
-        ttk.Button(line, text='Gen. Config', command=self.gen_config).pack(side=Tk.LEFT)
-        ttk.Checkbutton(line, text='BG fitting', variable=self.bgfitting_flag).pack(side=Tk.LEFT)
-        ttk.Checkbutton(line, text='Variation support', variable=self.variation_flag).pack(side=Tk.LEFT)
-        ttk.Checkbutton(line, text='Positivity', variable=self.positivity_flag).pack(side=Tk.LEFT)
-        
-        line = ttk.Frame(self.recon_frame)
-        line.pack(fill=Tk.X)
-        ttk.Button(line, text='Launch Recon', command=self.launch_recon).pack(side=Tk.LEFT)
-        ttk.Checkbutton(line,text='Keep Checking',variable=self.checkflag,command=self.keep_checking).pack(side=Tk.LEFT)
-        ttk.Checkbutton(line,text='Fourier Slices',variable=self.fslices).pack(side=Tk.LEFT)
-        
-        self.added_recon_tab = True
-
     def gen_config(self, event=None):
         with open(self.config_fname.text(), 'w') as f:
             f.write('[parameters]\n')
             f.write('size = %d\n' % self.vol_size)
-            f.write('bragg_qmax = %f\n' % (float(self.radiusmin.text())/(self.vol_size/2)))
+            f.write('bragg_qmax = %f\n' % (float(self.radiusmin.text())/(self.vol_size//2)))
             f.write('scale_factor = %f\n' % self.scale_factor)
             f.write('num_threads = %d\n' % multiprocessing.cpu_count())
             f.write('point_group = %s\n' % self.point_group.text())
@@ -743,15 +714,15 @@ class GUI(QtWidgets.QMainWindow):
     def keep_checking(self, event=None):
         if self.checkflag.text() == 1:
             if self.fslices.text() == 0:
-                self.current_fname.set(self.output_prefix.text()+'-slices.raw')
+                self.current_fname.setText(self.output_prefix.text()+'-slices.raw')
             else:
-                self.current_fname.set(self.output_prefix.text()+'-fslices.raw')
+                self.current_fname.setText(self.output_prefix.text()+'-fslices.raw')
             
             if os.path.isfile(self.current_fname.text()):
                 done = False
                 while not done:
                     s = np.fromfile(self.current_fname.text(), '=f4')
-                    self.size = int(np.round((s.shape[0]/3)**0.5))
+                    self.size = int(np.round((s.shape[0]//3)**0.5))
                     try:
                         s = s.reshape(3,self.size,self.size) 
                         done = True
