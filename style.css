@@ -9,8 +9,8 @@ QWidget {
   padding: 0;
   margin: 0;
   border: 0px solid #204090;
-  font-family: sans-serif;
-  font-size: 8pt;
+  font-family: Oxygen;
+  font-size: 10pt;
 }
 
   #config QLabel, 
@@ -50,8 +50,23 @@ QWidget {
   }
 
 #heading {
-  font-family: serif;
-  font-weight: normal;
-  font-size: 20pt;
+  font-family: Kalam;
+  /* font-weight: normal; */
+  font-size: 24pt;
 }
+
+QMessageBox, QMessageBox * {
+  background: #204090;
+  color: white;
+}
+
+  QMessageBox QPushButton {
+    border: 1px solid white;
+    border-radius: 4px;
+    padding: 4px;
+  }
+
+  QMessageBox QPushButton:hover {
+    background: #3060e8;
+  }
 

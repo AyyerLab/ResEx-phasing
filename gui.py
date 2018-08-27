@@ -28,8 +28,8 @@ except ImportError:
 class GUI(QtWidgets.QMainWindow):
     def __init__(self, merge_fname='', map_fname=''):
         super(GUI, self).__init__()
-        self.merge_fname = merge_fname
-        self.map_fname = map_fname
+        self.input_merge_fname = merge_fname
+        self.input_map_fname = map_fname
 
         self.typestr = 'f4'
         self.size = None
@@ -49,44 +49,67 @@ class GUI(QtWidgets.QMainWindow):
         self.init_UI()
 
     def init_UI(self):
+        QtGui.QFontDatabase.addApplicationFont('Oxygen-Regular.ttf')
+        QtGui.QFontDatabase.addApplicationFont('Kalam-Bold.ttf')
         with open('style.css', 'r')as f:
             self.setStyleSheet(f.read())
         #self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
         self.setWindowTitle('ResEx Phasing GUI')
         #self.showMaximized()
-        self.resize(1600, 1200)
+        self.resize(1200, 700)
         overall = QtWidgets.QWidget()
         self.setCentralWidget(overall)
         layout = QtWidgets.QHBoxLayout(overall)
         layout.setContentsMargins(0, 0, 0, 0)
-        splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
-        layout.addWidget(splitter)
+        self.splitter = QtWidgets.QSplitter(QtCore.Qt.Horizontal)
+        layout.addWidget(self.splitter)
 
         # Config frame
-        config_frame = QtWidgets.QWidget(self)
-        config_frame.setMinimumWidth(700)
-        config_frame.setObjectName('config')
+        self.config_frame = QtWidgets.QWidget(self)
+        self.config_frame.setMinimumWidth(80)
+        self.config_frame.setObjectName('config')
         vbox = QtWidgets.QVBoxLayout()
-        config_frame.setLayout(vbox)
-        splitter.addWidget(config_frame)
+        self.config_frame.setLayout(vbox)
+        self.splitter.addWidget(self.config_frame)
 
         hbox = QtWidgets.QHBoxLayout()
         vbox.addLayout(hbox)
-        label = QtWidgets.QLabel('ResEx Phasing GUI', self)
-        label.setObjectName('heading')
-        hbox.addWidget(label)
+        self.title_label = QtWidgets.QLabel('ResEx Phasing GUI', self)
+        self.title_label.setObjectName('heading')
+        hbox.addWidget(self.title_label)
+        hbox.addStretch(1)
+        self.collapse_button = QtWidgets.QPushButton('<', self)
+        self.collapse_button.clicked.connect(self.toggle_config)
+        hbox.addWidget(self.collapse_button)
 
         self.notebook = QtWidgets.QTabWidget()
-        vbox.addWidget(self.notebook)
+        vbox.addWidget(self.notebook, stretch=2)
 
         vbox.addStretch(1)
 
+        self.bottom_frame = QtWidgets.QWidget(self)
+        vbox.addWidget(self.bottom_frame)
+        
+        hbox = QtWidgets.QHBoxLayout()
+        vbox.addLayout(hbox)
+        hbox.addStretch(1)
+        #button = QtWidgets.QPushButton("Preprocess", self)
+        #button.clicked.connect(self.preprocess)
+        #hbox.addWidget(button)
+        button = QtWidgets.QPushButton("Quit", self)
+        button.clicked.connect(self.close)
+        hbox.addWidget(button)
+
+        # Bottom frame
+        vbox = QtWidgets.QVBoxLayout()
+        self.bottom_frame.setLayout(vbox)
+        
         hbox = QtWidgets.QHBoxLayout()
         vbox.addLayout(hbox)
         label = QtWidgets.QLabel('Image name: ', self)
         hbox.addWidget(label)
-        if self.merge_fname != '':
-            fname = 'images/' + os.path.splitext(os.path.basename(self.merge_fname))[0] + '.png'
+        if self.input_merge_fname != '':
+            fname = 'images/' + os.path.splitext(os.path.basename(self.input_merge_fname))[0] + '.png'
         else:
             fname = ''
         self.image_name = QtWidgets.QLineEdit(fname, self)
@@ -125,29 +148,19 @@ class GUI(QtWidgets.QMainWindow):
         hbox.addWidget(self.rangelock)
         hbox.addStretch(1)
 
-        hbox = QtWidgets.QHBoxLayout()
-        vbox.addLayout(hbox)
-        hbox.addStretch(1)
-        button = QtWidgets.QPushButton("Preprocess", self)
-        button.clicked.connect(self.preprocess)
-        hbox.addWidget(button)
-        button = QtWidgets.QPushButton("Quit", self)
-        button.clicked.connect(self.close)
-        hbox.addWidget(button)
-
         # Canvas frame
         canvas_frame = QtWidgets.QWidget(self)
         vbox = QtWidgets.QVBoxLayout()
         canvas_frame.setLayout(vbox)
-        splitter.addWidget(canvas_frame)
+        self.splitter.addWidget(canvas_frame)
 
         hbox = QtWidgets.QHBoxLayout()
         vbox.addLayout(hbox)
-        self.current_fname = QtWidgets.QLabel(self.merge_fname, self)
+        self.current_fname = QtWidgets.QLabel(self.input_merge_fname, self)
         hbox.addWidget(self.current_fname)
         hbox.addStretch(1)
         self.project_flag = QtWidgets.QCheckBox('Projection', self)
-        self.project_flag.stateChanged.connect(lambda: self.replot(zoom='current'))
+        self.project_flag.stateChanged.connect(self.toggle_projection)
         hbox.addWidget(self.project_flag)
         hbox.addStretch(1)
         button = QtWidgets.QPushButton("Prev", self)
@@ -168,6 +181,7 @@ class GUI(QtWidgets.QMainWindow):
         self.gen_merge_tab()
         self.gen_map_tab()
         self.gen_recon_tab()
+        self.splitter.setSizes([400,796])
         self.show()
         self.plot_vol()
 
@@ -181,7 +195,7 @@ class GUI(QtWidgets.QMainWindow):
         vbox.addLayout(hbox)
         label = QtWidgets.QLabel('Merge File', self)
         hbox.addWidget(label)
-        self.merge_fname = QtWidgets.QLineEdit(self.merge_fname, self)
+        self.merge_fname = QtWidgets.QLineEdit(self.input_merge_fname, self)
         hbox.addWidget(self.merge_fname, stretch=1)
         button = QtWidgets.QPushButton('Plot Merge', self)
         button.clicked.connect(self.plot_vol)
@@ -228,6 +242,8 @@ class GUI(QtWidgets.QMainWindow):
         button = QtWidgets.QPushButton('Reset', self)
         button.clicked.connect(self.reset_merge_tab)
         hbox.addWidget(button)
+        
+        vbox.addStretch(1)
 
     def gen_map_tab(self, add=True):
         self.map_tab = QtWidgets.QWidget()
@@ -239,7 +255,7 @@ class GUI(QtWidgets.QMainWindow):
         vbox.addLayout(hbox)
         label = QtWidgets.QLabel('Map File', self)
         hbox.addWidget(label)
-        self.map_fname = QtWidgets.QLineEdit(self.map_fname, self)
+        self.map_fname = QtWidgets.QLineEdit(self.input_map_fname, self)
         hbox.addWidget(self.map_fname, stretch=1)
         button = QtWidgets.QPushButton('Plot Map', self)
         button.clicked.connect(self.plot_map)
@@ -257,12 +273,20 @@ class GUI(QtWidgets.QMainWindow):
         self.point_group = QtWidgets.QLineEdit('222', self)
         #self.point_group.setFixedWidth(60)
         hbox.addWidget(self.point_group)
+        hbox.addStretch(1)
+
+        hbox = QtWidgets.QHBoxLayout()
+        vbox.addLayout(hbox)
         button = QtWidgets.QPushButton('Process Map', self)
         button.clicked.connect(self.process_map)
         hbox.addWidget(button)
-        button = QtWidgets.QPushButton('Reset', self)
-        button.clicked.connect(self.reset_map_tab)
-        hbox.addWidget(button)
+        self.reset_button = QtWidgets.QPushButton('Reset', self)
+        self.reset_button.clicked.connect(self.reset_map_tab)
+        self.reset_button.setEnabled(False)
+        hbox.addWidget(self.reset_button)
+        hbox.addStretch(1)
+
+        vbox.addStretch(1)
 
     def gen_recon_tab(self):
         self.recon_tab = QtWidgets.QWidget()
@@ -306,25 +330,129 @@ class GUI(QtWidgets.QMainWindow):
         ttk.Checkbutton(line,text='Fourier Slices',variable=self.fslices).pack(side=Tk.LEFT)
         '''
         
+        vbox.addStretch(1)
         self.added_recon_tab = True
 
     def reset_merge_tab(self, event=None):
         self.zeroed = False
         self.calculated_scale = False
         self.notebook.removeTab(0)
-        self.merge_tab.delete()
+        #self.merge_tab.delete()
         self.gen_merge_tab(add=False)
         self.notebook.insertTab(0, self.merge_tab, 'Merge')
         self.notebook.setCurrentIndex(0)
+        self.zeroed = False
+        self.calculated_scale = False
 
     def reset_map_tab(self, event=None):
         self.processed_map = True
         self.notebook.removeTab(1)
-        self.map_tab.delete()
+        #self.map_tab.delete()
         self.map_tab = None
         self.gen_map_tab(add=False)
         self.notebook.insertTab(1, self.map_tab, 'Map')
         self.notebook.setCurrentIndex(1)
+        self.processed_map = False
+        self.reset_map.setEnabled(False)
+
+    def add_to_map_tab(self, mapnoext):
+        prefix = 'data/convert/'+mapnoext
+        vbox = self.map_tab.layout()
+        vbox.removeItem(vbox.takeAt(vbox.count()-1))
+
+        hbox = vbox.takeAt(vbox.count()-1).layout()
+        hbox.removeItem(hbox.takeAt(hbox.count()-1))
+        self.suppressflag = QtWidgets.QCheckBox('Suppress low-q', self)
+        self.suppressflag.stateChanged.connect(lambda: self.replot(zoom='current', sigma=True))
+        hbox.addWidget(self.suppressflag)
+        hbox.addStretch(1)
+        vbox.addLayout(hbox)
+
+        hbox = QtWidgets.QHBoxLayout()
+        vbox.addLayout(hbox)
+        label = QtWidgets.QLabel('Complex:', self)
+        hbox.addWidget(label)
+        button = QtWidgets.QPushButton(os.path.basename(prefix + '.cpx'), self)
+        button.clicked.connect(lambda: self.plot_vol(fname=prefix + '.cpx', sigma=True))
+        hbox.addWidget(button)
+        hbox.addStretch(1)
+        
+        hbox = QtWidgets.QHBoxLayout()
+        vbox.addLayout(hbox)
+        label = QtWidgets.QLabel('Symmetrized:', self)
+        hbox.addWidget(label)
+        button = QtWidgets.QPushButton(os.path.basename(prefix + '-sym.raw'), self)
+        button.clicked.connect(lambda: self.plot_vol(fname=prefix + '-sym.raw', sigma=True))
+        hbox.addWidget(button)
+        hbox.addStretch(1)
+        
+        hbox = QtWidgets.QHBoxLayout()
+        vbox.addLayout(hbox)
+        label = QtWidgets.QLabel('Density:', self)
+        hbox.addWidget(label)
+        button = QtWidgets.QPushButton(os.path.basename(prefix + '-srecon.raw'), self)
+        button.clicked.connect(lambda: self.plot_vol(fname=prefix + '-srecon.raw', zoom=True))
+        hbox.addWidget(button)
+        hbox.addStretch(1)
+        
+        hbox = QtWidgets.QHBoxLayout()
+        vbox.addLayout(hbox)
+        label = QtWidgets.QLabel('Support:', self)
+        hbox.addWidget(label)
+        button = QtWidgets.QPushButton(os.path.basename(prefix + '.supp'), self)
+        button.clicked.connect(lambda: self.plot_vol(fname=prefix + '.supp', zoom=True))
+        hbox.addWidget(button)
+        hbox.addStretch(1)
+        
+        hbox = QtWidgets.QHBoxLayout()
+        vbox.addLayout(hbox)
+        label = QtWidgets.QLabel('Support: Conv. radius = ', self)
+        hbox.addWidget(label)
+        self.suppradstr = QtWidgets.QLineEdit('3', self)
+        self.suppradstr.setFixedWidth(40)
+        hbox.addWidget(self.suppradstr)
+        label = QtWidgets.QLabel('vox. Threshold = ', self)
+        hbox.addWidget(label)
+        self.suppthreshstr = QtWidgets.QLineEdit('1', self)
+        self.suppthreshstr.setFixedWidth(40)
+        hbox.addWidget(self.suppthreshstr)
+        hbox.addStretch(1)
+        
+        hbox = QtWidgets.QHBoxLayout()
+        vbox.addLayout(hbox)
+        button = QtWidgets.QPushButton('Update support', self)
+        button.clicked.connect(self.reprocess_map)
+        hbox.addWidget(button)
+        hbox.addStretch(1)
+
+        vbox.addStretch(1)
+        self.reset_button.setEnabled(True)
+
+    def set_config_size(self, value):
+        sizes = self.splitter.sizes()
+        w = 80 + 300.*value
+        self.splitter.setSizes([w, sum(sizes)-w])
+
+    def toggle_config(self):
+        w = self.splitter.sizes()[0]
+        self.tl = QtCore.QTimeLine()
+        self.tl.setCurveShape(QtCore.QTimeLine.EaseOutCurve)
+        self.tl.valueChanged.connect(self.set_config_size)
+        self.tl.setDuration(1000)
+        if w > 250:
+            self.tl.setDirection(QtCore.QTimeLine.Backward)
+        self.tl.start()
+
+        if w > 250:
+            self.collapse_button.setText('>')
+            self.notebook.hide()
+            self.bottom_frame.hide()
+            self.title_label.setText('RE')
+        else:
+            self.collapse_button.setText('<')
+            self.notebook.show()
+            self.bottom_frame.show()
+            self.title_label.setText('ResEx Phasing GUI')
 
     def parse_extension(self, filename):
         ext_string = os.path.splitext(os.path.basename(filename))[1]
@@ -399,9 +527,9 @@ class GUI(QtWidgets.QMainWindow):
         if space is None:
             space = self.space
         self.image_name.setText('images/' + os.path.splitext(os.path.basename(self.current_fname.text()))[0] + '.png')
+        project = (self.project_flag.isChecked())
         rangemax = float(self.rangemax.text())
         rangemin = float(self.rangemin.text())
-        project = (self.project_flag.isChecked())
         if self.vol is None and slices is None:
             return
         
@@ -426,20 +554,18 @@ class GUI(QtWidgets.QMainWindow):
                 minx = self.size//3
                 maxx = 2*minx
                 if project:
-                    rangemax *= self.size
-                    a = self.vol[:,minx:maxx,minx:maxx].sum(0)
-                    b = self.vol[minx:maxx,:,minx:maxx].sum(1)
-                    c = self.vol[minx:maxx,minx:maxx,:].sum(2)
+                    a = self.vol[:,minx:maxx,minx:maxx].mean(0)
+                    b = self.vol[minx:maxx,:,minx:maxx].mean(1)
+                    c = self.vol[minx:maxx,minx:maxx,:].mean(2)
                 else:
                     a = self.vol[layernum,minx:maxx,minx:maxx]
                     b = self.vol[minx:maxx,layernum,minx:maxx]
                     c = self.vol[minx:maxx,minx:maxx,layernum]
             else:
                 if project:
-                    rangemax *= self.size
-                    a = self.vol.sum(0)
-                    b = self.vol.sum(1)
-                    c = self.vol.sum(2)
+                    a = self.vol.mean(0)
+                    b = self.vol.mean(1)
+                    c = self.vol.mean(2)
                 else:
                     a = self.vol[layernum,:,:]	
                     b = self.vol[:,layernum,:]	
@@ -537,7 +663,7 @@ class GUI(QtWidgets.QMainWindow):
         if not self.zeroed:
             zero_fname = os.path.splitext(self.merge_fname.text())[0] + '-zero.raw'
             hbox = QtWidgets.QHBoxLayout()
-            self.merge_frame.layout.addLayout(hbox)
+            self.merge_tab.layout().addLayout(hbox)
             label = QtWidgets.QLabel('Zero-ed volume:', self)
             hbox.addWidget(label)
             button = QtWidgets.QPushButton(zero_fname, self)
@@ -556,7 +682,7 @@ class GUI(QtWidgets.QMainWindow):
         self.scale_factor = float(output.split()[4])
         if not self.calculated_scale:
             hbox = QtWidgets.QHBoxLayout()
-            self.merge_frame.layout.addLayout(hbox)
+            self.merge_tab.layout().addLayout(hbox)
             self.scale_label = QtWidgets.QLabel('Scale factor = %.6e'%self.scale_factor, self)
             hbox.addWidget(self.scale_label)
         else:
@@ -565,7 +691,6 @@ class GUI(QtWidgets.QMainWindow):
 
     def process_map(self, event=None):
         mapnoext = os.path.splitext(os.path.basename(self.map_fname.text()))[0]
-        #if os.path.isfile('data/convert/'+mapnoext+'.cpx') and not tkMessageBox.askyesno('Process Map', 'Found processed map output. Overwrite?', default=tkMessageBox.NO, icon=tkMessageBox.QUESTION, parent=self.master):
         if os.path.isfile('data/convert/'+mapnoext+'.cpx') and QtWidgets.QMessageBox.question(self, 'Process Map', 'Found processed map output. Overwrite?', QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No) == QtWidgets.QMessageBox.Yes:
             if self.resedge.text() is '':
                 print('Need resolution at edge of volume')
@@ -579,10 +704,10 @@ class GUI(QtWidgets.QMainWindow):
             os.system(command)
             print('-'*80)
             if not self.processed_map:
-                self.add_to_map_frame(mapnoext)
+                self.add_to_map_tab(mapnoext)
         else:
             if not self.processed_map:
-                self.add_to_map_frame(mapnoext)
+                self.add_to_map_tab(mapnoext)
             with open('results/'+mapnoext+'.log', 'r') as f:
                 words = f.read().split()
                 warray = np.array(words)
@@ -592,70 +717,6 @@ class GUI(QtWidgets.QMainWindow):
                 self.suppthreshstr.setText('%.1f'%float(words[np.where(warray=='./utils/create_support')[0][-1]+3]))
         
         self.processed_map = True
-
-    def add_to_map_frame(self, mapnoext):
-        prefix = 'data/convert/'+mapnoext
-        vbox = self.map_tab.layout()
-
-        hbox = QtWidgets.QHBoxLayout()
-        vbox.addLayout(hbox)
-        label = QtWidgets.QLabel('Complex:', self)
-        hbox.addWidget(label)
-        button = QtWidgets.QPushButton(prefix + '.cpx', self)
-        button.clicked.connect(lambda: self.plot_vol(fname=prefix + '.cpx'))
-        hbox.addWidget(button)
-        hbox.addStretch(1)
-        
-        hbox = QtWidgets.QHBoxLayout()
-        vbox.addLayout(hbox)
-        label = QtWidgets.QLabel('Symmetrized:', self)
-        hbox.addWidget(label)
-        button = QtWidgets.QPushButton(prefix + '-sym.raw', self)
-        button.clicked.connect(lambda: self.plot_vol(fname=prefix + '-sym.raw', sigma=True))
-        hbox.addWidget(button)
-        self.suppressflag = QtWidgets.QCheckBox('Supress low-q', self)
-        self.suppressflag.stateChanged.connect(lambda: self.replot(zoom='current', sigma=True))
-        hbox.addWidget(self.suppressflag)
-        hbox.addStretch(1)
-        
-        hbox = QtWidgets.QHBoxLayout()
-        vbox.addLayout(hbox)
-        label = QtWidgets.QLabel('Density:', self)
-        hbox.addWidget(label)
-        button = QtWidgets.QPushButton(prefix + '-srecon.raw', self)
-        button.clicked.connect(lambda: self.plot_vol(fname=prefix + '-srecon.raw', zoom=True))
-        hbox.addWidget(button)
-        hbox.addStretch(1)
-        
-        hbox = QtWidgets.QHBoxLayout()
-        vbox.addLayout(hbox)
-        label = QtWidgets.QLabel('Support:', self)
-        hbox.addWidget(label)
-        button = QtWidgets.QPushButton(prefix + '.supp', self)
-        button.clicked.connect(lambda: self.plot_vol(fname=prefix + '.supp', zoom=True))
-        hbox.addWidget(button)
-        hbox.addStretch(1)
-        
-        hbox = QtWidgets.QHBoxLayout()
-        vbox.addLayout(hbox)
-        label = QtWidgets.QLabel('Support: Conv. radius = ', self)
-        hbox.addWidget(label)
-        self.suppradstr = QtWidgets.QLineEdit('3', self)
-        self.suppradstr.setFixedWidth(40)
-        hbox.addWidget(self.suppradstr)
-        label = QtWidgets.QLabel('vox. Threshold = ', self)
-        hbox.addWidget(label)
-        self.suppthreshstr = QtWidgets.QLineEdit('1', self)
-        self.suppthreshstr.setFixedWidth(40)
-        hbox.addWidget(self.suppthreshstr)
-        hbox.addStretch(1)
-        
-        hbox = QtWidgets.QHBoxLayout()
-        vbox.addLayout(hbox)
-        button = QtWidgets.QPushButton('Update support', self)
-        button.clicked.connect(self.reprocess_map)
-        hbox.addWidget(button)
-        hbox.addStretch(1)
 
     def reprocess_map(self, event=None):
         if self.resedge.text() is '':
@@ -747,6 +808,17 @@ class GUI(QtWidgets.QMainWindow):
             self.layer_slider.setValue(value)
         elif value is None:
             self.replot(zoom='current')
+    
+    def toggle_projection(self):
+        if self.project_flag.isChecked():
+            #self.rangemax.setText('%.1e'%(float(self.rangemax.text())*0.1*self.size))
+            self.layer_slider.setEnabled(False)
+            self.layernum.setEnabled(False)
+        else:
+            #self.rangemax.setText('%.1e'%(float(self.rangemax.text())/0.1/self.size))
+            self.layer_slider.setEnabled(True)
+            self.layernum.setEnabled(True)
+        self.replot(zoom='current')
     
     def next_angle(self):
         curr = self.angle_list.index(self.current_angle.text())
