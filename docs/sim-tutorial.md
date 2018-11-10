@@ -26,7 +26,8 @@ $ cp data/convert/4et8_sim-sym.raw data/merges/4et8_intens.raw
 ```
 The `process_map.sh` script parses the CCP4 map and produces a complex-valued
 volume representing the Fourier transform of the molecule and a 3D support mask,
-among a few other files.
+among a few other files. It is not a user-facing script in normal operation, but
+is used here just to generate simulated data.
 
 ## Set up system
 Now that we have created the data sources, we can set up the reconstruction.
