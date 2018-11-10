@@ -70,3 +70,17 @@ QMessageBox, QMessageBox * {
     background: #3060e8;
   }
 
+#canvas, #canvas * {
+  font-family: Oxygen;
+  font-size: 10pt;
+}
+
+  #canvas QPushButton {
+    border: 1px solid black;
+    padding: 4px;
+    border-radius: 4px;
+  }
+
+  #canvas QPushButton:hover {
+    background: #aaa;
+  }
