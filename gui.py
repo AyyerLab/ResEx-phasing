@@ -45,6 +45,8 @@ class GUI(QtWidgets.QMainWindow):
         self.zoomed = False
         self.added_recon_tab = False
         self.angle_list = ['XY', 'XZ', 'YZ']
+        self.checker = QtCore.QTimer(self)
+        self.checker.timeout.connect(self.keep_checking)
 
         self.init_UI()
 
@@ -56,7 +58,7 @@ class GUI(QtWidgets.QMainWindow):
         #self.setWindowFlags(QtCore.Qt.FramelessWindowHint)
         self.setWindowTitle('ResEx Phasing GUI')
         #self.showMaximized()
-        self.resize(1200, 700)
+        self.resize(1000, 700)
         overall = QtWidgets.QWidget()
         self.setCentralWidget(overall)
         layout = QtWidgets.QHBoxLayout(overall)
@@ -66,7 +68,8 @@ class GUI(QtWidgets.QMainWindow):
 
         # Config frame
         self.config_frame = QtWidgets.QWidget(self)
-        self.config_frame.setMinimumWidth(80)
+        #self.config_frame.setMinimumWidth(80)
+        self.config_frame.setMinimumWidth(300)
         self.config_frame.setObjectName('config')
         vbox = QtWidgets.QVBoxLayout()
         self.config_frame.setLayout(vbox)
@@ -78,9 +81,11 @@ class GUI(QtWidgets.QMainWindow):
         self.title_label.setObjectName('heading')
         hbox.addWidget(self.title_label)
         hbox.addStretch(1)
+        '''
         self.collapse_button = QtWidgets.QPushButton('<', self)
         self.collapse_button.clicked.connect(self.toggle_config)
         hbox.addWidget(self.collapse_button)
+        '''
 
         self.notebook = QtWidgets.QTabWidget()
         vbox.addWidget(self.notebook, stretch=2)
@@ -150,6 +155,7 @@ class GUI(QtWidgets.QMainWindow):
 
         # Canvas frame
         canvas_frame = QtWidgets.QWidget(self)
+        canvas_frame.setObjectName('canvas')
         vbox = QtWidgets.QVBoxLayout()
         canvas_frame.setLayout(vbox)
         self.splitter.addWidget(canvas_frame)
@@ -159,10 +165,6 @@ class GUI(QtWidgets.QMainWindow):
         self.current_fname = QtWidgets.QLabel(self.input_merge_fname, self)
         hbox.addWidget(self.current_fname)
         hbox.addStretch(1)
-        self.project_flag = QtWidgets.QCheckBox('Projection', self)
-        self.project_flag.stateChanged.connect(self.toggle_projection)
-        hbox.addWidget(self.project_flag)
-        hbox.addStretch(1)
         button = QtWidgets.QPushButton("Prev", self)
         button.clicked.connect(self.next_angle)
         hbox.addWidget(button)
@@ -171,6 +173,10 @@ class GUI(QtWidgets.QMainWindow):
         button = QtWidgets.QPushButton("Next", self)
         button.clicked.connect(self.next_angle)
         hbox.addWidget(button)
+        hbox.addStretch(1)
+        self.project_flag = QtWidgets.QCheckBox('Projection', self)
+        self.project_flag.stateChanged.connect(self.toggle_projection)
+        hbox.addWidget(self.project_flag)
 
         self.fig = plt.figure(figsize=(7,7))
         self.fig.subplots_adjust(left=0.0, bottom=0.00, right=0.99, top=0.95, wspace=0.0)
@@ -198,7 +204,7 @@ class GUI(QtWidgets.QMainWindow):
         self.merge_fname = QtWidgets.QLineEdit(self.input_merge_fname, self)
         hbox.addWidget(self.merge_fname, stretch=1)
         button = QtWidgets.QPushButton('Plot Merge', self)
-        button.clicked.connect(self.plot_vol)
+        button.clicked.connect(lambda :self.plot_vol(fname=self.merge_fname.text(), zoom=False))
         hbox.addWidget(button)
 
         hbox = QtWidgets.QHBoxLayout()
@@ -322,13 +328,17 @@ class GUI(QtWidgets.QMainWindow):
         button = QtWidgets.QPushButton('Generate', self)
         button.clicked.connect(self.gen_config)
         hbox.addWidget(button)
-        '''
-        line = ttk.Frame(self.recon_frame)
-        line.pack(fill=Tk.X)
-        ttk.Button(line, text='Launch Recon', command=self.launch_recon).pack(side=Tk.LEFT)
-        ttk.Checkbutton(line,text='Keep Checking',variable=self.checkflag,command=self.keep_checking).pack(side=Tk.LEFT)
-        ttk.Checkbutton(line,text='Fourier Slices',variable=self.fslices).pack(side=Tk.LEFT)
-        '''
+
+        hbox = QtWidgets.QHBoxLayout()
+        vbox.addLayout(hbox)
+        button = QtWidgets.QPushButton('Launch Recon', self)
+        button.clicked.connect(self.launch_recon)
+        hbox.addWidget(button)
+        self.checkflag = QtWidgets.QCheckBox('Keep Checking', self)
+        self.checkflag.stateChanged.connect(self.keep_checking)
+        hbox.addWidget(self.checkflag)
+        self.fslices= QtWidgets.QCheckBox('Fourier', self)
+        hbox.addWidget(self.fslices)
         
         vbox.addStretch(1)
         self.added_recon_tab = True
@@ -368,42 +378,29 @@ class GUI(QtWidgets.QMainWindow):
         hbox.addStretch(1)
         vbox.addLayout(hbox)
 
-        hbox = QtWidgets.QHBoxLayout()
-        vbox.addLayout(hbox)
+        grid = QtWidgets.QGridLayout()
+        vbox.addLayout(grid)
         label = QtWidgets.QLabel('Complex:', self)
-        hbox.addWidget(label)
+        grid.addWidget(label, 0, 0)
         button = QtWidgets.QPushButton(os.path.basename(prefix + '.cpx'), self)
         button.clicked.connect(lambda: self.plot_vol(fname=prefix + '.cpx', sigma=True))
-        hbox.addWidget(button)
-        hbox.addStretch(1)
-        
-        hbox = QtWidgets.QHBoxLayout()
-        vbox.addLayout(hbox)
+        grid.addWidget(button, 0, 1)
         label = QtWidgets.QLabel('Symmetrized:', self)
-        hbox.addWidget(label)
+        grid.addWidget(label, 1, 0)
         button = QtWidgets.QPushButton(os.path.basename(prefix + '-sym.raw'), self)
         button.clicked.connect(lambda: self.plot_vol(fname=prefix + '-sym.raw', sigma=True))
-        hbox.addWidget(button)
-        hbox.addStretch(1)
-        
-        hbox = QtWidgets.QHBoxLayout()
-        vbox.addLayout(hbox)
+        grid.addWidget(button, 1, 1)
         label = QtWidgets.QLabel('Density:', self)
-        hbox.addWidget(label)
+        grid.addWidget(label, 2, 0)
         button = QtWidgets.QPushButton(os.path.basename(prefix + '-srecon.raw'), self)
         button.clicked.connect(lambda: self.plot_vol(fname=prefix + '-srecon.raw', zoom=True))
-        hbox.addWidget(button)
-        hbox.addStretch(1)
-        
-        hbox = QtWidgets.QHBoxLayout()
-        vbox.addLayout(hbox)
+        grid.addWidget(button, 2, 1)
         label = QtWidgets.QLabel('Support:', self)
-        hbox.addWidget(label)
+        grid.addWidget(label, 3, 0)
         button = QtWidgets.QPushButton(os.path.basename(prefix + '.supp'), self)
         button.clicked.connect(lambda: self.plot_vol(fname=prefix + '.supp', zoom=True))
-        hbox.addWidget(button)
-        hbox.addStretch(1)
-        
+        grid.addWidget(button, 3, 1)
+
         hbox = QtWidgets.QHBoxLayout()
         vbox.addLayout(hbox)
         label = QtWidgets.QLabel('Support: Conv. radius = ', self)
@@ -417,7 +414,7 @@ class GUI(QtWidgets.QMainWindow):
         self.suppthreshstr.setFixedWidth(40)
         hbox.addWidget(self.suppthreshstr)
         hbox.addStretch(1)
-        
+
         hbox = QtWidgets.QHBoxLayout()
         vbox.addLayout(hbox)
         button = QtWidgets.QPushButton('Update support', self)
@@ -486,9 +483,7 @@ class GUI(QtWidgets.QMainWindow):
         if self.typestr == 'complex64':
             self.vol = np.square(np.absolute(self.vol))
         if not self.rangelock.isChecked():
-            rmax = self.vol[self.vol>0].mean()
-            rmax = 5*self.vol[(self.vol>0.01*rmax) & (self.vol<100*rmax)].mean()
-            self.rangemax.setText('%.1e' % rmax)
+            self.autoset_rangemax(self.vol)
         self.layer_slider.setRange(0, size-1)
         if not self.vol_image_exists or self.layernum.maximum() != self.size-1:
             self.layernum.setMaximum(self.size-1)
@@ -528,9 +523,12 @@ class GUI(QtWidgets.QMainWindow):
             space = self.space
         self.image_name.setText('images/' + os.path.splitext(os.path.basename(self.current_fname.text()))[0] + '.png')
         project = (self.project_flag.isChecked())
+        if slices is not None:
+            self.autoset_rangemax(slices, factor=5.)
         rangemax = float(self.rangemax.text())
         rangemin = float(self.rangemin.text())
         if self.vol is None and slices is None:
+            print('Nothing to plot')
             return
         
         if zoom == 'current':
@@ -538,38 +536,23 @@ class GUI(QtWidgets.QMainWindow):
         else:
             self.zoomed = zoom
         
-        if slices is not None:
-            if zoom:
-                min = self.size//3
-                max = 2*min
-                a = slices[0,min:max,min:max]
-                b = slices[1,min:max,min:max]
-                c = slices[2,min:max,min:max]
-            else:
-                a = slices[0]
-                b = slices[1]
-                c = slices[2]
+        if zoom:
+            minx = self.size//3
+            maxx = 2*minx
         else:
-            if zoom:
-                minx = self.size//3
-                maxx = 2*minx
-                if project:
-                    a = self.vol[:,minx:maxx,minx:maxx].mean(0)
-                    b = self.vol[minx:maxx,:,minx:maxx].mean(1)
-                    c = self.vol[minx:maxx,minx:maxx,:].mean(2)
-                else:
-                    a = self.vol[layernum,minx:maxx,minx:maxx]
-                    b = self.vol[minx:maxx,layernum,minx:maxx]
-                    c = self.vol[minx:maxx,minx:maxx,layernum]
+            minx = 0
+            maxx = None
+        if slices is not None:
+            a, b, c = tuple(slices[:,minx:maxx,minx:maxx])
+        else:
+            if project:
+                a = self.vol[:,minx:maxx,minx:maxx].mean(0)
+                b = self.vol[minx:maxx,:,minx:maxx].mean(1)
+                c = self.vol[minx:maxx,minx:maxx,:].mean(2)
             else:
-                if project:
-                    a = self.vol.mean(0)
-                    b = self.vol.mean(1)
-                    c = self.vol.mean(2)
-                else:
-                    a = self.vol[layernum,:,:]	
-                    b = self.vol[:,layernum,:]	
-                    c = self.vol[:,:,layernum]
+                a = self.vol[layernum,minx:maxx,minx:maxx]
+                b = self.vol[minx:maxx,layernum,minx:maxx]
+                c = self.vol[minx:maxx,minx:maxx,layernum]
         
         self.fig.clear()
         s = self.fig.add_subplot(111)
@@ -579,10 +562,12 @@ class GUI(QtWidgets.QMainWindow):
             view = b
         else:
             view = c
-        #cmap = self.color_map.checkedAction().text()
         cmap = 'cubehelix'
-        s.matshow(view, vmin=rangemin, vmax=rangemax, cmap=cmap)
-        plt.title(self.current_angle.text(), y=1.01)
+        if project and slices is None:
+            rangemax = view.max()
+            self.rangemax.setText('%.2e'%rangemax)
+        s.matshow(view, vmin=rangemin, vmax=rangemax, cmap=cmap, interpolation='nearest')
+        #plt.title(self.current_angle.text(), y=1.01)
         plt.axis('off')
         [a.remove() for a in list(set(s.findobj(patches.Circle)))]
         
@@ -609,7 +594,7 @@ class GUI(QtWidgets.QMainWindow):
         else:
             self.plot_vol(**kwargs) # Default plotting merge
 
-    def plot_vol(self, fname=None, event=None, force=False, sigma=False, **kwargs):
+    def plot_vol(self, event=None, fname=None, force=False, sigma=False, **kwargs):
         if fname is not None:
             self.current_fname.setText(fname)
         if not self.vol_image_exists:
@@ -619,7 +604,7 @@ class GUI(QtWidgets.QMainWindow):
             self.parse_vol()
         
         if sigma and self.suppressflag.isChecked():
-            c = self.vol.shape[0] / 2
+            c = self.vol.shape[0] // 2
             if self.rad is None:
                 if os.path.isfile('data/sigma_%d.bin' % self.size):
                     self.rad = np.fromfile('data/rad_%d.bin' % self.size, '=f8').reshape(self.size,self.size,self.size)
@@ -661,9 +646,13 @@ class GUI(QtWidgets.QMainWindow):
         print('-'*80)
         
         if not self.zeroed:
-            zero_fname = os.path.splitext(self.merge_fname.text())[0] + '-zero.raw'
+            vbox = self.merge_tab.layout()
+            vbox.removeItem(vbox.takeAt(vbox.count()-1))
             hbox = QtWidgets.QHBoxLayout()
-            self.merge_tab.layout().addLayout(hbox)
+            vbox.addLayout(hbox)
+            vbox.addStretch(1)
+            
+            zero_fname = os.path.splitext(self.merge_fname.text())[0] + '-zero.raw'
             label = QtWidgets.QLabel('Zero-ed volume:', self)
             hbox.addWidget(label)
             button = QtWidgets.QPushButton(zero_fname, self)
@@ -681,10 +670,15 @@ class GUI(QtWidgets.QMainWindow):
         output = subprocess.check_output(cmd.split(), shell=False)
         self.scale_factor = float(output.split()[4])
         if not self.calculated_scale:
+            vbox = self.merge_tab.layout()
+            vbox.removeItem(vbox.takeAt(vbox.count()-1))
             hbox = QtWidgets.QHBoxLayout()
-            self.merge_tab.layout().addLayout(hbox)
+            vbox.addLayout(hbox)
+            vbox.addStretch(1)
+            
             self.scale_label = QtWidgets.QLabel('Scale factor = %.6e'%self.scale_factor, self)
             hbox.addWidget(self.scale_label)
+            hbox.addStretch(1)  
         else:
             self.scale_label.setText('Scale factor = %.6e' % self.scale_factor)
         self.calculated_scale = True
@@ -763,42 +757,66 @@ class GUI(QtWidgets.QMainWindow):
                 f.write('bg_fitting = 1\n')
             if self.variation_flag.text() == 1:
                 f.write('local_variation = 1\n')
+            '''
             if self.histogram_flag.text() == 1:
                 f.write('histogram = 1\n')
                 f.write('hist_fname = data/3wu2_hist.dat\n')
+            '''
         print('Generated %s:' % self.config_fname.text())
         os.system('cat %s' % self.config_fname.text())
 
     def launch_recon(self, event=None):
-        pass
+        cmd = './recon -c %s'%self.config_fname.text()
+        print('-'*80)
+        subprocess.Popen(cmd.split())
+        print('-'*80)
 
     def keep_checking(self, event=None):
-        if self.checkflag.text() == 1:
-            if self.fslices.text() == 0:
-                self.current_fname.setText(self.output_prefix.text()+'-slices.raw')
+        if self.checkflag.isChecked():
+            self.update_slices()
+            self.checker.start(1000)
+        else:
+            self.checker.stop()
+
+    def update_slices(self):
+        prefix = self.output_prefix.text()
+        log_fname = prefix+'-log.dat'
+        try:
+            with open(log_fname, 'r') as f:
+                lines = f.readlines()
+                iternum = int(lines[-1].split()[0])
+        except (FileNotFoundError, ValueError):
+            return
+
+        if self.fslices.isChecked():
+            self.current_fname.setText(prefix+'-fslices/%.4d.raw'%iternum)
+        else:
+            self.current_fname.setText(prefix+'-slices/%.4d.raw'%iternum)
+
+        if os.path.isfile(self.current_fname.text()):
+            done = False
+            while not done:
+                s = np.fromfile(self.current_fname.text(), '=f4')
+                self.size = int(np.round((s.shape[0]//3)**0.5))
+                try:
+                    s = s.reshape(3,self.size,self.size) 
+                    done = True
+                except ValueError:
+                    pass
+            if self.fslices.isChecked():
+                self.plot_slices(0, slices=s, zoom=False)
             else:
-                self.current_fname.setText(self.output_prefix.text()+'-fslices.raw')
-            
-            if os.path.isfile(self.current_fname.text()):
-                done = False
-                while not done:
-                    s = np.fromfile(self.current_fname.text(), '=f4')
-                    self.size = int(np.round((s.shape[0]//3)**0.5))
-                    try:
-                        s = s.reshape(3,self.size,self.size) 
-                        done = True
-                    except ValueError:
-                        pass
-                if self.fslices.text() == 0:
-                    self.plot_slices(0, slices=s, zoom=True)
-                else:
-                    self.plot_slices(0, slices=s, zoom=False)
-            self.master.after(1000, self.keep_checking)
+                self.plot_slices(0, slices=s, zoom=True)
 
     def preprocess(self, event=None):
         self.zero_outer()
         self.calc_scale()
         self.process_map()
+
+    def autoset_rangemax(self, arr, factor=1.):
+        rmax = arr[arr>0].mean()
+        rmax = 5*arr[(arr>0.01*rmax) & (arr<100*rmax)].mean()
+        self.rangemax.setText('%.1e' % (factor*rmax))
 
     def layer_slider_moved(self, value):
         self.layernum.setValue(value)
@@ -811,13 +829,12 @@ class GUI(QtWidgets.QMainWindow):
     
     def toggle_projection(self):
         if self.project_flag.isChecked():
-            #self.rangemax.setText('%.1e'%(float(self.rangemax.text())*0.1*self.size))
             self.layer_slider.setEnabled(False)
             self.layernum.setEnabled(False)
         else:
-            #self.rangemax.setText('%.1e'%(float(self.rangemax.text())/0.1/self.size))
             self.layer_slider.setEnabled(True)
             self.layernum.setEnabled(True)
+            self.autoset_rangemax(self.vol)
         self.replot(zoom='current')
     
     def next_angle(self):
@@ -846,10 +863,6 @@ class GUI(QtWidgets.QMainWindow):
 
         if key == QtCore.Qt.Key_Return or key == QtCore.Qt.Key_Enter:
             self.replot(zoom='current')
-        elif key == QtCore.Qt.Key_Up:
-            self.increment_layer()
-        elif key == QtCore.Qt.Key_Down:
-            self.decrement_layer()
         elif QtGui.QKeySequence(mod+key) == QtGui.QKeySequence('Ctrl+Q'):
             self.close()
         elif QtGui.QKeySequence(mod+key) == QtGui.QKeySequence('Ctrl+S'):
