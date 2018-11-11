@@ -562,7 +562,7 @@ class GUI(QtWidgets.QMainWindow):
             view = b
         else:
             view = c
-        cmap = 'cubehelix'
+        cmap = 'jet'
         if project and slices is None:
             rangemax = view.max()
             self.rangemax.setText('%.2e'%rangemax)
