@@ -6,6 +6,7 @@ import os
 import time
 import subprocess
 import multiprocessing
+from functools import partial
 import matplotlib
 import numpy as np
 import matplotlib.pyplot as plt
@@ -28,13 +29,13 @@ except ImportError:
 
 class GUIWorker(QtCore.QObject):
     finished = QtCore.pyqtSignal()
-    returnval = QtCore.pyqtSignal(float)
+    returnval = QtCore.pyqtSignal(str)
 
     @QtCore.pyqtSlot(str, str, float, float)
     def calc_scale(self, model, merge, rmin, rmax):
         cmd = './utils/calc_scale %s %s %d %d' % (model, merge, rmin, rmax)
         output = subprocess.check_output(cmd.split(), shell=False)
-        self.returnval.emit(float(output.split()[4]))
+        self.returnval.emit(output.split()[4].decode('utf-8'))
         self.finished.emit()
 
     @QtCore.pyqtSlot(str, float, float)
@@ -42,7 +43,18 @@ class GUIWorker(QtCore.QObject):
         print('-'*80)
         subprocess.call(('./utils/zero_outer %s %d %d' % (model, rmin, rmax)).split())
         print('-'*80)
-        self.returnval.emit(0.)
+        self.returnval.emit('')
+        self.finished.emit()
+
+    @QtCore.pyqtSlot(str, int, float, bool, float, float, str)
+    def process_map(self, map_fname, size, resedge, full_flag, supp_rad, supp_thresh, point_group):
+        flag = int(full_flag)
+        command = './process_map.sh %s %d %f %d %f %f %s' % (map_fname, size, resedge, flag, supp_rad, supp_thresh, point_group)
+        print(command)
+        subprocess.call(command.split())
+        print('-'*80)
+        mapnoext = os.path.splitext(os.path.basename(map_fname))[0]
+        self.returnval.emit(mapnoext)
         self.finished.emit()
 
 class GUI(QtWidgets.QMainWindow):
@@ -376,6 +388,7 @@ class GUI(QtWidgets.QMainWindow):
         self.gen_merge_tab(add=False)
         self.notebook.insertTab(0, self.merge_tab, 'Merge')
         self.notebook.setCurrentIndex(0)
+        self.parse_vol(reset=True)
         self.zeroed = False
         self.calculated_scale = False
 
@@ -391,6 +404,8 @@ class GUI(QtWidgets.QMainWindow):
         self.reset_map.setEnabled(False)
 
     def add_to_map_tab(self, mapnoext):
+        if self.processed_map:
+            return
         prefix = 'data/convert/'+mapnoext
         vbox = self.map_tab.layout()
         vbox.removeItem(vbox.takeAt(vbox.count()-1))
@@ -423,7 +438,7 @@ class GUI(QtWidgets.QMainWindow):
         label = QtWidgets.QLabel('Support:', self)
         grid.addWidget(label, 3, 0)
         button = QtWidgets.QPushButton(os.path.basename(prefix + '.supp'), self)
-        button.clicked.connect(lambda: self.plot_vol(fname=prefix + '.supp', zoom=True))
+        button.clicked.connect(lambda: self.plot_vol(fname=prefix + '.supp', zoom=True, interpolation=None))
         grid.addWidget(button, 3, 1)
 
         hbox = QtWidgets.QHBoxLayout()
@@ -448,7 +463,13 @@ class GUI(QtWidgets.QMainWindow):
         hbox.addStretch(1)
 
         vbox.addStretch(1)
+
+        if self.thread.receivers(self.thread.started) > 0:
+            self.thread.started.disconnect()
+        if self.worker.receivers(self.worker.returnval) > 0:
+            self.worker.returnval.disconnect()
         self.reset_button.setEnabled(True)
+        self.processed_map = True
 
     def set_config_size(self, value):
         sizes = self.splitter.sizes()
@@ -493,7 +514,7 @@ class GUI(QtWidgets.QMainWindow):
             print("Did not understand data type from extension. Defaulting to float.")
             self.typestr = 'f4'
 
-    def parse_vol(self):
+    def parse_vol(self, reset=False):
         if not os.path.isfile(self.current_fname.text()):
             if self.current_fname.text() != '':
                 print("Unable to open", self.current_fname.text())
@@ -510,7 +531,7 @@ class GUI(QtWidgets.QMainWindow):
         if not self.rangelock.isChecked():
             self.autoset_rangemax(self.vol)
         self.layer_slider.setRange(0, size-1)
-        if not self.vol_image_exists or self.layernum.maximum() != self.size-1:
+        if reset or not self.vol_image_exists or self.layernum.maximum() != self.size-1:
             self.layernum.setMaximum(self.size-1)
             self.layer_slider.setValue(self.size//2)
             self.layer_slider_moved(self.size//2)
@@ -543,7 +564,7 @@ class GUI(QtWidgets.QMainWindow):
             self.layernum.setValue(self.size//2)
         self.old_fname = self.current_fname.text()
 
-    def plot_slices(self, layernum, space=None, zoom=False, slices=None):
+    def plot_slices(self, layernum, space=None, zoom=False, slices=None, interpolation='gaussian'):
         if space is None:
             space = self.space
         self.image_name.setText('images/' + os.path.splitext(os.path.basename(self.current_fname.text()))[0] + '.png')
@@ -589,7 +610,7 @@ class GUI(QtWidgets.QMainWindow):
         rangemax = float(self.rangemax.text())
         rangemin = float(self.rangemin.text())
         cmap = 'jet'
-        s.matshow(view, vmin=rangemin, vmax=rangemax, cmap=cmap, interpolation='nearest')
+        s.matshow(view, vmin=rangemin, vmax=rangemax, cmap=cmap, interpolation=interpolation)
         plt.axis('off')
 
         [a.remove() for a in list(set(s.findobj(patches.Circle)))]
@@ -615,6 +636,10 @@ class GUI(QtWidgets.QMainWindow):
             self.plot_vol(**kwargs)
         else:
             self.plot_vol(**kwargs) # Default plotting merge
+        if self.thread.receivers(self.thread.started) > 0:
+            self.thread.started.disconnect()
+        if self.worker.receivers(self.worker.returnval) > 0:
+            self.worker.returnval.disconnect()
 
     def plot_vol(self, event=None, fname=None, force=False, sigma=False, **kwargs):
         if fname is not None:
@@ -661,9 +686,10 @@ class GUI(QtWidgets.QMainWindow):
         self.vol_image_exists = False
 
     def zero_outer(self, event=None):
+        fname = self.merge_fname.text()
         rmin = float(self.radiusmin.text())
         rmax = float(self.radiusmax.text())
-        self.thread.started.connect(lambda: self.worker.zero_outer(self.merge_fname.text(), rmin, rmax))
+        self.thread.started.connect(partial(self.worker.zero_outer, fname, rmin, rmax))
         self.worker.returnval.connect(self.write_zero_line)
         self.thread.start()
 
@@ -683,22 +709,24 @@ class GUI(QtWidgets.QMainWindow):
             hbox.addWidget(button)
             hbox.addStretch(1)
 
-        recv_count = self.thread.receivers(self.thread.started)
-        if recv_count > 0:
+        if self.thread.receivers(self.thread.started) > 0:
             self.thread.started.disconnect()
+        if self.worker.receivers(self.worker.returnval) > 0:
+            self.worker.returnval.disconnect()
         self.zeroed = True
 
     def calc_scale(self, event=None):
+        fname = self.merge_fname.text()
         rmin = float(self.scaleradmin.text())
         rmax = float(self.scaleradmax.text())
         mapnoext = os.path.splitext(os.path.basename(self.map_fname.text()))[0]
-        sym_model = 'data/convert/'+mapnoext+'-sym.raw'
-        self.thread.started.connect(lambda: self.worker.calc_scale(sym_model, self.merge_fname.text(), rmin, rmax))
+        map_fname = 'data/convert/'+mapnoext+'-sym.raw'
+        self.thread.started.connect(partial(self.worker.calc_scale, map_fname, fname, rmin, rmax))
         self.worker.returnval.connect(self.write_scale_line)
         self.thread.start()
 
     def write_scale_line(self, val):
-        self.scale_factor = val
+        self.scale_factor = float(val)
         if not self.calculated_scale:
             vbox = self.merge_tab.layout()
             vbox.removeItem(vbox.takeAt(vbox.count()-1))
@@ -712,9 +740,10 @@ class GUI(QtWidgets.QMainWindow):
         else:
             self.scale_label.setText('Scale factor = %.6e' % self.scale_factor)
 
-        recv_count = self.thread.receivers(self.thread.started)
-        if recv_count > 0:
+        if self.thread.receivers(self.thread.started) > 0:
             self.thread.started.disconnect()
+        if self.worker.receivers(self.worker.returnval) > 0:
+            self.worker.returnval.disconnect()
         self.calculated_scale = True
 
     def process_map(self, event=None):
@@ -724,18 +753,21 @@ class GUI(QtWidgets.QMainWindow):
                 print('Need resolution at edge of volume')
                 return
             print('-'*80)
+            map_fname = self.map_fname.text()
+            size = self.vol_size
             resedge = float(self.resedge.text())
-            supp_rad = float(self.suppradstr.text())
-            supp_thresh = float(self.suppthreshstr.text())
-            command = './process_map.sh %s %d %f 0 %f %f %s' % (self.map_fname.text(), self.vol_size, resedge, supp_rad, supp_thresh, self.point_group.text())
-            print(command)
-            subprocess.call(command.split())
-            print('-'*80)
-            if not self.processed_map:
-                self.add_to_map_tab(mapnoext)
+            if self.processed_map:
+                supp_rad = float(self.suppradstr.text())
+                supp_thresh = float(self.suppthreshstr.text())
+            else:
+                supp_rad = 3.
+                supp_thresh = 1.
+            point_group = self.point_group.text()
+            self.thread.started.connect(partial(self.worker.process_map, map_fname, size, resedge, False, supp_rad, supp_thresh, point_group))
+            self.worker.returnval.connect(self.add_to_map_tab)
+            self.thread.start()
         else:
-            if not self.processed_map:
-                self.add_to_map_tab(mapnoext)
+            self.add_to_map_tab(mapnoext)
             with open('results/'+mapnoext+'.log', 'r') as f:
                 words = f.read().split()
                 warray = np.array(words)
@@ -743,23 +775,20 @@ class GUI(QtWidgets.QMainWindow):
                 self.point_group.setText(words[np.where(warray=='data/convert/'+mapnoext+'-srecon.raw')[0][0]+2])
                 self.suppradstr.setText('%.1f'%float(words[np.where(warray=='./utils/create_support')[0][-1]+2]))
                 self.suppthreshstr.setText('%.1f'%float(words[np.where(warray=='./utils/create_support')[0][-1]+3]))
-        
-        self.processed_map = True
 
     def reprocess_map(self, event=None):
         if self.resedge.text() is '':
             print('Need resolution at edge of volume')
             return
-        mapnoext = os.path.splitext(os.path.basename(self.map_fname.text()))[0]
+        map_fname = self.map_fname.text()
+        size = self.vol_size
         resedge = float(self.resedge.text())
-        supp_radius = float(self.suppradstr.text())
+        supp_rad = float(self.suppradstr.text())
         supp_thresh = float(self.suppthreshstr.text())
-        print('-'*80)
-        command = './process_map.sh %s %d %f 1 %f %f %s' % (self.map_fname.text(), self.vol_size, resedge, supp_radius, supp_thresh, self.point_group.text())
-        print(command)
-        subprocess.call(command.split)
-        print('-'*80)
-        self.replot(force=True, zoom='current')
+        point_group = self.point_group.text()
+        self.thread.started.connect(partial(self.worker.process_map, map_fname, size, resedge, True, supp_rad, supp_thresh, point_group))
+        self.worker.returnval.connect(lambda: self.replot(force=True, zoom='current'))
+        self.thread.start()
 
     def gen_config(self, event=None):
         with open(self.config_fname.text(), 'w') as f:
