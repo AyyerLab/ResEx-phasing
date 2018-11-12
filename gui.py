@@ -3,6 +3,7 @@
 from __future__ import print_function
 import sys
 import os
+import time
 import subprocess
 import multiprocessing
 import matplotlib
@@ -25,6 +26,25 @@ except ImportError:
     from matplotlib.backends.backend_qt4agg import FigureCanvas # pylint: disable=no-name-in-module
     os.environ['QT_API'] = 'pyqt'
 
+class GUIWorker(QtCore.QObject):
+    finished = QtCore.pyqtSignal()
+    returnval = QtCore.pyqtSignal(float)
+
+    @QtCore.pyqtSlot(str, str, float, float)
+    def calc_scale(self, model, merge, rmin, rmax):
+        cmd = './utils/calc_scale %s %s %d %d' % (model, merge, rmin, rmax)
+        output = subprocess.check_output(cmd.split(), shell=False)
+        self.returnval.emit(float(output.split()[4]))
+        self.finished.emit()
+
+    @QtCore.pyqtSlot(str, float, float)
+    def zero_outer(self, model, rmin, rmax):
+        print('-'*80)
+        subprocess.call(('./utils/zero_outer %s %d %d' % (model, rmin, rmax)).split())
+        print('-'*80)
+        self.returnval.emit(0.)
+        self.finished.emit()
+
 class GUI(QtWidgets.QMainWindow):
     def __init__(self, merge_fname='', map_fname=''):
         super(GUI, self).__init__()
@@ -45,8 +65,13 @@ class GUI(QtWidgets.QMainWindow):
         self.zoomed = False
         self.added_recon_tab = False
         self.angle_list = ['XY', 'XZ', 'YZ']
+
         self.checker = QtCore.QTimer(self)
         self.checker.timeout.connect(self.keep_checking)
+        self.worker = GUIWorker()
+        self.thread = QtCore.QThread()
+        self.worker.moveToThread(self.thread)
+        self.worker.finished.connect(self.thread.quit)
 
         self.init_UI()
 
@@ -460,7 +485,7 @@ class GUI(QtWidgets.QMainWindow):
             self.typestr = 'f8'
         elif ext_string == '.supp':
             self.typestr = 'uint8'
-            if self.rangelock.text() == 0:
+            if not self.rangelock.isChecked():
                 self.rangemax.setText('%.1e' % 1)
         elif ext_string == '.cpx':
             self.typestr = 'complex64'
@@ -523,14 +548,10 @@ class GUI(QtWidgets.QMainWindow):
             space = self.space
         self.image_name.setText('images/' + os.path.splitext(os.path.basename(self.current_fname.text()))[0] + '.png')
         project = (self.project_flag.isChecked())
-        if slices is not None:
-            self.autoset_rangemax(slices, factor=5.)
-        rangemax = float(self.rangemax.text())
-        rangemin = float(self.rangemin.text())
         if self.vol is None and slices is None:
             print('Nothing to plot')
             return
-        
+
         if zoom == 'current':
             zoom = self.zoomed
         else:
@@ -553,7 +574,7 @@ class GUI(QtWidgets.QMainWindow):
                 a = self.vol[layernum,minx:maxx,minx:maxx]
                 b = self.vol[minx:maxx,layernum,minx:maxx]
                 c = self.vol[minx:maxx,minx:maxx,layernum]
-        
+
         self.fig.clear()
         s = self.fig.add_subplot(111)
         if str(self.current_angle.text()) == 'XY':
@@ -562,27 +583,28 @@ class GUI(QtWidgets.QMainWindow):
             view = b
         else:
             view = c
-        cmap = 'cubehelix'
-        if project and slices is None:
-            rangemax = view.max()
-            self.rangemax.setText('%.2e'%rangemax)
+
+        if project or slices is not None:
+            self.autoset_rangemax(view, maxval=True)
+        rangemax = float(self.rangemax.text())
+        rangemin = float(self.rangemin.text())
+        cmap = 'jet'
         s.matshow(view, vmin=rangemin, vmax=rangemax, cmap=cmap, interpolation='nearest')
-        #plt.title(self.current_angle.text(), y=1.01)
         plt.axis('off')
+
         [a.remove() for a in list(set(s.findobj(patches.Circle)))]
-        
         if self.circleflag.isChecked(): 
             rmin = float(self.radiusmin.text())
             rmax = float(self.radiusmax.text())
             s.add_artist(patches.Circle((self.size//2,self.size//2), rmin, ec='white', fc='none'))
             s.add_artist(patches.Circle((self.size//2,self.size//2), rmax, ec='white', fc='none'))
-        
+
         if self.scaleradflag.isChecked(): 
             rmin = float(self.scaleradmin.text())
             rmax = float(self.scaleradmax.text())
             s.add_artist(patches.Circle((self.size//2,self.size//2), rmin, ec='white', fc='none', ls='dashed'))
             s.add_artist(patches.Circle((self.size//2,self.size//2), rmax, ec='white', fc='none', ls='dashed'))
-        
+
         self.space = space
         self.canvas.draw()
 
@@ -641,10 +663,11 @@ class GUI(QtWidgets.QMainWindow):
     def zero_outer(self, event=None):
         rmin = float(self.radiusmin.text())
         rmax = float(self.radiusmax.text())
-        print('-'*80)
-        os.system('./utils/zero_outer %s %d %d' % (self.merge_fname.text(), rmin, rmax))
-        print('-'*80)
-        
+        self.thread.started.connect(lambda: self.worker.zero_outer(self.merge_fname.text(), rmin, rmax))
+        self.worker.returnval.connect(self.write_zero_line)
+        self.thread.start()
+
+    def write_zero_line(self, val):
         if not self.zeroed:
             vbox = self.merge_tab.layout()
             vbox.removeItem(vbox.takeAt(vbox.count()-1))
@@ -659,6 +682,10 @@ class GUI(QtWidgets.QMainWindow):
             button.clicked.connect(lambda: self.plot_vol(fname=zero_fname))
             hbox.addWidget(button)
             hbox.addStretch(1)
+
+        recv_count = self.thread.receivers(self.thread.started)
+        if recv_count > 0:
+            self.thread.started.disconnect()
         self.zeroed = True
 
     def calc_scale(self, event=None):
@@ -666,9 +693,12 @@ class GUI(QtWidgets.QMainWindow):
         rmax = float(self.scaleradmax.text())
         mapnoext = os.path.splitext(os.path.basename(self.map_fname.text()))[0]
         sym_model = 'data/convert/'+mapnoext+'-sym.raw'
-        cmd = './utils/calc_scale %s %s %d %d' % (sym_model, self.merge_fname.text(), rmin, rmax)
-        output = subprocess.check_output(cmd.split(), shell=False)
-        self.scale_factor = float(output.split()[4])
+        self.thread.started.connect(lambda: self.worker.calc_scale(sym_model, self.merge_fname.text(), rmin, rmax))
+        self.worker.returnval.connect(self.write_scale_line)
+        self.thread.start()
+
+    def write_scale_line(self, val):
+        self.scale_factor = val
         if not self.calculated_scale:
             vbox = self.merge_tab.layout()
             vbox.removeItem(vbox.takeAt(vbox.count()-1))
@@ -681,6 +711,10 @@ class GUI(QtWidgets.QMainWindow):
             hbox.addStretch(1)  
         else:
             self.scale_label.setText('Scale factor = %.6e' % self.scale_factor)
+
+        recv_count = self.thread.receivers(self.thread.started)
+        if recv_count > 0:
+            self.thread.started.disconnect()
         self.calculated_scale = True
 
     def process_map(self, event=None):
@@ -813,10 +847,14 @@ class GUI(QtWidgets.QMainWindow):
         self.calc_scale()
         self.process_map()
 
-    def autoset_rangemax(self, arr, factor=1.):
-        rmax = arr[arr>0].mean()
-        rmax = 5*arr[(arr>0.01*rmax) & (arr<100*rmax)].mean()
-        self.rangemax.setText('%.1e' % (factor*rmax))
+    def autoset_rangemax(self, arr, maxval=False):
+        if maxval:
+            rmax = arr.max()
+        else:
+            rmax = arr[arr>0].mean()
+            rmax = 5*arr[(arr>0.01*rmax) & (arr<100*rmax)].mean()
+        self.rangemax.setText('%.1e' % rmax)
+        return rmax
 
     def layer_slider_moved(self, value):
         self.layernum.setValue(value)
