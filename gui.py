@@ -57,6 +57,13 @@ class GUIWorker(QtCore.QObject):
         self.returnval.emit(mapnoext)
         self.finished.emit()
 
+    @QtCore.pyqtSlot(str)
+    def launch_recon(self, fname):
+        cmd = './recon -c %s'%fname
+        print('-'*80)
+        subprocess.call(cmd.split())
+        print('-'*80)
+
 class GUI(QtWidgets.QMainWindow):
     def __init__(self, merge_fname='', map_fname=''):
         super(GUI, self).__init__()
@@ -464,10 +471,7 @@ class GUI(QtWidgets.QMainWindow):
 
         vbox.addStretch(1)
 
-        if self.thread.receivers(self.thread.started) > 0:
-            self.thread.started.disconnect()
-        if self.worker.receivers(self.worker.returnval) > 0:
-            self.worker.returnval.disconnect()
+        self.cleanup_thread()
         self.reset_button.setEnabled(True)
         self.processed_map = True
 
@@ -636,10 +640,7 @@ class GUI(QtWidgets.QMainWindow):
             self.plot_vol(**kwargs)
         else:
             self.plot_vol(**kwargs) # Default plotting merge
-        if self.thread.receivers(self.thread.started) > 0:
-            self.thread.started.disconnect()
-        if self.worker.receivers(self.worker.returnval) > 0:
-            self.worker.returnval.disconnect()
+        self.cleanup_thread()
 
     def plot_vol(self, event=None, fname=None, force=False, sigma=False, **kwargs):
         if fname is not None:
@@ -709,10 +710,7 @@ class GUI(QtWidgets.QMainWindow):
             hbox.addWidget(button)
             hbox.addStretch(1)
 
-        if self.thread.receivers(self.thread.started) > 0:
-            self.thread.started.disconnect()
-        if self.worker.receivers(self.worker.returnval) > 0:
-            self.worker.returnval.disconnect()
+        self.cleanup_thread()
         self.zeroed = True
 
     def calc_scale(self, event=None):
@@ -740,10 +738,7 @@ class GUI(QtWidgets.QMainWindow):
         else:
             self.scale_label.setText('Scale factor = %.6e' % self.scale_factor)
 
-        if self.thread.receivers(self.thread.started) > 0:
-            self.thread.started.disconnect()
-        if self.worker.receivers(self.worker.returnval) > 0:
-            self.worker.returnval.disconnect()
+        self.cleanup_thread()
         self.calculated_scale = True
 
     def process_map(self, event=None):
@@ -826,13 +821,19 @@ class GUI(QtWidgets.QMainWindow):
                 f.write('hist_fname = data/3wu2_hist.dat\n')
             '''
         print('Generated %s:' % self.config_fname.text())
-        subprocess.call(['cat', self.config_fname.text()])
+        with open(self.config_fname.text(), 'r') as f:
+            print(f.read())
+
+    def cleanup_thread(self):
+        if self.thread.receivers(self.thread.started) > 0:
+            self.thread.started.disconnect()
+        if self.worker.receivers(self.worker.returnval) > 0:
+            self.worker.returnval.disconnect()
 
     def launch_recon(self, event=None):
-        cmd = './recon -c %s'%self.config_fname.text()
-        print('-'*80)
-        subprocess.Popen(cmd.split())
-        print('-'*80)
+        self.thread.started.connect(partial(self.worker.launch_recon, self.config_fname.text()))
+        self.worker.returnval.connect(self.cleanup_thread)
+        self.thread.start()
 
     def keep_checking(self, event=None):
         if self.checkflag.isChecked():
