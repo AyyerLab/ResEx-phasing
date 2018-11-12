@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 from __future__ import print_function
 import sys
 import os
@@ -26,43 +24,7 @@ except ImportError:
     matplotlib.use('qt4agg')
     from matplotlib.backends.backend_qt4agg import FigureCanvas # pylint: disable=no-name-in-module
     os.environ['QT_API'] = 'pyqt'
-
-class GUIWorker(QtCore.QObject):
-    finished = QtCore.pyqtSignal()
-    returnval = QtCore.pyqtSignal(str)
-
-    @QtCore.pyqtSlot(str, str, float, float)
-    def calc_scale(self, model, merge, rmin, rmax):
-        cmd = './utils/calc_scale %s %s %d %d' % (model, merge, rmin, rmax)
-        output = subprocess.check_output(cmd.split(), shell=False)
-        self.returnval.emit(output.split()[4].decode('utf-8'))
-        self.finished.emit()
-
-    @QtCore.pyqtSlot(str, float, float)
-    def zero_outer(self, model, rmin, rmax):
-        print('-'*80)
-        subprocess.call(('./utils/zero_outer %s %d %d' % (model, rmin, rmax)).split())
-        print('-'*80)
-        self.returnval.emit('')
-        self.finished.emit()
-
-    @QtCore.pyqtSlot(str, int, float, bool, float, float, str)
-    def process_map(self, map_fname, size, resedge, full_flag, supp_rad, supp_thresh, point_group):
-        flag = int(full_flag)
-        command = './process_map.sh %s %d %f %d %f %f %s' % (map_fname, size, resedge, flag, supp_rad, supp_thresh, point_group)
-        print(command)
-        subprocess.call(command.split())
-        print('-'*80)
-        mapnoext = os.path.splitext(os.path.basename(map_fname))[0]
-        self.returnval.emit(mapnoext)
-        self.finished.emit()
-
-    @QtCore.pyqtSlot(str)
-    def launch_recon(self, fname):
-        cmd = './recon -c %s'%fname
-        print('-'*80)
-        subprocess.call(cmd.split())
-        print('-'*80)
+from . import worker
 
 class GUI(QtWidgets.QMainWindow):
     def __init__(self, merge_fname='', map_fname=''):
@@ -87,13 +49,14 @@ class GUI(QtWidgets.QMainWindow):
 
         self.checker = QtCore.QTimer(self)
         self.checker.timeout.connect(self.keep_checking)
-        self.worker = GUIWorker()
+        self.worker = worker.GUIWorker()
         self.thread = QtCore.QThread()
         self.worker.moveToThread(self.thread)
         self.worker.finished.connect(self.thread.quit)
 
         self.init_UI()
 
+# Make UI
     def init_UI(self):
         QtGui.QFontDatabase.addApplicationFont('Oxygen-Regular.ttf')
         QtGui.QFontDatabase.addApplicationFont('Kalam-Bold.ttf')
@@ -475,6 +438,43 @@ class GUI(QtWidgets.QMainWindow):
         self.reset_button.setEnabled(True)
         self.processed_map = True
 
+    def write_zero_line(self, val):
+        if not self.zeroed:
+            vbox = self.merge_tab.layout()
+            vbox.removeItem(vbox.takeAt(vbox.count()-1))
+            hbox = QtWidgets.QHBoxLayout()
+            vbox.addLayout(hbox)
+            vbox.addStretch(1)
+            
+            zero_fname = os.path.splitext(self.merge_fname.text())[0] + '-zero.raw'
+            label = QtWidgets.QLabel('Zero-ed volume:', self)
+            hbox.addWidget(label)
+            button = QtWidgets.QPushButton(zero_fname, self)
+            button.clicked.connect(lambda: self.plot_vol(fname=zero_fname))
+            hbox.addWidget(button)
+            hbox.addStretch(1)
+
+        self.cleanup_thread()
+        self.zeroed = True
+
+    def write_scale_line(self, val):
+        self.scale_factor = float(val)
+        if not self.calculated_scale:
+            vbox = self.merge_tab.layout()
+            vbox.removeItem(vbox.takeAt(vbox.count()-1))
+            hbox = QtWidgets.QHBoxLayout()
+            vbox.addLayout(hbox)
+            vbox.addStretch(1)
+            
+            self.scale_label = QtWidgets.QLabel('Scale factor = %.6e'%self.scale_factor, self)
+            hbox.addWidget(self.scale_label)
+            hbox.addStretch(1)  
+        else:
+            self.scale_label.setText('Scale factor = %.6e' % self.scale_factor)
+
+        self.cleanup_thread()
+        self.calculated_scale = True
+
     def set_config_size(self, value):
         sizes = self.splitter.sizes()
         w = 80 + 300.*value
@@ -501,6 +501,26 @@ class GUI(QtWidgets.QMainWindow):
             self.bottom_frame.show()
             self.title_label.setText('ResEx Phasing GUI')
 
+# UI keyboard shortcuts
+    def keyPressEvent(self, event): # pylint: disable=C0103
+        '''Override of default keyPress event handler'''
+        key = event.key()
+        mod = int(event.modifiers())
+
+        if key == QtCore.Qt.Key_Return or key == QtCore.Qt.Key_Enter:
+            self.replot(zoom='current')
+        elif QtGui.QKeySequence(mod+key) == QtGui.QKeySequence('Ctrl+Q'):
+            self.close()
+        elif QtGui.QKeySequence(mod+key) == QtGui.QKeySequence('Ctrl+S'):
+            self.save_plot()
+        elif QtGui.QKeySequence(mod+key) == QtGui.QKeySequence('Ctrl+M'):
+            self.plot_vol(fname=self.merge_fname.text())
+        elif QtGui.QKeySequence(mod+key) == QtGui.QKeySequence('Ctrl+N'):
+            self.plot_map()
+        else:
+            event.ignore()
+
+# Parsing and plotting
     def parse_extension(self, filename):
         ext_string = os.path.splitext(os.path.basename(filename))[1]
         
@@ -686,6 +706,53 @@ class GUI(QtWidgets.QMainWindow):
         self.map_image_exists = True
         self.vol_image_exists = False
 
+    def keep_checking(self, event=None):
+        if self.checkflag.isChecked():
+            self.update_slices()
+            self.checker.start(1000)
+        else:
+            self.checker.stop()
+
+    def update_slices(self):
+        prefix = self.output_prefix.text()
+        log_fname = prefix+'-log.dat'
+        try:
+            with open(log_fname, 'r') as f:
+                lines = f.readlines()
+                iternum = int(lines[-1].split()[0])
+        except (FileNotFoundError, ValueError):
+            return
+
+        if self.fslices.isChecked():
+            self.current_fname.setText(prefix+'-fslices/%.4d.raw'%iternum)
+        else:
+            self.current_fname.setText(prefix+'-slices/%.4d.raw'%iternum)
+
+        if os.path.isfile(self.current_fname.text()):
+            done = False
+            while not done:
+                s = np.fromfile(self.current_fname.text(), '=f4')
+                self.size = int(np.round((s.shape[0]//3)**0.5))
+                try:
+                    s = s.reshape(3,self.size,self.size) 
+                    done = True
+                except ValueError:
+                    pass
+            if self.fslices.isChecked():
+                self.plot_slices(0, slices=s, zoom=False)
+            else:
+                self.plot_slices(0, slices=s, zoom=True)
+
+    def autoset_rangemax(self, arr, maxval=False):
+        if maxval:
+            rmax = arr.max()
+        else:
+            rmax = arr[arr>0].mean()
+            rmax = 5*arr[(arr>0.01*rmax) & (arr<100*rmax)].mean()
+        self.rangemax.setText('%.1e' % rmax)
+        return rmax
+
+# Program commands
     def zero_outer(self, event=None):
         fname = self.merge_fname.text()
         rmin = float(self.radiusmin.text())
@@ -693,25 +760,6 @@ class GUI(QtWidgets.QMainWindow):
         self.thread.started.connect(partial(self.worker.zero_outer, fname, rmin, rmax))
         self.worker.returnval.connect(self.write_zero_line)
         self.thread.start()
-
-    def write_zero_line(self, val):
-        if not self.zeroed:
-            vbox = self.merge_tab.layout()
-            vbox.removeItem(vbox.takeAt(vbox.count()-1))
-            hbox = QtWidgets.QHBoxLayout()
-            vbox.addLayout(hbox)
-            vbox.addStretch(1)
-            
-            zero_fname = os.path.splitext(self.merge_fname.text())[0] + '-zero.raw'
-            label = QtWidgets.QLabel('Zero-ed volume:', self)
-            hbox.addWidget(label)
-            button = QtWidgets.QPushButton(zero_fname, self)
-            button.clicked.connect(lambda: self.plot_vol(fname=zero_fname))
-            hbox.addWidget(button)
-            hbox.addStretch(1)
-
-        self.cleanup_thread()
-        self.zeroed = True
 
     def calc_scale(self, event=None):
         fname = self.merge_fname.text()
@@ -722,24 +770,6 @@ class GUI(QtWidgets.QMainWindow):
         self.thread.started.connect(partial(self.worker.calc_scale, map_fname, fname, rmin, rmax))
         self.worker.returnval.connect(self.write_scale_line)
         self.thread.start()
-
-    def write_scale_line(self, val):
-        self.scale_factor = float(val)
-        if not self.calculated_scale:
-            vbox = self.merge_tab.layout()
-            vbox.removeItem(vbox.takeAt(vbox.count()-1))
-            hbox = QtWidgets.QHBoxLayout()
-            vbox.addLayout(hbox)
-            vbox.addStretch(1)
-            
-            self.scale_label = QtWidgets.QLabel('Scale factor = %.6e'%self.scale_factor, self)
-            hbox.addWidget(self.scale_label)
-            hbox.addStretch(1)  
-        else:
-            self.scale_label.setText('Scale factor = %.6e' % self.scale_factor)
-
-        self.cleanup_thread()
-        self.calculated_scale = True
 
     def process_map(self, event=None):
         mapnoext = os.path.splitext(os.path.basename(self.map_fname.text()))[0]
@@ -835,57 +865,12 @@ class GUI(QtWidgets.QMainWindow):
         self.worker.returnval.connect(self.cleanup_thread)
         self.thread.start()
 
-    def keep_checking(self, event=None):
-        if self.checkflag.isChecked():
-            self.update_slices()
-            self.checker.start(1000)
-        else:
-            self.checker.stop()
-
-    def update_slices(self):
-        prefix = self.output_prefix.text()
-        log_fname = prefix+'-log.dat'
-        try:
-            with open(log_fname, 'r') as f:
-                lines = f.readlines()
-                iternum = int(lines[-1].split()[0])
-        except (FileNotFoundError, ValueError):
-            return
-
-        if self.fslices.isChecked():
-            self.current_fname.setText(prefix+'-fslices/%.4d.raw'%iternum)
-        else:
-            self.current_fname.setText(prefix+'-slices/%.4d.raw'%iternum)
-
-        if os.path.isfile(self.current_fname.text()):
-            done = False
-            while not done:
-                s = np.fromfile(self.current_fname.text(), '=f4')
-                self.size = int(np.round((s.shape[0]//3)**0.5))
-                try:
-                    s = s.reshape(3,self.size,self.size) 
-                    done = True
-                except ValueError:
-                    pass
-            if self.fslices.isChecked():
-                self.plot_slices(0, slices=s, zoom=False)
-            else:
-                self.plot_slices(0, slices=s, zoom=True)
-
     def preprocess(self, event=None):
         self.zero_outer()
         self.calc_scale()
         self.process_map()
 
-    def autoset_rangemax(self, arr, maxval=False):
-        if maxval:
-            rmax = arr.max()
-        else:
-            rmax = arr[arr>0].mean()
-            rmax = 5*arr[(arr>0.01*rmax) & (arr<100*rmax)].mean()
-        self.rangemax.setText('%.1e' % rmax)
-        return rmax
-
+# UI for plotting
     def layer_slider_moved(self, value):
         self.layernum.setValue(value)
 
@@ -921,31 +906,13 @@ class GUI(QtWidgets.QMainWindow):
         self.fig.savefig(self.image_name.text(), bbox_inches='tight', dpi=150)
         print("Saved to", self.image_name.text())
 
-    def quit_(self, event=None):
-        self.master.quit()
-
-    def keyPressEvent(self, event): # pylint: disable=C0103
-        '''Override of default keyPress event handler'''
-        key = event.key()
-        mod = int(event.modifiers())
-
-        if key == QtCore.Qt.Key_Return or key == QtCore.Qt.Key_Enter:
-            self.replot(zoom='current')
-        elif QtGui.QKeySequence(mod+key) == QtGui.QKeySequence('Ctrl+Q'):
-            self.close()
-        elif QtGui.QKeySequence(mod+key) == QtGui.QKeySequence('Ctrl+S'):
-            self.save_plot()
-        elif QtGui.QKeySequence(mod+key) == QtGui.QKeySequence('Ctrl+M'):
-            self.plot_vol(fname=self.merge_fname.text())
-        elif QtGui.QKeySequence(mod+key) == QtGui.QKeySequence('Ctrl+N'):
-            self.plot_map()
-        else:
-            event.ignore()
-
-if __name__ == '__main__':
+def main():
     app = QtWidgets.QApplication([])
     if len(sys.argv) > 2:
         GUI(sys.argv[1], sys.argv[2])
     else:
         GUI()
     sys.exit(app.exec_())
+
+if __name__ == '__main__':
+    main()
