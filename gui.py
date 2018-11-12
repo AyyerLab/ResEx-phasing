@@ -729,7 +729,7 @@ class GUI(QtWidgets.QMainWindow):
             supp_thresh = float(self.suppthreshstr.text())
             command = './process_map.sh %s %d %f 0 %f %f %s' % (self.map_fname.text(), self.vol_size, resedge, supp_rad, supp_thresh, self.point_group.text())
             print(command)
-            os.system(command)
+            subprocess.call(command.split())
             print('-'*80)
             if not self.processed_map:
                 self.add_to_map_tab(mapnoext)
@@ -757,7 +757,7 @@ class GUI(QtWidgets.QMainWindow):
         print('-'*80)
         command = './process_map.sh %s %d %f 1 %f %f %s' % (self.map_fname.text(), self.vol_size, resedge, supp_radius, supp_thresh, self.point_group.text())
         print(command)
-        os.system(command)
+        subprocess.call(command.split)
         print('-'*80)
         self.replot(force=True, zoom='current')
 
@@ -797,7 +797,7 @@ class GUI(QtWidgets.QMainWindow):
                 f.write('hist_fname = data/3wu2_hist.dat\n')
             '''
         print('Generated %s:' % self.config_fname.text())
-        os.system('cat %s' % self.config_fname.text())
+        subprocess.call(['cat', self.config_fname.text()])
 
     def launch_recon(self, event=None):
         cmd = './recon -c %s'%self.config_fname.text()
