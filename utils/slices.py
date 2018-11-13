@@ -1,12 +1,16 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
 import os
 import numpy as np
 import glob
 import pylab as P
 import matplotlib.animation as animation
 import argparse
-import ConfigParser
+try:
+    from ConfigParser import ConfigParser
+except ImportError:
+    from configparser import ConfigParser
 
 parser = argparse.ArgumentParser(description='Plot real-space slices of predicted intensities')
 parser.add_argument('-c', '--config', help='Path to config file. Default: config.ini', default='config.ini')
@@ -24,7 +28,7 @@ def update_view(num):
     iter_text.set_text('%d'%(args.start+num))
     return v[0], v[1], v[2], iter_text
 
-config = ConfigParser.ConfigParser()
+config = ConfigParser()
 config.read(args.config)
 size = config.getint('parameters', 'size')
 prefix = config.get('files', 'output_prefix')
@@ -35,9 +39,9 @@ if args.last is None:
 flist = np.array([prefix+'-slices/%.4d.raw'%i for i in range(args.start, args.last+1)])
 
 rangemax = np.fromfile(flist[-1], '=f4').max()/1.5
-print '%d slices will be plotted with rangemax %.3f' % (len(flist), rangemax)
-bmin = size/3
-bmax = 2*size/3
+print('%d slices will be plotted with rangemax %.3f' % (len(flist), rangemax))
+bmin = size//3
+bmax = 2*size//3
 #rangemin=0
 rangemin=-rangemax*0.25
 

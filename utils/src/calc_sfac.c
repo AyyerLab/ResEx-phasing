@@ -24,8 +24,8 @@ void calc_radavg(float *model, float *avg) {
 		avg[bin] += model[x*size*size + y*size + z] ;
 	}
 	
-	for (x = 0 ; x < size ; ++x)
-	if (count[x] > 0)
+	for (bin = 0 ; bin < size ; ++bin)
+	if (count[bin] > 0)
 		avg[bin] /= count[bin] ;
 	
 	free(count) ;

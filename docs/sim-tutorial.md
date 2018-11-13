@@ -21,19 +21,20 @@ to 4 A which is what we will use as the low resolution model.
 Since this is a simulation, we will generate the intensity file
 also from the map. The steps to do this are:
 ```
-$ ./process_map.sh data/maps/4et8_sim.ccp4 301 2.0 0 3.0 2.0 222
+$ scripts/process_map.sh data/maps/4et8_sim.ccp4 301 2.0 0 3.0 2.0 222
 $ cp data/convert/4et8_sim-sym.raw data/merges/4et8_intens.raw
 ```
 The `process_map.sh` script parses the CCP4 map and produces a complex-valued
 volume representing the Fourier transform of the molecule and a 3D support mask,
-among a few other files.
+among a few other files. It is not a user-facing script in normal operation, but
+is used here just to generate simulated data.
 
 ## Set up system
 Now that we have created the data sources, we can set up the reconstruction.
 This can be done with command line tools, but also with a GUI. Load up the gui
 with the following command:
 ```
-$ ./gui.py data/merges/4et8_intens.raw data/maps/4et8_sim.ccp4
+$ ./ResEx data/merges/4et8_intens.raw data/maps/4et8_sim.ccp4
 ```
 You should get something like the image below: 
 <a href="images/gui_sim_first.png">![GUI init screen]({{
@@ -106,7 +107,8 @@ for how many iterations. After stabilizing, `avg_algorithm` describes a set of
 iterations and the solution will be the average of the iterate at the end of
 these steps.
 
-To run the reconstruction locally just type
+To run the reconstruction locally just click the 'Launch Recon' button. 
+Alternatively, you can type the following from the command line:
 ```
 $ ./recon -c sim_config.ini
 ```
@@ -114,8 +116,13 @@ You can also submit it to a job queue but keep in mind to adjust the number of
 threads in the config file appropriately.
 
 ## Examine results
-While the program is running, one can view slices through the density as a
-function of iteration with the `slices.py` utility. To run this, simply type
+If you launch from the GUI, you can select the 'Keep Checking' flag to show the 
+central slices of the latest iteration (it checks every second). 
+<a href="images/gui_sim_check.png">![GUI keep_checking]({{
+"images/gui_sim_check.png" | relative_url }})</a>
+
+Otherwise, you can use the `slices.py` utility to zoom through the central 
+slices as a function of iteration. To run this, simply type
 ```
 $ ./utils/slices.py -c sim_config.ini
 ```

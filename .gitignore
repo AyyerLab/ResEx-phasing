@@ -32,3 +32,6 @@ gen_data
 *DS_Store
 *.out
 *.txt
+
+# Python cache
+__pycache__
