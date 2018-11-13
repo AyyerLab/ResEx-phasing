@@ -107,7 +107,8 @@ for how many iterations. After stabilizing, `avg_algorithm` describes a set of
 iterations and the solution will be the average of the iterate at the end of
 these steps.
 
-To run the reconstruction locally just type
+To run the reconstruction locally just click the 'Launch Recon' button. 
+Alternatively, you can type the following from the command line:
 ```
 $ ./recon -c sim_config.ini
 ```
@@ -115,8 +116,13 @@ You can also submit it to a job queue but keep in mind to adjust the number of
 threads in the config file appropriately.
 
 ## Examine results
-While the program is running, one can view slices through the density as a
-function of iteration with the `slices.py` utility. To run this, simply type
+If you launch from the GUI, you can select the 'Keep Checking' flag to show the 
+central slices of the latest iteration (it checks every second). 
+<a href="images/gui_sim_check.png">![GUI keep_checking]({{
+"images/gui_sim_check.png" | relative_url }})</a>
+
+Otherwise, you can use the `slices.py` utility to zoom through the central 
+slices as a function of iteration. To run this, simply type
 ```
 $ ./utils/slices.py -c sim_config.ini
 ```
