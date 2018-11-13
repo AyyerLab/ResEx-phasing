@@ -49,12 +49,6 @@ class ConfigPanel(QtWidgets.QWidget):
         self.init_UI()
 
     def init_UI(self):
-        #gui_dir = os.path.dirname(os.path.realpath(__file__))
-        #QtGui.QFontDatabase.addApplicationFont(os.path.join(gui_dir, 'Oxygen-Regular.ttf'))
-        #QtGui.QFontDatabase.addApplicationFont(os.path.join(gui_dir, 'Kalam-Bold.ttf'))
-        #with open(os.path.join(gui_dir, 'style_config.css'), 'r')as f:
-        #    self.setStyleSheet(f.read())
-
         self.setMinimumWidth(300)
         #self.setMinimumWidth(80)
         vbox = QtWidgets.QVBoxLayout()

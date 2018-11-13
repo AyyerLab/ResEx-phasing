@@ -140,7 +140,7 @@ class CanvasPanel(QtWidgets.QWidget):
         if not os.path.isfile(self.current_fname.text()):
             if self.current_fname.text() != '':
                 print("Unable to open", self.current_fname.text())
-            return
+            return False
         self.parse_extension(self.current_fname.text())
         self.vol = np.fromfile(self.current_fname.text(), dtype=self.typestr)
         size = int(round(self.vol.size**(1/3.)))
@@ -158,6 +158,7 @@ class CanvasPanel(QtWidgets.QWidget):
             self.layer_slider.setValue(self.size//2)
             self.layer_slider_moved(self.size//2)
         self.old_fname = self.current_fname.text()
+        return True
 
     def parse_map(self):
         with open(self.current_fname.text(), 'rb') as f:
@@ -248,12 +249,10 @@ class CanvasPanel(QtWidgets.QWidget):
         if fname is not None:
             self.current_fname.setText(fname)
         if not self.vol_image_exists:
-            self.parse_vol()
-            parsed = True
+            parsed = self.parse_vol()
         elif self.old_fname != self.current_fname.text() or force == True: 
             print("Reparsing volume:", self.current_fname.text())
-            self.parse_vol()
-            parsed = True
+            parsed = self.parse_vol()
         
         if sigma:
             c = self.vol.shape[0] // 2
