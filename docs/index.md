@@ -49,9 +49,10 @@ However, there are a few dependencies:
  * GNU Scientific Library (GSL) (for special functions and random number
  generation)
  * FFTW3 (for Fourier transforms. Single precision with threading)
- * python 2.7 (for the GUIs, preferably from Anaconda)
+ * python 2 or 3 (for the GUIs, preferably from Anaconda)
     * numpy
     * matplotlib
+	* PyQt (4 or 5)
 
 ## Usage
 A quick start page for a basic reconstruction from simulated data can be found
