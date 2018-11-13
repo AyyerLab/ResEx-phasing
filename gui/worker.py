@@ -41,7 +41,7 @@ class GUIWorker(QtCore.QObject):
     @QtCore.pyqtSlot(str, int, float, bool, float, float, str)
     def process_map(self, map_fname, size, resedge, full_flag, supp_rad, supp_thresh, point_group):
         flag = int(full_flag)
-        cmd = os.path.realpath(os.path.join(self.rootdir, 'process_map.sh')) + ' %s %d %f %d %f %f %s'%(map_fname, size, resedge, flag, supp_rad, supp_thresh, point_group)
+        cmd = os.path.realpath(os.path.join(self.rootdir, 'scripts/process_map.sh')) + ' %s %d %f %d %f %f %s'%(map_fname, size, resedge, flag, supp_rad, supp_thresh, point_group)
         subprocess.call(cmd.split())
         print('-'*80)
         mapnoext = os.path.splitext(os.path.basename(map_fname))[0]
