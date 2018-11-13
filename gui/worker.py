@@ -20,18 +20,20 @@ except ImportError:
 class GUIWorker(QtCore.QObject):
     finished = QtCore.pyqtSignal()
     returnval = QtCore.pyqtSignal(str)
+    rootdir = os.path.dirname(os.path.realpath(__file__))+'/../'
 
     @QtCore.pyqtSlot(str, str, float, float)
     def calc_scale(self, model, merge, rmin, rmax):
-        cmd = './utils/calc_scale %s %s %d %d' % (model, merge, rmin, rmax)
+        cmd = os.path.realpath(os.path.join(self.rootdir, 'utils/calc_scale')) + ' %s %s %d %d'%(model, merge, rmin, rmax)
         output = subprocess.check_output(cmd.split(), shell=False)
         self.returnval.emit(output.split()[4].decode('utf-8'))
         self.finished.emit()
 
     @QtCore.pyqtSlot(str, float, float)
     def zero_outer(self, model, rmin, rmax):
+        cmd = os.path.realpath(os.path.join(self.rootdir, 'utils/zero_outer')) + ' %s %d %d'%(model, rmin, rmax)
         print('-'*80)
-        subprocess.call(('./utils/zero_outer %s %d %d' % (model, rmin, rmax)).split())
+        subprocess.call(cmd.split())
         print('-'*80)
         self.returnval.emit('')
         self.finished.emit()
@@ -39,9 +41,8 @@ class GUIWorker(QtCore.QObject):
     @QtCore.pyqtSlot(str, int, float, bool, float, float, str)
     def process_map(self, map_fname, size, resedge, full_flag, supp_rad, supp_thresh, point_group):
         flag = int(full_flag)
-        command = './process_map.sh %s %d %f %d %f %f %s' % (map_fname, size, resedge, flag, supp_rad, supp_thresh, point_group)
-        print(command)
-        subprocess.call(command.split())
+        cmd = os.path.realpath(os.path.join(self.rootdir, 'process_map.sh')) + ' %s %d %f %d %f %f %s'%(map_fname, size, resedge, flag, supp_rad, supp_thresh, point_group)
+        subprocess.call(cmd.split())
         print('-'*80)
         mapnoext = os.path.splitext(os.path.basename(map_fname))[0]
         self.returnval.emit(mapnoext)
@@ -49,7 +50,7 @@ class GUIWorker(QtCore.QObject):
 
     @QtCore.pyqtSlot(str)
     def launch_recon(self, fname):
-        cmd = './recon -c %s'%fname
+        cmd = os.path.realpath(os.path.join(self.rootdir, './recon')) + ' -c %s'%fname
         print('-'*80)
         subprocess.call(cmd.split())
         print('-'*80)
