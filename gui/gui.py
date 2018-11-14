@@ -10,8 +10,8 @@ except ImportError:
     from PyQt4 import QtCore, QtGui # pylint: disable=import-error
     from PyQt4 import QtGui as QtWidgets # pylint: disable=import-error
     os.environ['QT_API'] = 'pyqt'
-from . import canvas_panel
-from . import config_panel
+import canvas_panel
+import config_panel
 
 class ResExGUI(QtWidgets.QMainWindow):
     def __init__(self, merge_fname='', map_fname=''):
@@ -41,7 +41,7 @@ class ResExGUI(QtWidgets.QMainWindow):
         self.config_panel = config_panel.ConfigPanel(self)
         self.splitter.addWidget(self.config_panel)
         self.splitter.addWidget(self.canvas_panel)
-        self.splitter.setSizes([400,696])
+        self.splitter.setSizes([400, 696])
 
         window.setLayout(hbox)
         self.setCentralWidget(window)
@@ -78,7 +78,7 @@ class ResExGUI(QtWidgets.QMainWindow):
         key = event.key()
         mod = int(event.modifiers())
 
-        if key == QtCore.Qt.Key_Return or key == QtCore.Qt.Key_Enter:
+        if key in (QtCore.Qt.Key_Return, QtCore.Qt.Key_Enter):
             self.canvas_panel.replot(zoom='current')
         elif QtGui.QKeySequence(mod+key) == QtGui.QKeySequence('Ctrl+Q'):
             self.close()

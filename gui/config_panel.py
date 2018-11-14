@@ -4,7 +4,6 @@ import os
 import time
 import subprocess
 import multiprocessing
-from functools import partial
 import numpy as np
 import matplotlib
 import matplotlib.patches as patches
@@ -21,7 +20,7 @@ except ImportError:
     matplotlib.use('qt4agg')
     from matplotlib.backends.backend_qt4agg import FigureCanvas # pylint: disable=no-name-in-module
     os.environ['QT_API'] = 'pyqt'
-from . import worker
+import worker
 
 class ConfigPanel(QtWidgets.QWidget):
     def __init__(self, parent, **kwargs):
@@ -41,10 +40,7 @@ class ConfigPanel(QtWidgets.QWidget):
 
         self.checker = QtCore.QTimer(self)
         self.checker.timeout.connect(self.keep_checking)
-        self.worker = worker.GUIWorker()
-        self.thread = QtCore.QThread()
-        self.worker.moveToThread(self.thread)
-        self.worker.finished.connect(self.thread.quit)
+        self.launcher = worker.Launcher(self)
 
         self.init_UI()
 
@@ -143,10 +139,10 @@ class ConfigPanel(QtWidgets.QWidget):
         hbox = QtWidgets.QHBoxLayout()
         vbox.addLayout(hbox)
         button = QtWidgets.QPushButton('Zero Outer', self)
-        button.clicked.connect(self.zero_outer)
+        button.clicked.connect(self.launcher.zero_outer)
         hbox.addWidget(button)
         button = QtWidgets.QPushButton('Calc. Scale', self)
-        button.clicked.connect(self.calc_scale)
+        button.clicked.connect(self.launcher.calc_scale)
         hbox.addWidget(button)
         button = QtWidgets.QPushButton('Reset', self)
         button.clicked.connect(self.reset_merge_tab)
@@ -235,7 +231,7 @@ class ConfigPanel(QtWidgets.QWidget):
         hbox = QtWidgets.QHBoxLayout()
         vbox.addLayout(hbox)
         button = QtWidgets.QPushButton('Launch Recon', self)
-        button.clicked.connect(self.launch_recon)
+        button.clicked.connect(self.launcher.launch_recon)
         hbox.addWidget(button)
         self.checkflag = QtWidgets.QCheckBox('Keep Checking', self)
         self.checkflag.stateChanged.connect(self.keep_checking)
@@ -324,13 +320,12 @@ class ConfigPanel(QtWidgets.QWidget):
         hbox = QtWidgets.QHBoxLayout()
         vbox.addLayout(hbox)
         button = QtWidgets.QPushButton('Update support', self)
-        button.clicked.connect(self.reprocess_map)
+        button.clicked.connect(lambda: self.process_map(skip=True))
         hbox.addWidget(button)
         hbox.addStretch(1)
 
         vbox.addStretch(1)
 
-        self.cleanup_thread()
         self.reset_button.setEnabled(True)
         self.processed_map = True
 
@@ -350,7 +345,6 @@ class ConfigPanel(QtWidgets.QWidget):
             hbox.addWidget(button)
             hbox.addStretch(1)
 
-        self.cleanup_thread()
         self.zeroed = True
 
     def write_scale_line(self, val):
@@ -368,79 +362,7 @@ class ConfigPanel(QtWidgets.QWidget):
         else:
             self.scale_label.setText('Scale factor = %.6e' % self.scale_factor)
 
-        self.cleanup_thread()
         self.calculated_scale = True
-
-    def plot_vol(self, **kwargs):
-        parsed = self.canvas_panel.plot_vol(**kwargs)
-        if parsed:
-            size = self.canvas_panel.vol_size
-            self.radiusmin.setText('%d' % (size//2//2))
-            self.radiusmax.setText('%d' % (size))
-            self.scaleradmin.setText('%d' % (size//2//2*0.9))
-            self.scaleradmax.setText('%d' % (size//2//2*1.1))
-
-    def zero_outer(self, event=None):
-        fname = self.merge_fname.text()
-        rmin = float(self.radiusmin.text())
-        rmax = float(self.radiusmax.text())
-        self.thread.started.connect(partial(self.worker.zero_outer, fname, rmin, rmax))
-        self.worker.returnval.connect(self.write_zero_line)
-        self.thread.start()
-
-    def calc_scale(self, event=None):
-        fname = self.merge_fname.text()
-        rmin = float(self.scaleradmin.text())
-        rmax = float(self.scaleradmax.text())
-        mapnoext = os.path.splitext(os.path.basename(self.map_fname.text()))[0]
-        map_fname = 'data/convert/'+mapnoext+'-sym.raw'
-        self.thread.started.connect(partial(self.worker.calc_scale, map_fname, fname, rmin, rmax))
-        self.worker.returnval.connect(self.write_scale_line)
-        self.thread.start()
-
-    def process_map(self, event=None):
-        mapnoext = os.path.splitext(os.path.basename(self.map_fname.text()))[0]
-        if os.path.isfile('data/convert/'+mapnoext+'.cpx') and QtWidgets.QMessageBox.question(self, 'Process Map', 'Found processed map output. Overwrite?', QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No) == QtWidgets.QMessageBox.Yes:
-            if self.resedge.text() is '':
-                print('Need resolution at edge of volume')
-                return
-            print('-'*80)
-            map_fname = self.map_fname.text()
-            size = self.canvas_panel.vol_size
-            resedge = float(self.resedge.text())
-            if self.processed_map:
-                supp_rad = float(self.suppradstr.text())
-                supp_thresh = float(self.suppthreshstr.text())
-            else:
-                supp_rad = 3.
-                supp_thresh = 1.
-            point_group = self.point_group.text()
-            self.thread.started.connect(partial(self.worker.process_map, map_fname, size, resedge, False, supp_rad, supp_thresh, point_group))
-            self.worker.returnval.connect(self.add_to_map_tab)
-            self.thread.start()
-        else:
-            self.add_to_map_tab(mapnoext)
-            with open('results/'+mapnoext+'.log', 'r') as f:
-                words = f.read().split()
-                warray = np.array(words)
-                self.resedge.setText(str(float(words[words.index('./utils/read_map')+2])/(self.canvas_panel.vol_size//2)))
-                self.point_group.setText(words[np.where(warray=='data/convert/'+mapnoext+'-srecon.raw')[0][0]+2])
-                self.suppradstr.setText('%.1f'%float(words[np.where(warray=='./utils/create_support')[0][-1]+2]))
-                self.suppthreshstr.setText('%.1f'%float(words[np.where(warray=='./utils/create_support')[0][-1]+3]))
-
-    def reprocess_map(self, event=None):
-        if self.resedge.text() is '':
-            print('Need resolution at edge of volume')
-            return
-        map_fname = self.map_fname.text()
-        size = self.canvas_panel.vol_size
-        resedge = float(self.resedge.text())
-        supp_rad = float(self.suppradstr.text())
-        supp_thresh = float(self.suppthreshstr.text())
-        point_group = self.point_group.text()
-        self.thread.started.connect(partial(self.worker.process_map, map_fname, size, resedge, True, supp_rad, supp_thresh, point_group))
-        self.worker.returnval.connect(lambda: self.canvas_panel.replot(force=True, zoom='current'))
-        self.thread.start()
 
     def gen_config(self, event=None):
         with open(self.config_fname.text(), 'w') as f:
@@ -481,21 +403,33 @@ class ConfigPanel(QtWidgets.QWidget):
         with open(self.config_fname.text(), 'r') as f:
             print(f.read())
 
-    def cleanup_thread(self):
-        if self.thread.receivers(self.thread.started) > 0:
-            self.thread.started.disconnect()
-        if self.worker.receivers(self.worker.returnval) > 0:
-            self.worker.returnval.disconnect()
+    def plot_vol(self, **kwargs):
+        '''Wrapper around canvas_panel.plot_vol'''
+        parsed = self.canvas_panel.plot_vol(**kwargs)
+        if parsed:
+            size = self.canvas_panel.vol_size
+            self.radiusmin.setText('%d' % (size//2//2))
+            self.radiusmax.setText('%d' % (size))
+            self.scaleradmin.setText('%d' % (size//2//2*0.9))
+            self.scaleradmax.setText('%d' % (size//2//2*1.1))
 
-    def launch_recon(self, event=None):
-        self.thread.started.connect(partial(self.worker.launch_recon, self.config_fname.text()))
-        self.worker.returnval.connect(self.cleanup_thread)
-        self.thread.start()
-
-    def preprocess(self, event=None):
-        self.zero_outer()
-        self.calc_scale()
-        self.process_map()
+    def process_map(self, event=None, skip=False):
+        '''Wrapper around launcher.process_map'''
+        mapnoext = os.path.splitext(os.path.basename(self.map_fname.text()))[0]
+        if skip or (os.path.isfile('data/convert/'+mapnoext+'.cpx') and QtWidgets.QMessageBox.question(self, 'Process Map', 'Found processed map output. Overwrite?', QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No) == QtWidgets.QMessageBox.Yes):
+            if self.resedge.text() is '':
+                print('Need resolution at edge of volume')
+                return
+            self.launcher.process_map(skip=skip)
+        else:
+            self.add_to_map_tab(mapnoext)
+            with open('results/'+mapnoext+'.log', 'r') as f:
+                words = f.read().split()
+                warray = np.array(words)
+                self.resedge.setText(str(float(words[words.index('./utils/read_map')+2])/(self.canvas_panel.vol_size//2)))
+                self.point_group.setText(words[np.where(warray=='data/convert/'+mapnoext+'-srecon.raw')[0][0]+2])
+                self.suppradstr.setText('%.1f'%float(words[np.where(warray=='./utils/create_support')[0][-1]+2]))
+                self.suppthreshstr.setText('%.1f'%float(words[np.where(warray=='./utils/create_support')[0][-1]+3]))
 
     def keep_checking(self, event=None):
         if self.checkflag.isChecked():

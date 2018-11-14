@@ -1,21 +1,76 @@
 from __future__ import print_function
 import os
 import subprocess
+from functools import partial
 try:
-    from PyQt5 import QtCore, QtWidgets, QtGui # pylint: disable=import-error
-    import matplotlib
-    matplotlib.use('qt5agg')
-    from matplotlib.backends.backend_qt5agg import FigureCanvas # pylint: disable=no-name-in-module
+    from PyQt5 import QtCore # pylint: disable=import-error
     os.environ['QT_API'] = 'pyqt5'
 except ImportError:
     import sip
     sip.setapi('QString', 2)
-    from PyQt4 import QtCore, QtGui # pylint: disable=import-error
-    from PyQt4 import QtGui as QtWidgets # pylint: disable=import-error
-    import matplotlib
-    matplotlib.use('qt4agg')
-    from matplotlib.backends.backend_qt4agg import FigureCanvas # pylint: disable=no-name-in-module
+    from PyQt4 import QtCore # pylint: disable=import-error
     os.environ['QT_API'] = 'pyqt'
+
+class Launcher(object):
+    def __init__(self, parent):
+        self.parent = parent
+        self.worker = GUIWorker()
+        self.thread = QtCore.QThread()
+        self.worker.moveToThread(self.thread)
+        self.worker.finished.connect(self.thread.quit)
+
+    def cleanup_thread(self):
+        if self.thread.receivers(self.thread.started) > 0:
+            self.thread.started.disconnect()
+        if self.worker.receivers(self.worker.returnval) > 0:
+            self.worker.returnval.disconnect()
+
+    def zero_outer(self, event=None):
+        fname = self.parent.merge_fname.text()
+        rmin = float(self.parent.radiusmin.text())
+        rmax = float(self.parent.radiusmax.text())
+        self.thread.started.connect(partial(self.worker.zero_outer, fname, rmin, rmax))
+        self.worker.returnval.connect(self.parent.write_zero_line)
+        self.worker.returnval.connect(self.cleanup_thread)
+        self.thread.start()
+
+    def calc_scale(self, event=None):
+        fname = self.parent.merge_fname.text()
+        rmin = float(self.parent.scaleradmin.text())
+        rmax = float(self.parent.scaleradmax.text())
+        mapnoext = os.path.splitext(os.path.basename(self.parent.map_fname.text()))[0]
+        map_fname = 'data/convert/'+mapnoext+'-sym.raw'
+        self.thread.started.connect(partial(self.worker.calc_scale, map_fname, fname, rmin, rmax))
+        self.worker.returnval.connect(self.parent.write_scale_line)
+        self.worker.returnval.connect(self.cleanup_thread)
+        self.thread.start()
+
+    def process_map(self, skip=False):
+        map_fname = self.parent.map_fname.text()
+        size = self.parent.canvas_panel.vol_size
+        resedge = float(self.parent.resedge.text())
+        if self.parent.processed_map:
+            supp_rad = float(self.parent.suppradstr.text())
+            supp_thresh = float(self.parent.suppthreshstr.text())
+        else:
+            supp_rad = 3.
+            supp_thresh = 1.
+        point_group = self.parent.point_group.text()
+        self.thread.started.connect(partial(self.worker.process_map, map_fname, size, resedge, skip, supp_rad, supp_thresh, point_group))
+        self.worker.returnval.connect(self.parent.add_to_map_tab)
+        self.worker.returnval.connect(lambda: self.parent.canvas_panel.replot(force=True, zoom='current'))
+        self.worker.returnval.connect(self.cleanup_thread)
+        self.thread.start()
+
+    def launch_recon(self, event=None):
+        self.thread.started.connect(partial(self.worker.launch_recon, self.parent.config_fname.text()))
+        self.worker.returnval.connect(self.cleanup_thread)
+        self.thread.start()
+
+    def preprocess(self, event=None):
+        self.zero_outer()
+        self.calc_scale()
+        self.process_map()
 
 class GUIWorker(QtCore.QObject):
     finished = QtCore.pyqtSignal()
@@ -42,6 +97,7 @@ class GUIWorker(QtCore.QObject):
     def process_map(self, map_fname, size, resedge, full_flag, supp_rad, supp_thresh, point_group):
         flag = int(full_flag)
         cmd = os.path.realpath(os.path.join(self.rootdir, 'scripts/process_map.sh')) + ' %s %d %f %d %f %f %s'%(map_fname, size, resedge, flag, supp_rad, supp_thresh, point_group)
+        print('-'*80)
         subprocess.call(cmd.split())
         print('-'*80)
         mapnoext = os.path.splitext(os.path.basename(map_fname))[0]

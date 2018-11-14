@@ -24,7 +24,7 @@ class CanvasPanel(QtWidgets.QWidget):
     def __init__(self, parent, **kwargs):
         super(CanvasPanel, self).__init__(parent, **kwargs)
         self.parent = parent
-        
+
         self.setObjectName('canvas')
         self.setAttribute(QtCore.Qt.WA_StyledBackground)
         self.typestr = 'f4'
@@ -33,6 +33,7 @@ class CanvasPanel(QtWidgets.QWidget):
         self.rad = None
         self.old_fname = None
         self.space = None
+        self.zoomed = False
         self.map_image_exists = False
         self.vol_image_exists = False
         self.angle_list = ['XY', 'XZ', 'YZ']
@@ -61,7 +62,7 @@ class CanvasPanel(QtWidgets.QWidget):
         self.project_flag.stateChanged.connect(self.toggle_projection)
         hbox.addWidget(self.project_flag)
 
-        self.figure = plt.figure(figsize=(7,7))
+        self.figure = plt.figure(figsize=(7, 7))
         self.figure.subplots_adjust(left=0.01, bottom=0.01, right=0.99, top=0.99, wspace=0.0)
         self.canvas = FigureCanvas(self.figure)
         self.canvas.draw()
@@ -73,7 +74,7 @@ class CanvasPanel(QtWidgets.QWidget):
         widget = QtWidgets.QWidget()
         vbox = QtWidgets.QVBoxLayout()
         widget.setLayout(vbox)
-        
+
         hbox = QtWidgets.QHBoxLayout()
         vbox.addLayout(hbox)
         label = QtWidgets.QLabel('Image name: ', self)
@@ -123,7 +124,7 @@ class CanvasPanel(QtWidgets.QWidget):
 
     def parse_extension(self, filename):
         ext_string = os.path.splitext(os.path.basename(filename))[1]
-        
+
         if ext_string == '.raw':
             self.typestr = 'f4'
         elif ext_string == '.bin':
@@ -146,8 +147,8 @@ class CanvasPanel(QtWidgets.QWidget):
         size = int(round(self.vol.size**(1/3.)))
         self.size = size
         self.vol_size = size
-        self.vol = self.vol.reshape(size,size,size)
-        
+        self.vol = self.vol.reshape(size, size, size)
+
         if self.typestr == 'complex64':
             self.vol = np.square(np.absolute(self.vol))
         if not self.rangelock.isChecked():
@@ -169,15 +170,15 @@ class CanvasPanel(QtWidgets.QWidget):
             nx, ny, nz = tuple(grid)
             f.seek(1024, 0) # End of header
             vol = np.fromfile(f, '=f4', count=nx*ny*nz).reshape(nx, ny, nz)
-        edgesum = (np.abs(vol[:,:,0]).sum() + np.abs(vol[:,:,-1]).sum() + np.abs(vol[:,0]).sum() + np.abs(vol[:,-1]).sum() + np.abs(vol[0]).sum() + np.abs(vol[-1]).sum()) / 6.
-        centralsum = (np.abs(vol[:,:,nz//2]).sum() + np.abs(vol[:,ny//2]).sum() + np.abs(vol[nx//2]).sum())/ 3.
+        edgesum = (np.abs(vol[:, :, 0]).sum() + np.abs(vol[:, :, -1]).sum() + np.abs(vol[:, 0]).sum() + np.abs(vol[:, -1]).sum() + np.abs(vol[0]).sum() + np.abs(vol[-1]).sum()) / 6.
+        centralsum = (np.abs(vol[:, :, nz//2]).sum() + np.abs(vol[:, ny//2]).sum() + np.abs(vol[nx//2]).sum())/ 3.
         if edgesum > centralsum:
             vol = np.roll(vol, nx//2, axis=0)
             vol = np.roll(vol, ny//2, axis=1)
             vol = np.roll(vol, nz//2, axis=2)
         s = max(nx, ny, nz)
         self.size = s
-        self.vol = np.pad(vol, (((s-nx)//2,s-nx-(s-nx)//2),((s-ny)//2,s-ny-(s-ny)//2),((s-nz)//2,s-nz-(s-nz)//2)), mode='constant', constant_values=0)
+        self.vol = np.pad(vol, (((s-nx)//2, s-nx-(s-nx)//2), ((s-ny)//2, s-ny-(s-ny)//2), ((s-nz)//2, s-nz-(s-nz)//2)), mode='constant', constant_values=0)
         self.layer_slider.setRange(0, self.size-1)
         if not self.map_image_exists:
             self.layernum.setValue(self.size//2)
@@ -196,7 +197,7 @@ class CanvasPanel(QtWidgets.QWidget):
             zoom = self.zoomed
         else:
             self.zoomed = zoom
-        
+
         if zoom:
             minx = self.size//3
             maxx = 2*minx
@@ -204,16 +205,16 @@ class CanvasPanel(QtWidgets.QWidget):
             minx = 0
             maxx = None
         if slices is not None:
-            a, b, c = tuple(slices[:,minx:maxx,minx:maxx])
+            a, b, c = tuple(slices[:, minx:maxx, minx:maxx])
         else:
             if project:
-                a = self.vol[:,minx:maxx,minx:maxx].mean(0)
-                b = self.vol[minx:maxx,:,minx:maxx].mean(1)
-                c = self.vol[minx:maxx,minx:maxx,:].mean(2)
+                a = self.vol[:, minx:maxx, minx:maxx].mean(0)
+                b = self.vol[minx:maxx, :, minx:maxx].mean(1)
+                c = self.vol[minx:maxx, minx:maxx, :].mean(2)
             else:
-                a = self.vol[layernum,minx:maxx,minx:maxx]
-                b = self.vol[minx:maxx,layernum,minx:maxx]
-                c = self.vol[minx:maxx,minx:maxx,layernum]
+                a = self.vol[layernum, minx:maxx, minx:maxx]
+                b = self.vol[minx:maxx, layernum, minx:maxx]
+                c = self.vol[minx:maxx, minx:maxx, layernum]
 
         self.figure.clear()
         s = self.figure.add_subplot(111)
@@ -250,16 +251,16 @@ class CanvasPanel(QtWidgets.QWidget):
             self.current_fname.setText(fname)
         if not self.vol_image_exists:
             parsed = self.parse_vol()
-        elif self.old_fname != self.current_fname.text() or force == True: 
+        elif self.old_fname != self.current_fname.text() or force:
             print("Reparsing volume:", self.current_fname.text())
             parsed = self.parse_vol()
-        
+
         if sigma:
             c = self.vol.shape[0] // 2
             if self.rad is None:
                 if os.path.isfile('data/sigma_%d.bin' % self.size):
-                    self.rad = np.fromfile('data/rad_%d.bin' % self.size, '=f8').reshape(self.size,self.size,self.size)
-                    self.sigma = np.fromfile('data/sigma_%d.bin' % self.size, '=f8').reshape(self.size,self.size,self.size)
+                    self.rad = np.fromfile('data/rad_%d.bin' % self.size, '=f8').reshape(self.size, self.size, self.size)
+                    self.sigma = np.fromfile('data/sigma_%d.bin' % self.size, '=f8').reshape(self.size, self.size, self.size)
                 else:
                     x, y, z = np.indices(self.vol.shape)
                     x -= c
@@ -283,7 +284,7 @@ class CanvasPanel(QtWidgets.QWidget):
             self.parse_map()
             if not self.rangelock.isChecked():
                 self.rangemax.setText('%.1e' % 10)
-        elif self.old_fname != self.current_fname.text() or force == True:
+        elif self.old_fname != self.current_fname.text() or force:
             print("Reparsing map:", self.current_fname.text())
             self.parse_map()
         self.plot_slices(self.layernum.value(), space='real', **kwargs)
@@ -310,7 +311,7 @@ class CanvasPanel(QtWidgets.QWidget):
                 s = np.fromfile(self.current_fname.text(), '=f4')
                 self.size = int(np.round((s.shape[0]//3)**0.5))
                 try:
-                    s = s.reshape(3,self.size,self.size) 
+                    s = s.reshape(3, self.size, self.size)
                     done = True
                 except ValueError:
                     pass
@@ -337,7 +338,7 @@ class CanvasPanel(QtWidgets.QWidget):
             self.layernum.setEnabled(True)
             self.autoset_rangemax(self.vol)
         self.replot(zoom='current')
-    
+
     def layer_slider_moved(self, value):
         self.layernum.setValue(value)
 
@@ -346,7 +347,7 @@ class CanvasPanel(QtWidgets.QWidget):
             self.layer_slider.setValue(value)
         elif value is None:
             self.replot(zoom='current')
-    
+
     def autoset_rangemax(self, arr, maxval=False):
         if maxval:
             rmax = arr.max()
