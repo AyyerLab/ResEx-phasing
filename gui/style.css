@@ -49,6 +49,12 @@ QWidget {
     background: #3060e8;
   }
 
+  #config QPlainTextEdit {
+    font-family: monospace;
+    background: white;
+    color: black;
+  }
+
 #heading {
   font-family: Kalam;
   /* font-weight: normal; */

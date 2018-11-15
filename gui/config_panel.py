@@ -20,7 +20,36 @@ except ImportError:
     matplotlib.use('qt4agg')
     from matplotlib.backends.backend_qt4agg import FigureCanvas # pylint: disable=no-name-in-module
     os.environ['QT_API'] = 'pyqt'
-import worker
+from . import worker
+
+class IniHighlighter(QtGui.QSyntaxHighlighter):
+    def __init__(self, parent):
+        super(IniHighlighter, self).__init__(parent)
+        self.char_formats = [
+            self.make_charformat('red'),
+            self.make_charformat('darkGreen', bold=True),
+            self.make_charformat('darkBlue'),
+            self.make_charformat('gray'),
+        ]
+        patterns = [r'\[.*\]', r'^(.*)=', r'=([^\n]*)', r'#[^\n]*']
+        self.rules = [QtCore.QRegExp(p) for p in patterns]
+
+    def make_charformat(self, color, bold=False, italics=False):
+        cf = QtGui.QTextCharFormat()
+        cf.setForeground(QtGui.QBrush(QtGui.QColor(color)))
+        if bold:
+            cf.setFontWeight(QtGui.QFont.Bold)
+        cf.setFontItalic(italics)
+        return cf
+
+    def highlightBlock(self, text):
+        for rule, cf in zip(self.rules, self.char_formats):
+            index = rule.indexIn(text, 0)
+            while index >= 0:
+                length = len(rule.cap(0))
+                self.setFormat(index, length, cf)
+                index = rule.indexIn(text, index+length)
+        self.setCurrentBlockState(0)
 
 class ConfigPanel(QtWidgets.QWidget):
     def __init__(self, parent, **kwargs):
@@ -34,6 +63,7 @@ class ConfigPanel(QtWidgets.QWidget):
 
         self.zeroed = False
         self.calculated_scale = False
+        self.generated_config = False
         self.processed_map = False
         self.zoomed = False
         self.added_recon_tab = False
@@ -365,6 +395,10 @@ class ConfigPanel(QtWidgets.QWidget):
         self.calculated_scale = True
 
     def gen_config(self, event=None):
+        self.scale_factor = 1.0 # TESTING
+        #if not self.calculated_scale or not self.zeroed:
+        #    print('Need to zero_outer and calc_scale first')
+        #    return
         with open(self.config_fname.text(), 'w') as f:
             f.write('[parameters]\n')
             f.write('size = %d\n' % self.canvas_panel.vol_size)
@@ -399,10 +433,25 @@ class ConfigPanel(QtWidgets.QWidget):
                 f.write('histogram = 1\n')
                 f.write('hist_fname = data/3wu2_hist.dat\n')
             '''
-        print('Generated %s:' % self.config_fname.text())
-        with open(self.config_fname.text(), 'r') as f:
-            print(f.read())
+        print('Generated %s' % self.config_fname.text())
+        self.add_config_area()
+        self.generated_config = True
 
+    def add_config_area(self):
+        if not self.generated_config:
+            vbox = self.recon_tab.layout()
+            vbox.removeItem(vbox.takeAt(vbox.count()-1))
+            hbox = QtWidgets.QHBoxLayout()
+            vbox.addLayout(hbox, stretch=2)
+            #vbox.addStretch(1)
+
+            with open(self.config_fname.text(), 'r') as f:
+                config_text = f.read()
+            self.config_area = QtWidgets.QPlainTextEdit(self)
+            highlighter = IniHighlighter(self.config_area.document())
+            self.config_area.setPlainText(config_text)
+            hbox.addWidget(self.config_area)
+        
     def plot_vol(self, **kwargs):
         '''Wrapper around canvas_panel.plot_vol'''
         parsed = self.canvas_panel.plot_vol(**kwargs)
