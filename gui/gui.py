@@ -10,8 +10,8 @@ except ImportError:
     from PyQt4 import QtCore, QtGui # pylint: disable=import-error
     from PyQt4 import QtGui as QtWidgets # pylint: disable=import-error
     os.environ['QT_API'] = 'pyqt'
-import canvas_panel
-import config_panel
+from . import canvas_panel
+from . import config_panel
 
 class ResExGUI(QtWidgets.QMainWindow):
     def __init__(self, merge_fname='', map_fname=''):
