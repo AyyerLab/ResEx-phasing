@@ -61,12 +61,7 @@ class ConfigPanel(QtWidgets.QWidget):
         self.setObjectName('config')
         self.setAttribute(QtCore.Qt.WA_StyledBackground)
 
-        self.zeroed = False
-        self.calculated_scale = False
-        self.generated_config = False
         self.processed_map = False
-        self.zoomed = False
-        self.added_recon_tab = False
 
         self.checker = QtCore.QTimer(self)
         self.checker.timeout.connect(self.keep_checking)
@@ -178,6 +173,30 @@ class ConfigPanel(QtWidgets.QWidget):
         button.clicked.connect(self.reset_merge_tab)
         hbox.addWidget(button)
         
+        self.zero_outer_line = QtWidgets.QFrame()
+        vbox.addWidget(self.zero_outer_line)
+        hbox = QtWidgets.QHBoxLayout()
+        self.zero_outer_line.setLayout(hbox)
+        hbox.setContentsMargins(0, 0, 0, 0)
+        zero_fname = os.path.splitext(self.merge_fname.text())[0] + '-zero.raw'
+        label = QtWidgets.QLabel('Zero-ed volume:', self)
+        hbox.addWidget(label)
+        button = QtWidgets.QPushButton(zero_fname, self)
+        button.clicked.connect(lambda: self.plot_vol(fname=zero_fname))
+        hbox.addWidget(button)
+        hbox.addStretch(1)
+        self.zero_outer_line.hide()
+
+        self.calc_scale_line = QtWidgets.QFrame()
+        vbox.addWidget(self.calc_scale_line)
+        hbox = QtWidgets.QHBoxLayout()
+        self.calc_scale_line.setLayout(hbox)
+        hbox.setContentsMargins(0, 0, 0, 0)
+        self.scale_label = QtWidgets.QLabel('Scale factor = %.6e'%0.0, self)
+        hbox.addWidget(self.scale_label)
+        hbox.addStretch(1)
+        self.calc_scale_line.hide()
+
         vbox.addStretch(1)
 
     def gen_map_tab(self, add=True):
@@ -257,32 +276,39 @@ class ConfigPanel(QtWidgets.QWidget):
         button = QtWidgets.QPushButton('Generate', self)
         button.clicked.connect(self.gen_config)
         hbox.addWidget(button)
+        button = QtWidgets.QPushButton('Show', self)
+        button.clicked.connect(self.show_config)
+        hbox.addWidget(button)
+        button = QtWidgets.QPushButton('Save', self)
+        button.clicked.connect(self.save_config)
+        hbox.addWidget(button)
 
         hbox = QtWidgets.QHBoxLayout()
         vbox.addLayout(hbox)
         button = QtWidgets.QPushButton('Launch Recon', self)
         button.clicked.connect(self.launcher.launch_recon)
-        hbox.addWidget(button)
+        hbox.addWidget(button, stretch=1)
         self.checkflag = QtWidgets.QCheckBox('Keep Checking', self)
         self.checkflag.stateChanged.connect(self.keep_checking)
         hbox.addWidget(self.checkflag)
         self.fslices = QtWidgets.QCheckBox('Fourier', self)
         hbox.addWidget(self.fslices)
+        hbox.addStretch(1)
         
-        vbox.addStretch(1)
-        self.added_recon_tab = True
+        hbox = QtWidgets.QHBoxLayout()
+        vbox.addLayout(hbox, stretch=1)
+        self.config_area = QtWidgets.QPlainTextEdit(self)
+        self.highlighter = IniHighlighter(self.config_area.document())
+        self.config_area.setPlainText('')
+        hbox.addWidget(self.config_area)
 
     def reset_merge_tab(self, event=None):
-        self.zeroed = False
-        self.calculated_scale = False
         self.notebook.removeTab(0)
         #self.merge_tab.delete()
         self.gen_merge_tab(add=False)
         self.notebook.insertTab(0, self.merge_tab, 'Merge')
         self.notebook.setCurrentIndex(0)
         self.parse_vol(reset=True)
-        self.zeroed = False
-        self.calculated_scale = False
 
     def reset_map_tab(self, event=None):
         self.processed_map = True
@@ -359,51 +385,15 @@ class ConfigPanel(QtWidgets.QWidget):
         self.reset_button.setEnabled(True)
         self.processed_map = True
 
-    def write_zero_line(self, val):
-        if not self.zeroed:
-            vbox = self.merge_tab.layout()
-            vbox.removeItem(vbox.takeAt(vbox.count()-1))
-            hbox = QtWidgets.QHBoxLayout()
-            vbox.addLayout(hbox)
-            vbox.addStretch(1)
-            
-            zero_fname = os.path.splitext(self.merge_fname.text())[0] + '-zero.raw'
-            label = QtWidgets.QLabel('Zero-ed volume:', self)
-            hbox.addWidget(label)
-            button = QtWidgets.QPushButton(zero_fname, self)
-            button.clicked.connect(lambda: self.plot_vol(fname=zero_fname))
-            hbox.addWidget(button)
-            hbox.addStretch(1)
-
-        self.zeroed = True
-
-    def write_scale_line(self, val):
-        self.scale_factor = float(val)
-        if not self.calculated_scale:
-            vbox = self.merge_tab.layout()
-            vbox.removeItem(vbox.takeAt(vbox.count()-1))
-            hbox = QtWidgets.QHBoxLayout()
-            vbox.addLayout(hbox)
-            vbox.addStretch(1)
-            
-            self.scale_label = QtWidgets.QLabel('Scale factor = %.6e'%self.scale_factor, self)
-            hbox.addWidget(self.scale_label)
-            hbox.addStretch(1)  
-        else:
-            self.scale_label.setText('Scale factor = %.6e' % self.scale_factor)
-
-        self.calculated_scale = True
-
     def gen_config(self, event=None):
-        self.scale_factor = 1.0 # TESTING
-        #if not self.calculated_scale or not self.zeroed:
-        #    print('Need to zero_outer and calc_scale first')
-        #    return
+        if self.calc_scale_line.isHidden() or self.zero_outer_line.isHidden():
+            print('Need to zero_outer and calc_scale first')
+            return
         with open(self.config_fname.text(), 'w') as f:
             f.write('[parameters]\n')
             f.write('size = %d\n' % self.canvas_panel.vol_size)
             f.write('bragg_qmax = %f\n' % (float(self.radiusmin.text())/(self.canvas_panel.vol_size//2)))
-            f.write('scale_factor = %f\n' % self.scale_factor)
+            f.write('scale_factor = %f\n' % float(self.scale_label.text().split()[-1]))
             f.write('num_threads = %d\n' % multiprocessing.cpu_count())
             f.write('point_group = %s\n' % self.point_group.text())
             
@@ -434,24 +424,19 @@ class ConfigPanel(QtWidgets.QWidget):
                 f.write('hist_fname = data/3wu2_hist.dat\n')
             '''
         print('Generated %s' % self.config_fname.text())
-        self.add_config_area()
-        self.generated_config = True
+        self.show_config()
 
-    def add_config_area(self):
-        if not self.generated_config:
-            vbox = self.recon_tab.layout()
-            vbox.removeItem(vbox.takeAt(vbox.count()-1))
-            hbox = QtWidgets.QHBoxLayout()
-            vbox.addLayout(hbox, stretch=2)
-            #vbox.addStretch(1)
+    def show_config(self):
+        with open(self.config_fname.text(), 'r') as f:
+            config_text = f.read()
+        self.config_area.setPlainText(config_text)
+        self.config_area.show()
+        self.highlighter.rehighlight()
 
-            with open(self.config_fname.text(), 'r') as f:
-                config_text = f.read()
-            self.config_area = QtWidgets.QPlainTextEdit(self)
-            highlighter = IniHighlighter(self.config_area.document())
-            self.config_area.setPlainText(config_text)
-            hbox.addWidget(self.config_area)
-        
+    def save_config(self):
+        with open(self.config_fname.text(), 'w') as f:
+            f.write(self.config_area.toPlainText())
+
     def plot_vol(self, **kwargs):
         '''Wrapper around canvas_panel.plot_vol'''
         parsed = self.canvas_panel.plot_vol(**kwargs)

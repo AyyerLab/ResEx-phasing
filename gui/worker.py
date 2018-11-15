@@ -30,7 +30,8 @@ class Launcher(object):
         rmin = float(self.parent.radiusmin.text())
         rmax = float(self.parent.radiusmax.text())
         self.thread.started.connect(partial(self.worker.zero_outer, fname, rmin, rmax))
-        self.worker.returnval.connect(self.parent.write_zero_line)
+        #self.worker.returnval.connect(self.parent.write_zero_line)
+        self.worker.returnval.connect(self.parent.zero_outer_line.show)
         self.worker.returnval.connect(self.cleanup_thread)
         self.thread.start()
 
@@ -41,7 +42,8 @@ class Launcher(object):
         mapnoext = os.path.splitext(os.path.basename(self.parent.map_fname.text()))[0]
         map_fname = 'data/convert/'+mapnoext+'-sym.raw'
         self.thread.started.connect(partial(self.worker.calc_scale, map_fname, fname, rmin, rmax))
-        self.worker.returnval.connect(self.parent.write_scale_line)
+        self.worker.returnval.connect(self.parent.calc_scale_line.show)
+        self.worker.returnval.connect(lambda val: self.parent.scale_label.setText('Scale factor = %e'%float(val)))
         self.worker.returnval.connect(self.cleanup_thread)
         self.thread.start()
 
