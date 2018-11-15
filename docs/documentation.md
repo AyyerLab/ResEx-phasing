@@ -9,7 +9,7 @@ details of what the reconstruction program does, descriptions of all the options
 you can pass in the configuration file, as well as a list of the various utility
 scripts.
 
-We recommend the user goes through the [basic tutorial](sim-tutorial.md) first
+We recommend the user goes through the [basic tutorial](sim-tutorial.html) first
 in order to get a feel for 'what' the program does. This page discusses more the
 'how' of the program.
 
