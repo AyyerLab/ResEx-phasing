@@ -286,7 +286,7 @@ class ConfigPanel(QtWidgets.QWidget):
         hbox = QtWidgets.QHBoxLayout()
         vbox.addLayout(hbox)
         button = QtWidgets.QPushButton('Launch Recon', self)
-        button.clicked.connect(self.launcher.launch_recon)
+        button.clicked.connect(self.launch_recon)
         hbox.addWidget(button, stretch=1)
         self.checkflag = QtWidgets.QCheckBox('Keep Checking', self)
         self.checkflag.stateChanged.connect(self.keep_checking)
@@ -464,6 +464,11 @@ class ConfigPanel(QtWidgets.QWidget):
                 self.point_group.setText(words[np.where(warray=='data/convert/'+mapnoext+'-srecon.raw')[0][0]+2])
                 self.suppradstr.setText('%.1f'%float(words[np.where(warray=='./utils/create_support')[0][-1]+2]))
                 self.suppthreshstr.setText('%.1f'%float(words[np.where(warray=='./utils/create_support')[0][-1]+3]))
+
+    def launch_recon(self, event=None):
+        '''Wrapper around launcher.launch_recon'''
+        if os.path.isfile(self.output_prefix.text()+'-log.dat') and QtWidgets.QMessageBox.question(self, 'Overwrite Output?', 'Found output with same prefix: %s\nOverwrite?'%self.output_prefix.text(), QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No) == QtWidgets.QMessageBox.Yes:
+            self.launcher.launch_recon()
 
     def keep_checking(self, event=None):
         if self.checkflag.isChecked():
