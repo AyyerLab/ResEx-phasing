@@ -467,7 +467,7 @@ class ConfigPanel(QtWidgets.QWidget):
 
     def launch_recon(self, event=None):
         '''Wrapper around launcher.launch_recon'''
-        if os.path.isfile(self.output_prefix.text()+'-log.dat') and QtWidgets.QMessageBox.question(self, 'Overwrite Output?', 'Found output with same prefix: %s\nOverwrite?'%self.output_prefix.text(), QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No) == QtWidgets.QMessageBox.Yes:
+        if (not os.path.isfile(self.output_prefix.text()+'-log.dat')) or QtWidgets.QMessageBox.question(self, 'Overwrite Output?', 'Found output with same prefix: %s\nOverwrite?'%self.output_prefix.text(), QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No) == QtWidgets.QMessageBox.Yes:
             self.launcher.launch_recon()
 
     def keep_checking(self, event=None):
