@@ -3,16 +3,26 @@
 int parse_args(int argc, char *argv[], char *config_fname) {
 	extern char *optarg ;
 	extern int optind ;
+	//int testing_mode = 0 ;
 	
 	strcpy(config_fname, "config.ini") ;
 	
 	while (optind < argc) {
 		int c ;
+		//if ((c = getopt(argc, argv, "c:t")) != -1) {
 		if ((c = getopt(argc, argv, "c:")) != -1) {
 			switch (c) {
 				case 'c':
 					strcpy(config_fname, optarg) ;
 					break ;
+				/*
+				case 't':
+					testing_mode = 1 ;
+					break ;
+				*/
+				case '?':
+					fprintf(stderr, "Invalid command line option\n") ;
+					return 1 ;
 			}
 		}
 	}
