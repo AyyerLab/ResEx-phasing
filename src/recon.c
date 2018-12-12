@@ -3,34 +3,35 @@
 int parse_args(int argc, char *argv[], char *config_fname) {
 	extern char *optarg ;
 	extern int optind ;
-	//int testing_mode = 0 ;
+	int testing_mode = 0 ;
 	
 	strcpy(config_fname, "config.ini") ;
 	
 	while (optind < argc) {
 		int c ;
-		//if ((c = getopt(argc, argv, "c:t")) != -1) {
-		if ((c = getopt(argc, argv, "c:")) != -1) {
+		if ((c = getopt(argc, argv, "c:Th")) != -1) {
 			switch (c) {
 				case 'c':
 					strcpy(config_fname, optarg) ;
 					break ;
-				/*
-				case 't':
+				case 'T':
 					testing_mode = 1 ;
 					break ;
-				*/
+				case 'h':
+					fprintf(stderr, "Format: %s [-c <config.ini>] [-T] [-h]\n", argv[0]) ;
+					return -1 ;
+					break ;
 				case '?':
 					fprintf(stderr, "Invalid command line option\n") ;
-					return 1 ;
+					return -1 ;
 			}
 		}
 	}
 	
-	return 0 ;
+	return testing_mode ;
 }
 
-int setup(struct algorithm_data *self, char *config_fname) {
+int setup(struct algorithm_data *self, char *config_fname, int fixed_seed) {
 	char line[1024] ;
 	char input_fname[1024], hist_fname[1024] ;
 	char intens_fname[1024], bragg_fname[1024] ;
@@ -189,7 +190,7 @@ int setup(struct algorithm_data *self, char *config_fname) {
 		}
 	}
 	
-	input_init_iterate(input, input_fname, inputbg_fname, self->iterate, self->do_bg_fitting) ;
+	input_init_iterate(input, input_fname, inputbg_fname, self->iterate, self->do_bg_fitting, fixed_seed) ;
 	fft_create_plans(fft) ;
 	if (self->do_bg_fitting)
 		volume_init_radavg(volume) ;
@@ -226,16 +227,16 @@ int setup(struct algorithm_data *self, char *config_fname) {
 
 int main(int argc, char *argv[]) {
 	long i ;
-	int iter ;
+	int iter, fixed_seed ;
 	struct timeval t1, t2 ;
 	char config_fname[1024] ;
 	
 	struct algorithm_data algo ;
 	
-	if (parse_args(argc, argv, config_fname))
+	if ((fixed_seed = parse_args(argc, argv, config_fname)) < 0)
 		return 1 ;
 	
-	if (setup(&algo, config_fname))
+	if (setup(&algo, config_fname, fixed_seed))
 		return 2 ;
 	
 	for (iter = 1 ; iter <= algo.num_iter+algo.num_avg_iter ; ++iter) {
