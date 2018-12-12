@@ -65,7 +65,7 @@ class ConfigPanel(QtWidgets.QWidget):
 
         self.checker = QtCore.QTimer(self)
         self.checker.timeout.connect(self.keep_checking)
-        self.launcher = worker.Launcher(self)
+        self.launcher = worker.Launcher(self, self.parent.launch_cmd)
 
         self.init_UI()
 
