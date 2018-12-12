@@ -167,6 +167,10 @@ int setup(struct algorithm_data *self, char *config_fname) {
 				return 1 ;
 		}
 		else if (num_div > 0) {
+			if (sigma == 0.) {
+				fprintf(stderr, "num_div option also requires a sigma_deg value to subset the quaternion file\n") ;
+				return 1 ;
+			}
 			quat_gen(quat, num_div, sigma) ;
 		}
 		else {
