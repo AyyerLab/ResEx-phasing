@@ -1,6 +1,7 @@
 from __future__ import print_function
 import sys
 import os
+import argparse
 try:
     from PyQt5 import QtCore, QtWidgets, QtGui # pylint: disable=import-error
     os.environ['QT_API'] = 'pyqt5'
@@ -14,10 +15,11 @@ from . import canvas_panel
 from . import config_panel
 
 class ResExGUI(QtWidgets.QMainWindow):
-    def __init__(self, merge_fname='', map_fname=''):
+    def __init__(self, merge_fname='', map_fname='', launch_cmd='./recon -c'):
         super(ResExGUI, self).__init__()
         self.input_merge_fname = merge_fname
         self.input_map_fname = map_fname
+        self.launch_cmd = launch_cmd
 
         self.init_UI()
 
@@ -92,11 +94,14 @@ class ResExGUI(QtWidgets.QMainWindow):
             event.ignore()
 
 def main():
+    parser = argparse.ArgumentParser(description='ResEx phasing GUI')
+    parser.add_argument('-i', '--intens', help='Path to intensity volume', default='')
+    parser.add_argument('-m', '--map', help='Path to CCP4/MRC map file', default='')
+    parser.add_argument('-l', '--launcher', help='Alternative launcher command (for queue submission)', default='./recon -c')
+    args = parser.parse_args()
+    
     app = QtWidgets.QApplication([])
-    if len(sys.argv) > 2:
-        gui = ResExGUI(sys.argv[1], sys.argv[2])
-    else:
-        gui = ResExGUI()
+    gui = ResExGUI(merge_fname=args.intens, map_fname=args.map, launch_cmd=args.launcher)
     sys.exit(app.exec_())
 
 if __name__ == '__main__':
