@@ -59,6 +59,14 @@ if( FFTW_ROOT )
   )
 
   find_library(
+	  FFTWF_THREADS_LIB
+    NAMES "fftw3f_threads"
+    PATHS ${FFTW_ROOT}
+    PATH_SUFFIXES "lib" "lib64"
+    NO_DEFAULT_PATH
+  )
+
+  find_library(
     FFTWL_LIB
     NAMES "fftw3l"
     PATHS ${FFTW_ROOT}
@@ -89,6 +97,11 @@ else()
     PATHS ${PKG_FFTW_LIBRARY_DIRS} ${LIB_INSTALL_DIR}
   )
 
+  find_library(
+	  FFTWF_THREADS_LIB
+    NAMES "fftw3f_threads"
+    PATHS ${PKG_FFTW_LIBRARY_DIRS} ${LIB_INSTALL_DIR}
+  )
 
   find_library(
     FFTWL_LIB
