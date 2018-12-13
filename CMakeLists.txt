@@ -38,8 +38,8 @@ endforeach(src)
 # Compile recon
 add_executable(recon "src/recon.c" "src/algorithm.h" ${OBJECTS})
 target_link_libraries(recon GSL::gsl GSL::gslcblas)
-target_link_libraries(recon fftw3f_threads)
-target_link_libraries(recon fftw3f)
+target_link_libraries(recon ${FFTWF_THREADS_LIB})
+target_link_libraries(recon ${FFTWF_LIB})
 target_link_libraries(recon m)
 set_target_properties(recon PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
 
