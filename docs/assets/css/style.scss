@@ -1,0 +1,26 @@
+---
+---
+
+@import "{{ site.theme }}";
+
+sup {
+	vertical-align: super;
+	font-size: smaller;
+}
+
+sub {
+	vertical-align: sub;
+	font-size: smaller;
+}
+
+tr:nth-of-type(odd) {
+	background: #ddd;
+}
+
+tr:nth-of-type(even) {
+	background: #eee;
+}
+
+td {
+	background: unset;
+}

@@ -12,8 +12,9 @@ except ImportError:
     os.environ['QT_API'] = 'pyqt'
 
 class Launcher(object):
-    def __init__(self, parent):
+    def __init__(self, parent, launch_cmd):
         self.parent = parent
+        self.launch_cmd = launch_cmd
         self.worker = GUIWorker()
         self.thread = QtCore.QThread()
         self.worker.moveToThread(self.thread)
@@ -65,7 +66,7 @@ class Launcher(object):
         self.thread.start()
 
     def launch_recon(self, event=None):
-        self.thread.started.connect(partial(self.worker.launch_recon, self.parent.config_fname.text()))
+        self.thread.started.connect(partial(self.worker.launch_recon, self.launch_cmd, self.parent.config_fname.text()))
         self.worker.returnval.connect(self.cleanup_thread)
         self.thread.start()
 
@@ -106,9 +107,10 @@ class GUIWorker(QtCore.QObject):
         self.returnval.emit(mapnoext)
         self.finished.emit()
 
-    @QtCore.pyqtSlot(str)
-    def launch_recon(self, fname):
-        cmd = os.path.realpath(os.path.join(self.rootdir, './recon')) + ' -c %s'%fname
+    @QtCore.pyqtSlot(str, str)
+    def launch_recon(self, launch_cmd, fname):
+        cmd = '%s %s'%(launch_cmd, fname)
+        print(cmd)
         print('-'*80)
         subprocess.call(cmd.split())
         print('-'*80)

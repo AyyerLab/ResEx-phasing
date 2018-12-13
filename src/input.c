@@ -121,10 +121,9 @@ int input_parse_support(struct input_data *self, char *fname) {
 	return 0 ;
 }
 
-void input_init_iterate(struct input_data *self, char *fname, char *bg_fname, float *model, int do_bg_fitting) {
+void input_init_iterate(struct input_data *self, char *fname, char *bg_fname, float *model, int do_bg_fitting, int fixed_seed) {
 	long size = self->size, vol = size*size*size ;
 	float val = sqrtf(vol) ;
-	struct timeval t1 ;
 	const gsl_rng_type *T ;
 	gsl_rng *r ;
 	FILE *fp ;
@@ -159,9 +158,16 @@ void input_init_iterate(struct input_data *self, char *fname, char *bg_fname, fl
 	
 	gsl_rng_env_setup() ;
 	T = gsl_rng_default ;
-	gettimeofday(&t1, NULL) ;
 	r = gsl_rng_alloc(T) ;
-	gsl_rng_set(r, t1.tv_sec + t1.tv_usec) ;
+	if (fixed_seed) {
+		fprintf(stderr, "==== Fixed seed mode ====\n") ;
+		gsl_rng_set(r, 0x5EED) ;
+	}
+	else {
+		struct timeval t1 ;
+		gettimeofday(&t1, NULL) ;
+		gsl_rng_set(r, t1.tv_sec + t1.tv_usec) ;
+	}
 	
 	if (do_random_model)
 		memset(model, 0, vol*sizeof(float)) ;

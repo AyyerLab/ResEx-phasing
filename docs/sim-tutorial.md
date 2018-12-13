@@ -34,7 +34,7 @@ Now that we have created the data sources, we can set up the reconstruction.
 This can be done with command line tools, but also with a GUI. Load up the gui
 with the following command:
 ```
-$ ./ResEx data/merges/4et8_intens.raw data/maps/4et8_sim.ccp4
+$ ./ResEx -i data/merges/4et8_intens.raw -m data/maps/4et8_sim.ccp4
 ```
 You should get something like the image below: 
 <a href="images/gui_sim_first.png">![GUI init screen]({{

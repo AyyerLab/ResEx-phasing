@@ -36,7 +36,7 @@ void input_free(struct input_data*) ;
 int input_parse_intens(struct input_data*, char*, float) ;
 int input_parse_bragg(struct input_data*, char*, float) ;
 int input_parse_support(struct input_data*, char*) ;
-void input_init_iterate(struct input_data*, char*, char*, float*, int) ;
+void input_init_iterate(struct input_data*, char*, char*, float*, int, int) ;
 int input_read_histogram(struct input_data*, char*) ;
 
 void input_match_histogram(struct input_data*, float*, float*) ;
