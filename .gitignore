@@ -32,6 +32,10 @@ gen_data
 *DS_Store
 *.out
 *.txt
+!CMakeLists.txt
+
+# Build directory
+build/
 
 # Python cache
 __pycache__
