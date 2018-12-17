@@ -34,6 +34,7 @@ class CanvasPanel(QtWidgets.QWidget):
         self.old_fname = None
         self.space = None
         self.zoomed = False
+        self.vol_slices = False
         self.map_image_exists = False
         self.vol_image_exists = False
         self.angle_list = ['XY', 'XZ', 'YZ']
@@ -147,7 +148,12 @@ class CanvasPanel(QtWidgets.QWidget):
         size = int(round(self.vol.size**(1/3.)))
         self.size = size
         self.vol_size = size
-        self.vol = self.vol.reshape(size, size, size)
+        try:
+            self.vol = self.vol.reshape(size, size, size)
+        except ValueError:
+            print('Unable to create cubic grid of numbers from %s'%self.current_fname.text())
+            return
+        self.vol_slices = False
 
         if self.typestr == 'complex64':
             self.vol = np.square(np.absolute(self.vol))
@@ -206,7 +212,8 @@ class CanvasPanel(QtWidgets.QWidget):
             maxx = None
         if slices is not None:
             a, b, c = tuple(slices[:, minx:maxx, minx:maxx])
-        else:
+            self.vol_slices = True
+        elif not self.vol_slices:
             if project:
                 a = self.vol[:, minx:maxx, minx:maxx].mean(0)
                 b = self.vol[minx:maxx, :, minx:maxx].mean(1)
@@ -215,6 +222,8 @@ class CanvasPanel(QtWidgets.QWidget):
                 a = self.vol[layernum, minx:maxx, minx:maxx]
                 b = self.vol[minx:maxx, layernum, minx:maxx]
                 c = self.vol[minx:maxx, minx:maxx, layernum]
+        else:
+            return
 
         self.figure.clear()
         s = self.figure.add_subplot(111)
