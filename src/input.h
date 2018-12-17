@@ -33,7 +33,7 @@ struct input_data {
 void input_init(struct input_data*, long) ;
 void input_free(struct input_data*) ;
 
-int input_parse_intens(struct input_data*, char*, float) ;
+int input_parse_intens(struct input_data*, char*, float, int) ;
 int input_parse_bragg(struct input_data*, char*, float) ;
 int input_parse_support(struct input_data*, char*) ;
 void input_init_iterate(struct input_data*, char*, char*, float*, int, int) ;
