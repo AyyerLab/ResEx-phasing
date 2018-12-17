@@ -13,8 +13,13 @@ int main(int argc, char *argv[]) {
 	char fname[500] ;
 	
 	if (argc < 4) {
-		fprintf(stderr, "Format: %s <model_fname> <rmin> <rmax>\n", argv[0]) ;
+		fprintf(stderr, "Zero Outer: Process outer and inner parts of intensity file\n") ;
+		fprintf(stderr, "-----------------------------------------------------------\n") ;
+		fprintf(stderr, "voxels outside <rmax> are zeroed and ones inside <rmin> are set to -1.\n") ;
+		fprintf(stderr, "If <subtract_min> is non-zero, the minimum value in each radial shell is subtracted\n") ;
+		fprintf(stderr, "\nUsage: %s <intens_fname> <rmin> <rmax>\n", argv[0]) ;
 		fprintf(stderr, "Optional: <subtract_min>. Default 0.\n") ;
+		fprintf(stderr, "\nOutput: <intens_fname>-zero.raw or <intens_fname>-pos-zero.raw\n") ;
 		return 1 ;
 	}
 	size = get_size(argv[1], sizeof(float)) ;

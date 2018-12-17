@@ -15,8 +15,14 @@ int main(int argc, char *argv[]) {
 	char fname[999] ;
 	
 	if (argc < 6) {
-		fprintf(stderr, "Format: %s <model_fname> <fsize> <fx> <fy> <fz>\n", argv[0]) ;
+		fprintf(stderr, "Fourier Stretch: Slightly change q-sampling for given model\n") ;
+		fprintf(stderr, "-----------------------------------------------------------\n") ;
+		fprintf(stderr, "Uses linear interpolation assuming stretch factors <fx>, <fy>, <fz> close to 1\n") ;
+		fprintf(stderr, "For larger rescaling use zero-padding in real-space\n") ;
+		fprintf(stderr, "<fsize> is stretched model size\n") ;
+		fprintf(stderr, "\nUsage: %s <cpx_fname> <fsize> <fx> <fy> <fz>\n", argv[0]) ;
 		fprintf(stderr, "Optional: <out_fname>\n") ;
+		fprintf(stderr, "\nOutput: <cpx_fname>_str_<fsize>.cpx (if <out_fname> is not given)\n") ;
 		return 1 ;
 	}
 	

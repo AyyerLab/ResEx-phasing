@@ -9,8 +9,10 @@ int main(int argc, char *argv[]) {
 	struct fft_data fft ;
 	
 	if (argc < 3) {
-		fprintf(stderr, "Averages a set of reconstructions in the results folder\n") ;
-		fprintf(stderr, "Format: %s <num1> <num2> ...\n", argv[0]) ;
+		fprintf(stderr, "Combine: Average a set of reconstructions in the results folder\n") ;
+		fprintf(stderr, "---------------------------------------------------------------\n") ;
+		fprintf(stderr, "\nUsage: %s <num1> <num2> ...\n", argv[0]) ;
+		fprintf(stderr, "\nOutput: results/comb_output.raw results/comb_foutput.raw\n") ;
 		return 1 ;
 	}
 	size = 501 ;

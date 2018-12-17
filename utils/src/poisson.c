@@ -13,7 +13,11 @@ int main(int argc, char *argv[]) {
 	FILE *fp ;
 	
 	if (argc < 4) {
-		fprintf(stderr, "Format: %s <model_fname> <target_count_at_edge> <out_fname>\n", argv[0]) ;
+		fprintf(stderr, "Poisson: Poisson sample intensities according to given mean at edge\n") ;
+		fprintf(stderr, "-------------------------------------------------------------------\n") ;
+		fprintf(stderr, "Scaling reflects the multiplicity reducing as 1/R\n") ;
+		fprintf(stderr, "\nUsage: %s <intens_fname> <target_count_at_edge> <out_fname>\n", argv[0]) ;
+		fprintf(stderr, "\nOutput: <out_fname>\n") ;
 		return 1 ;
 	}
 	size = get_size(argv[1], sizeof(float)) ;

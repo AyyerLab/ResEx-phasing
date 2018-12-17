@@ -17,9 +17,12 @@ int main(int argc, char *argv[]) {
 	strcpy(volume.point_group, "222") ;
 	
 	if (argc < 4) {
-		fprintf(stderr, "Format: %s <cpx_fname> <voxres> <B-factor>\n", argv[0]) ;
+		fprintf(stderr, "Sharpen: High pass filter by negative B-factor\n") ;
+		fprintf(stderr, "----------------------------------------------\n") ;
+		fprintf(stderr, "\nUsage: %s <cpx_fname> <voxres> <B-factor>\n", argv[0]) ;
 		fprintf(stderr, "\twhere <voxres> is the resolution at 1 pixel in Angstroms\n") ;
 		fprintf(stderr, "\tOptional: <point_group>. Currently support '222', '4', '1'\n") ;
+		fprintf(stderr, "\nOutput: <cpx_fname>-sharp.cpx, <cpx_fname>-sharp-sym.raw\n") ;
 		return 1 ;
 	}
 	size = get_size(argv[1], sizeof(float complex)) ;
