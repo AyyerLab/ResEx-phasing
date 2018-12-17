@@ -16,8 +16,13 @@ int main(int argc, char *argv[]) {
 	char fname[999] ;
 
 	if (argc < 4) {
-		fprintf(stderr, "Format: %s <intens1> <intens2> <res_at_edge>\n", argv[0]) ;
+		fprintf(stderr, "Calc CC: Calculates Pearson CC coefficient as a function of radius\n") ;
+		fprintf(stderr, "------------------------------------------------------------------\n") ;
+		fprintf(stderr, "Compares two input intensity volumes as a function of q\n") ;
+		fprintf(stderr, "\nUsage: %s <intens1> <intens2> <res_at_edge>\n", argv[0]) ;
 		fprintf(stderr, "Optional: <cc_fname>\n") ;
+		fprintf(stderr, "\nOutput: cc-<num1>-<num2>.dat (if <cc_fname> not given)\n") ;
+		fprintf(stderr, "\twhere it tries to infer <num1> and <num2> from the filenames\n") ;
 		return 1 ;
 	}
 	size = get_size(argv[1], sizeof(float)) ;

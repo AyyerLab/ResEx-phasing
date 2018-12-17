@@ -51,8 +51,13 @@ int main(int argc, char *argv[]) {
 	struct fft_data fft ;
 	
 	if (argc < 4) {
-		fprintf(stderr, "Format: %s <model1> <model2> <res_at_edge>\n", argv[0]) ;
+		fprintf(stderr, "Calc FSC: Calculates Fourier Shell Correlation between two densities\n") ;
+		fprintf(stderr, "--------------------------------------------------------------------\n") ;
+		fprintf(stderr, "Compares two aligned input electron densities as a function of q\n") ;
+		fprintf(stderr, "\nUsage: %s <model1> <model2> <res_at_edge>\n", argv[0]) ;
 		fprintf(stderr, "Optional: <fsc_fname>\n") ;
+		fprintf(stderr, "\nOutput: fsc-<num1>-<num2>.dat (if <fsc_fname> not given)\n") ;
+		fprintf(stderr, "\twhere it tries to infer <num1> and <num2> from the filenames\n") ;
 		return 1 ;
 	}
 	size = get_size(argv[1], sizeof(float)) ;

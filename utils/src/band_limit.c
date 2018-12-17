@@ -17,7 +17,11 @@ int main(int argc, char *argv[]) {
 	struct fft_data fft ;
 	
 	if (argc < 3) {
-		fprintf(stderr, "Format: %s <intens_fname> <support_fname>\n", argv[0]) ;
+		fprintf(stderr, "Band Limit: Smoothens intensity file using support mask\n") ;
+		fprintf(stderr, "-------------------------------------------------------\n") ;
+		fprintf(stderr, "FT of intensities only non-zero inside support autocorrelation\n") ;
+		fprintf(stderr, "\nUsage: %s <intens_fname> <support_fname>\n", argv[0]) ;
+		fprintf(stderr, "\nOutput: <intens_fname>-smoothed.raw\n") ;
 		return 1 ;
 	}
 	size = get_size(argv[1], sizeof(float)) ;

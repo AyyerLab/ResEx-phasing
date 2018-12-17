@@ -3,18 +3,23 @@
 
 int main(int argc, char *argv[]) {
 	long x, y, z, size, c, vol ;
-	float r, braggqmax ;
+	float r, braggqmax, factor ;
 	float *model1 ;
 	FILE *fp ;
 	char fname[999] ;
 	struct fft_data fft ;
 	
-	if (argc < 3) {
-		fprintf(stderr, "Format: %s <model1> <bragg_qmax>\n", argv[0]) ;
+	if (argc < 4) {
+		fprintf(stderr, "Boost Cont: Top hat high pass filter electron density model\n") ;
+		fprintf(stderr, "---------------------------------------------------\n") ;
+		fprintf(stderr, "Raises magnitudes outside bragg_qmax radius by a constant factor\n") ;
+		fprintf(stderr, "\nUsage: %s <model1> <bragg_qmax> <factor>\n", argv[0]) ;
+		fprintf(stderr, "\nOutput: <model1>-boost.raw\n") ;
 		return 1 ;
 	}
 	size = get_size(argv[1], sizeof(float)) ;
 	braggqmax = atof(argv[2]) ;
+	factor = atof(argv[3]) ;
 	sprintf(fname, "%s-boost.raw", remove_ext(argv[1])) ;
 	vol = size*size*size ;
 	c = size / 2 ;
@@ -42,14 +47,14 @@ int main(int argc, char *argv[]) {
 		r = sqrtf((x-c)*(x-c) + (y-c)*(y-c) + (z-c)*(z-c)) ;
 		
 		if (r > braggqmax * c)
-			fft.fdensity[x*size*size + y*size + z] *= 2. / vol ;
+			fft.fdensity[x*size*size + y*size + z] *= factor / vol ;
 	}
 	
 	// Inverse Fourier transform
 	fft_inverse(&fft) ;
 	
 	for (x = 0 ; x < vol ; ++x)
-		model1[x] = cabsf(fft.rdensity[x]) ;
+		model1[x] = crealf(fft.rdensity[x]) ;
 	
 	// Write to file
 	fprintf(stderr, "Writing boosted model to %s\n", fname) ;

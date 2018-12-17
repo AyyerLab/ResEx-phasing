@@ -46,8 +46,12 @@ int main(int argc, char *argv[]) {
 	FILE *fp ;
 	
 	if (argc < 3) {
-		fprintf(stderr, "Format: %s <intens_fname> <sigma_fname>\n", argv[0]) ;
+		fprintf(stderr, "Calc SFac: Calculates structure factors using French Wilson procedure\n") ;
+		fprintf(stderr, "---------------------------------------------------------------------\n") ;
+		fprintf(stderr, "Accounts for negative intensities given a sigma volume\n") ;
+		fprintf(stderr, "\nUsage: %s <intens_fname> <sigma_fname>\n", argv[0]) ;
 		fprintf(stderr, "Optional: <output_fname>\n") ;
+		fprintf(stderr, "\nOutput: <intens_fname>-sfac.raw (if <output_fname> not given)\n") ;
 		return 1 ;
 	}
 	size = get_size(argv[1], sizeof(float)) ;
