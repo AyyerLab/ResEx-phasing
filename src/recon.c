@@ -158,7 +158,7 @@ int setup(struct algorithm_data *self, char *config_fname, int fixed_seed) {
 	if (parse_algorithm_strings(self, algorithm_string, avg_algorithm_string))
 		return 1 ;
 	algorithm_allocate_memory(self) ;
-	if (input_parse_intens(input, intens_fname, scale_factor))
+	if (input_parse_intens(input, intens_fname, scale_factor, self->do_bg_fitting))
 		return 1 ;
 	if (input_parse_bragg(input, bragg_fname, bragg_qmax))
 		return 1 ;
