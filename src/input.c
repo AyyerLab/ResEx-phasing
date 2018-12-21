@@ -39,7 +39,7 @@ int input_parse_intens(struct input_data *self, char *fname, float scale, int mi
 		for (j = 0 ; j < s ; ++j)
 		for (k = 0 ; k < s ; ++k) {
 			rad = (int) sqrt((i-c)*(i-c) + (j-c)*(j-c) + (k-c)*(k-c)) ;
-			if (intens[i*s*s + j*s + k] < radmin[rad] && intens[i*s*s + j*s + k] != -1.f)
+			if (intens[i*s*s + j*s + k] < radmin[rad] && intens[i*s*s + j*s + k] != -1.f && intens[i*s*s + j*s + k] > -1.e3)
 				radmin[rad] = intens[i*s*s + j*s + k] ;
 		}
 	}
