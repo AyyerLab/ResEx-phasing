@@ -1,10 +1,15 @@
 #!/usr/bin/env python
 
+from __future__ import print_function
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
-import Tkinter as Tk
-import tkFileDialog
+try:
+    import Tkinter as Tk
+    import tkFileDialog
+except ImportError:
+    import tkinter as Tk
+    import tkinter.filedialog as tkFileDialog
 import os
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.colors import LogNorm
@@ -68,17 +73,17 @@ def parse_extension(filename):
         typesize = 8
         rangemax = 0.002
     elif ext_string == '.supp':
-        print "Support file"
+        print("Support file")
         typestr = 'uint8'
         typesize = 1
         rangemax = 1
     elif ext_string == '.cpx':
-        print "Complex file"
+        print("Complex file")
         typestr = 'complex64'
         typesize = 8
         rangemax = 1e2
     else:
-        print "Did not understand data type from extension. Defaulting to float."
+        print("Did not understand data type from extension. Defaulting to float.")
         typestr = 'f4'
         typesize = 4
         rangemax = 1
@@ -98,7 +103,7 @@ def parse_vol():
     s = fname.get()
     
     if not os.path.isfile(s):
-        print "Unable to open", s
+        print("Unable to open", s)
         return
     
     vol = np.fromfile(s, dtype=typestr)
@@ -110,7 +115,7 @@ def parse_vol():
         vol = vol.reshape(3,slice_size,slice_size)
         only_slices = True
         size = slice_size
-        print 'Only 3 slices and not full volume'
+        print('Only 3 slices and not full volume')
     else:
         vol = np.resize(vol, size*size*size).reshape(size,size,size)
     
@@ -128,7 +133,7 @@ def plot_vol_slices(layernum):
     rangemin = float(rangeminstr.get())
     size = len(vol[0])
     
-    if flag.get() is 0:
+    if flag.get() == 0:
         min = int(size/3)
         max = int(2*size/3)
         
@@ -144,7 +149,7 @@ def plot_vol_slices(layernum):
             a = vol[:,min:max,min:max].sum(0)
             b = vol[min:max,:,min:max].sum(1)
             c = vol[min:max,min:max,:].sum(2)
-    elif flag.get() is 1:
+    elif flag.get() == 1:
         if only_slices:
             a = vol[0]
             b = vol[1]
@@ -194,7 +199,7 @@ def parse_and_plot(event=None):
     elif old_fname == fname.get():
         plot_vol_slices(layernum.get())
     else:
-        print "Reparsing volume:", fname.get()
+        print("Reparsing volume:", fname.get())
         parse_extension(fname.get())
         
         size = parse_vol()
@@ -203,7 +208,7 @@ def parse_and_plot(event=None):
         plot_vol_slices(layernum.get())
 
 def force_plot(event=None):
-    print "Reparsing volume:", fname.get()
+    print("Reparsing volume:", fname.get())
     parse_vol()
     plot_vol_slices(layernum.get())
 
@@ -225,7 +230,7 @@ def flag_changed(event=None):
 
 def save_plot(event=None):
     fig.savefig(imagename.get(), bbox_inches='tight', dpi=150)
-    print "Saved to", imagename.get()
+    print("Saved to", imagename.get())
 
 def quit_(event=None):
     root.quit()
