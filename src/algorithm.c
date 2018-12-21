@@ -320,7 +320,7 @@ void save_current(struct algorithm_data *self, int iter, struct timeval t1, stru
 	if (self->do_bg_fitting) {
 		sprintf(fname, "%s-radavg/%.4d.raw", self->output_prefix, iter) ;
 		fp = fopen(fname, "wb") ;
-		fwrite(self->volume->radavg, sizeof(double), self->size/2, fp) ;
+		fwrite(self->volume->radavg, sizeof(float), self->size/2, fp) ;
 		fclose(fp) ;
 	}
 	
