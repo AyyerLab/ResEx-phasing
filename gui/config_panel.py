@@ -212,7 +212,7 @@ class ConfigPanel(QtWidgets.QWidget):
         self.map_fname = QtWidgets.QLineEdit(self.input_map_fname, self)
         hbox.addWidget(self.map_fname, stretch=1)
         button = QtWidgets.QPushButton('Plot Map', self)
-        button.clicked.connect(self.canvas_panel.plot_map)
+        button.clicked.connect(lambda: self.canvas_panel.plot_map(self.map_fname.text()))
         hbox.addWidget(button)
 
         hbox = QtWidgets.QHBoxLayout()
@@ -331,7 +331,7 @@ class ConfigPanel(QtWidgets.QWidget):
         hbox = vbox.takeAt(vbox.count()-1).layout()
         hbox.removeItem(hbox.takeAt(hbox.count()-1))
         self.suppressflag = QtWidgets.QCheckBox('Suppress low-q', self)
-        self.suppressflag.stateChanged.connect(lambda: self.canvas_panel.replot(zoom='current', sigma=self.suppressflag.ischecked()))
+        self.suppressflag.stateChanged.connect(lambda: self.canvas_panel.replot(zoom='current', sigma=self.suppressflag.isChecked()))
         hbox.addWidget(self.suppressflag)
         hbox.addStretch(1)
         vbox.addLayout(hbox)
@@ -450,7 +450,7 @@ class ConfigPanel(QtWidgets.QWidget):
     def process_map(self, event=None, skip=False):
         '''Wrapper around launcher.process_map'''
         mapnoext = os.path.splitext(os.path.basename(self.map_fname.text()))[0]
-        if skip or (os.path.isfile('data/convert/'+mapnoext+'.cpx') and QtWidgets.QMessageBox.question(self, 'Process Map', 'Found processed map output. Overwrite?', QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No) == QtWidgets.QMessageBox.Yes):
+        if skip or (not os.path.isfile('data/convert/'+mapnoext+'.cpx')) or QtWidgets.QMessageBox.question(self, 'Process Map', 'Found processed map output. Overwrite?', QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No) == QtWidgets.QMessageBox.Yes:
             if self.resedge.text() is '':
                 print('Need resolution at edge of volume')
                 return

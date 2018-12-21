@@ -247,7 +247,7 @@ class CanvasPanel(QtWidgets.QWidget):
 
     def replot(self, event=None, **kwargs):
         if self.map_image_exists:
-            self.plot_map(**kwargs)
+            self.plot_map(self.current_fname.text(), **kwargs)
         elif self.vol_image_exists:
             self.plot_vol(**kwargs)
         else:
@@ -287,8 +287,8 @@ class CanvasPanel(QtWidgets.QWidget):
         self.map_image_exists = False
         return parsed
 
-    def plot_map(self, event=None, force=False, sigma=False, **kwargs):
-        self.current_fname.setText(self.map_fname.text())
+    def plot_map(self, fname, event=None, force=False, sigma=False, **kwargs):
+        self.current_fname.setText(fname)
         if not self.map_image_exists:
             self.parse_map()
             if not self.rangelock.isChecked():
