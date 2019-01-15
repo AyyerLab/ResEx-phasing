@@ -125,7 +125,10 @@ class ConfigPanel(QtWidgets.QWidget):
         hbox.addWidget(label)
         self.merge_fname = QtWidgets.QLineEdit(self.input_merge_fname, self)
         hbox.addWidget(self.merge_fname, stretch=1)
-        button = QtWidgets.QPushButton('Plot Merge', self)
+        button = QtWidgets.QPushButton('Open', self)
+        button.clicked.connect(lambda: self.select_file('merge'))
+        hbox.addWidget(button)
+        button = QtWidgets.QPushButton('Show', self)
         button.clicked.connect(lambda :self.plot_vol(fname=self.merge_fname.text(), zoom=False))
         hbox.addWidget(button)
 
@@ -178,11 +181,10 @@ class ConfigPanel(QtWidgets.QWidget):
         hbox = QtWidgets.QHBoxLayout()
         self.zero_outer_line.setLayout(hbox)
         hbox.setContentsMargins(0, 0, 0, 0)
-        zero_fname = os.path.splitext(self.merge_fname.text())[0] + '-zero.raw'
         label = QtWidgets.QLabel('Zero-ed volume:', self)
         hbox.addWidget(label)
-        button = QtWidgets.QPushButton(zero_fname, self)
-        button.clicked.connect(lambda: self.plot_vol(fname=zero_fname))
+        button = QtWidgets.QPushButton('Show', self)
+        button.clicked.connect(lambda: self.plot_vol(fname=os.path.splitext(self.merge_fname.text())[0] + '-zero.raw'))
         hbox.addWidget(button)
         hbox.addStretch(1)
         self.zero_outer_line.hide()
@@ -211,7 +213,10 @@ class ConfigPanel(QtWidgets.QWidget):
         hbox.addWidget(label)
         self.map_fname = QtWidgets.QLineEdit(self.input_map_fname, self)
         hbox.addWidget(self.map_fname, stretch=1)
-        button = QtWidgets.QPushButton('Plot Map', self)
+        button = QtWidgets.QPushButton('Open', self)
+        button.clicked.connect(lambda: self.select_file('map'))
+        hbox.addWidget(button)
+        button = QtWidgets.QPushButton('Show', self)
         button.clicked.connect(lambda: self.canvas_panel.plot_map(self.map_fname.text()))
         hbox.addWidget(button)
 
@@ -446,6 +451,27 @@ class ConfigPanel(QtWidgets.QWidget):
             self.radiusmax.setText('%d' % (size))
             self.scaleradmin.setText('%d' % (size//2//2*0.9))
             self.scaleradmax.setText('%d' % (size//2//2*1.1))
+
+    def select_file(self, select_type):
+        if select_type == 'merge':
+            title = 'Select 3D intensity merge'
+            ext_str = 'Raw Files (*.raw);;All Files (*)'
+            target = self.merge_fname
+        elif select_type == 'map':
+            title = 'Select low-resolution CCP4/MRC map'
+            ext_str = 'CCP4/MRC Maps (*.ccp4 *.mrc);;All Files (*)'
+            target = self.map_fname
+        else:
+            return
+
+        fname = QtWidgets.QFileDialog.getOpenFileName(self, title, "", ext_str)
+        if isinstance(fname, tuple):
+            fname = fname[0]
+        target.setText(fname)
+        if select_type == 'merge':
+            self.plot_vol(fname=fname, zoom=False)
+        elif select_type == 'map':
+            self.canvas_panel.plot_map(fname)
 
     def process_map(self, event=None, skip=False):
         '''Wrapper around launcher.process_map'''
