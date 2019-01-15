@@ -19,12 +19,19 @@ class Launcher(object):
         self.thread = QtCore.QThread()
         self.worker.moveToThread(self.thread)
         self.worker.finished.connect(self.thread.quit)
+        self.make_directories()
 
     def cleanup_thread(self):
         if self.thread.receivers(self.thread.started) > 0:
             self.thread.started.disconnect()
         if self.worker.receivers(self.worker.returnval) > 0:
             self.worker.returnval.disconnect()
+
+    def make_directories(self):
+        os.makedirs('data', exist_ok=True)
+        os.makedirs('data/convert', exist_ok=True)
+        os.makedirs('data/recon', exist_ok=True)
+        os.makedirs('data/logs', exist_ok=True)
 
     def zero_outer(self, event=None):
         fname = self.parent.merge_fname.text()
