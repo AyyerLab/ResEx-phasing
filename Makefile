@@ -1,8 +1,10 @@
 .PHONY: mkdir
 CC=gcc
 
-LDFLAGS=-lfftw3f_threads -lfftw3f $(shell gsl-config --libs) -Wl,-rpath,$(shell gsl-config --prefix)/lib
-CFLAGS=$(shell gsl-config --cflags) -std=gnu99 -fopenmp -O3 -Wall -Wno-unused-result -Wno-format-overflow
+FFTW_LIBS=$(shell pkg-config --libs fftw3f) -lfftw3f_threads -Wl,-rpath,$(shell pkg-config --libs-only-L fftw3f|cut -c 3-)
+GSL_LIBS=$(shell gsl-config --libs) -Wl,-rpath,$(shell gsl-config --prefix)/lib
+LDFLAGS=$(FFTW_LIBS) $(GSL_LIBS)
+CFLAGS=$(shell gsl-config --cflags) $(shell pkg-config --cflags fftw3) -std=gnu99 -fopenmp -O3 -Wall
 
 recon_src = $(wildcard src/*.c)
 recon_obj = $(patsubst src/%.c, bin/%.o, $(recon_src)) 
