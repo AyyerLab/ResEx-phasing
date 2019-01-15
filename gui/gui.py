@@ -15,7 +15,7 @@ from . import canvas_panel
 from . import config_panel
 
 class ResExGUI(QtWidgets.QMainWindow):
-    def __init__(self, merge_fname='', map_fname='', launch_cmd='./recon -c'):
+    def __init__(self, merge_fname, map_fname, launch_cmd):
         super(ResExGUI, self).__init__()
         self.input_merge_fname = merge_fname
         self.input_map_fname = map_fname
@@ -84,6 +84,8 @@ class ResExGUI(QtWidgets.QMainWindow):
             self.canvas_panel.replot(zoom='current')
         elif QtGui.QKeySequence(mod+key) == QtGui.QKeySequence('Ctrl+Q'):
             self.close()
+        elif QtGui.QKeySequence(mod+key) == QtGui.QKeySequence('Ctrl+W'):
+            self.close()
         elif QtGui.QKeySequence(mod+key) == QtGui.QKeySequence('Ctrl+S'):
             self.canvas_panel.save_plot()
         elif QtGui.QKeySequence(mod+key) == QtGui.QKeySequence('Ctrl+M'):
@@ -97,7 +99,7 @@ def main():
     parser = argparse.ArgumentParser(description='ResEx phasing GUI')
     parser.add_argument('-i', '--intens', help='Path to intensity volume', default='')
     parser.add_argument('-m', '--map', help='Path to CCP4/MRC map file', default='')
-    parser.add_argument('-l', '--launcher', help='Alternative launcher command (for queue submission)', default='./recon -c')
+    parser.add_argument('-l', '--launcher', help='Alternative launcher command (for queue submission)', default='ResEx-recon -c')
     args = parser.parse_args()
     
     app = QtWidgets.QApplication([])
