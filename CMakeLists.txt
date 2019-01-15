@@ -35,18 +35,19 @@ foreach(src ${OBJSOURCE})
 	list(APPEND OBJECTS $<TARGET_OBJECTS:${obj}>)
 endforeach(src)
 
-# Compile recon
-add_executable(recon "src/recon.c" "src/algorithm.h" ${OBJECTS})
-target_link_libraries(recon GSL::gsl GSL::gslcblas)
-target_link_libraries(recon ${FFTWF_THREADS_LIB})
-target_link_libraries(recon ${FFTWF_LIB})
-target_link_libraries(recon m)
-set_target_properties(recon PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
+# Compile ResEx-recon
+add_executable(ResEx-recon "src/recon.c" "src/algorithm.h" ${OBJECTS})
+target_link_libraries(ResEx-recon GSL::gsl GSL::gslcblas)
+target_link_libraries(ResEx-recon ${FFTWF_THREADS_LIB})
+target_link_libraries(ResEx-recon ${FFTWF_LIB})
+target_link_libraries(ResEx-recon m)
+set_target_properties(ResEx-recon PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
 
-# Install recon and GUI
-install(TARGETS recon DESTINATION ResEx/bin)
+# Install ResEx-recon and GUI
+install(TARGETS ResEx-recon DESTINATION ResEx/bin)
 install(PROGRAMS ResEx DESTINATION ResEx/bin)
 install(DIRECTORY gui DESTINATION ResEx)
+install(DIRECTORY scripts DESTINATION ResEx USE_SOURCE_PERMISSIONS)
 
 # Compile and install utilities
 add_subdirectory(utils)
