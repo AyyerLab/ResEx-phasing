@@ -6,6 +6,10 @@ GSL_LIBS=$(shell gsl-config --libs) -Wl,-rpath,$(shell gsl-config --prefix)/lib
 LDFLAGS=$(FFTW_LIBS) $(GSL_LIBS)
 CFLAGS=$(shell gsl-config --cflags) $(shell pkg-config --cflags fftw3) -std=gnu99 -fopenmp -O3 -Wall
 
+ifeq ($(CC), gcc)
+	CFLAGS += -Wno-unused-result
+endif
+
 recon_src = $(wildcard src/*.c)
 recon_obj = $(patsubst src/%.c, bin/%.o, $(recon_src)) 
 utils_src = $(wildcard utils/src/*.c)
