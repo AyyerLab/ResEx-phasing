@@ -14,9 +14,14 @@ int main(int argc, char *argv[]) {
 	char fname[999] ;
 	
 	if (argc < 3) {
-		fprintf(stderr, "Format: %s <map_fname> <voxres>\n", argv[0]) ;
+		fprintf(stderr, "Read Map: Parse CCP4/MRC map with given target voxel resolution\n") ;
+		fprintf(stderr, "---------------------------------------------------------------\n") ;
+		fprintf(stderr, "\nUsage: %s <map_fname> <voxres>\n", argv[0]) ;
 		fprintf(stderr, "\twhere <voxres> is the resolution at 1 pixel in Angstroms\n") ;
 		fprintf(stderr, "One can also give three different <voxres> parameters for different axes\n") ;
+		fprintf(stderr, "\nOutput: data/<map_fname>-map.raw for just a dump of map\n") ;
+		fprintf(stderr, "\tdata/convert/<map_fname>-<padded_size>.raw for padded model with approx. target voxel size\n") ;
+		fprintf(stderr, "\tAlso output correction factors to get exact voxel size (to be used by 'fstretch')\n") ;
 		return 1 ;
 	}
 	if (argc == 3) {

@@ -87,8 +87,12 @@ int main(int argc, char *argv[]) {
 	FILE *fp ;
 	
 	if (argc < 3) {
-		fprintf(stderr, "Format: %s <intens_fname> <binsize>\n", argv[0]) ;
+		fprintf(stderr, "Calc SNR: Calculate SNR metrics for intensity volume\n") ;
+		fprintf(stderr, "----------------------------------------------------\n") ;
+		fprintf(stderr, "Radius dependent mean, std, KL divergence with Gaussian\n") ;
+		fprintf(stderr, "\nUsage: %s <intens_fname> <radial_binsize>\n", argv[0]) ;
 		fprintf(stderr, "Optional: <output_fname>\n") ;
+		fprintf(stderr, "\nOutput: <intens_fname>-snr.dat (if <output_fname> not given)\n") ;
 		return 1 ;
 	}
 	size = get_size(argv[1], sizeof(float)) ;

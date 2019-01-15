@@ -19,8 +19,15 @@ int main(int argc, char *argv[]) {
 	struct fft_data fft ;
 	
 	if (argc < 5) {
-		fprintf(stderr, "Format: %s <cpx_fname> <res_at_edge> <sigma> <gamma>\n", argv[0]) ;
-		fprintf(stderr, "<res_at_edge>, <sigma> and <gamma> have consistent length units\n") ;
+		fprintf(stderr, "Liquidize: Apply liquid-like motion blurring to Fourier amplitudes\n") ;
+		fprintf(stderr, "------------------------------------------------------------------\n") ;
+		fprintf(stderr, "Needs three parameters:\n") ;
+		fprintf(stderr, "\tres_at_edge: Resolution at edge of volume\n") ;
+		fprintf(stderr, "\tsigma: RMS displacement of atom\n") ;
+		fprintf(stderr, "\tgamma: Correlation length of atomic displacements\n") ;
+		fprintf(stderr, "\nUsage: %s <cpx_fname> <res_at_edge> <sigma> <gamma>\n", argv[0]) ;
+		fprintf(stderr, "<res_at_edge>, <sigma> and <gamma> must have consistent length units\n") ;
+		fprintf(stderr, "\nOutput: <cpx_fname>-liq.raw\n") ;
 		return 1 ;
 	}
 	size = get_size(argv[1], sizeof(float complex)) ;

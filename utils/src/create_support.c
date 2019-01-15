@@ -10,8 +10,12 @@ int main(int argc, char* argv[]) {
 	struct fft_data fft ;
 	
 	if (argc < 4) {
-		fprintf(stderr, "Format: %s <density_fname> <blur> <threshold>\n", argv[0]) ;
+		fprintf(stderr, "Create Support: Create support mask from density\n") ;
+		fprintf(stderr, "------------------------------------------------\n") ;
+		fprintf(stderr, "Gaussian blurring by given width and then thresholding\n") ;
+		fprintf(stderr, "\nUsage: %s <density_fname> <blur> <threshold>\n", argv[0]) ;
 		fprintf(stderr, "Optional: <out_fname>\n") ;
+		fprintf(stderr, "\nOutput: <density_fname>.supp (if <out_fname> not given)\n") ;
 		return 1 ;
 	}
 	size = get_size(argv[1], sizeof(float)) ;

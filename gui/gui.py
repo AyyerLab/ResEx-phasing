@@ -87,9 +87,9 @@ class ResExGUI(QtWidgets.QMainWindow):
         elif QtGui.QKeySequence(mod+key) == QtGui.QKeySequence('Ctrl+S'):
             self.canvas_panel.save_plot()
         elif QtGui.QKeySequence(mod+key) == QtGui.QKeySequence('Ctrl+M'):
-            self.canvas_panel.plot_vol(fname=self.merge_fname.text())
+            self.canvas_panel.plot_vol(fname=self.config_panel.merge_fname.text())
         elif QtGui.QKeySequence(mod+key) == QtGui.QKeySequence('Ctrl+N'):
-            self.canvas_panel.plot_map()
+            self.canvas_panel.plot_map(fname=self.config_panel.map_fname.text())
         else:
             event.ignore()
 

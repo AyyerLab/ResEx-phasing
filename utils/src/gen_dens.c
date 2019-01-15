@@ -9,9 +9,13 @@ int main(int argc, char *argv[]) {
 	struct fft_data fft ;
 	
 	if (argc < 2) {
-		fprintf(stderr, "Format: %s <cpx_fmodel>\n", argv[0]) ;
+		fprintf(stderr, "Gen Dens: Inverse fourier transform complex amplitudes to get density\n") ;
+		fprintf(stderr, "---------------------------------------------------------------------\n") ;
+		fprintf(stderr, "Can supply cutoff radius in voxels to truncate resolution of output\n") ;
+		fprintf(stderr, "\nUsage: %s <cpx_fname>\n", argv[0]) ;
 		fprintf(stderr, "Optional: <out_fname>\n") ;
 		fprintf(stderr, "Second option: <r_max> cutoff radius\n") ;
+		fprintf(stderr, "\nOutput: <cpx_fname>-dens.raw (if <out_fname> not given)\n") ;
 		return 1 ;
 	}
 	size = get_size(argv[1], sizeof(float complex)) ;

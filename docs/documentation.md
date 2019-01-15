@@ -137,7 +137,33 @@ As before parentheses indicate optional values. Flags can take the value `0` for
 
 ## Utilities
 
-In addition to the main reconstruction code, quite a number of helper utilities
-are provided. They can be used to prepare or modify the input data or analyze
-the reconstruction output. Additionally, there are some convenience scripts
-which employ one or more utilities.
+In addition to the main reconstruction code, quite a number of helper utilities are provided. They can be used to prepare or modify the input data or analyze the reconstruction output. Additionally, there are some convenience scripts which employ one or more utilities.
+
+The following utilities are compiled into the `utils` directory. To get usage information, run
+```
+$ ./utils/<util_name>
+``` 
+
+| `band_limit` | Smoothens intensity file using support mask
+| `bin_intens` | Downsample given volume by integer factor
+| `boost_cont` | Top hat high pass filter electron density model
+| `calc_cc` | Calculates Pearson CC coefficient as a function of radius
+| `calc_fsc` | Calculates Fourier Shell Correlation between two densities
+| `calc_scale` | Calculates scale factor between two intensities
+| `calc_sfac` | Calculates structure factors using French Wilson procedure
+| `calc_smoothness` | Effective tangential smoothness of merge as a function of radius
+| `calc_snr` | Calculate SNR metrics for intensity volume
+| `combine` | Average a set of reconstructions in the results folder
+| `create_support` | Create support mask from density
+| `fstretch` | Slightly change q-sampling for given model
+| `gen_dens` | Inverse fourier transform complex amplitudes to get density
+| `gen_fdens` | Fourier transform electron densities
+| `gen_map` | Produce CCP4/MRC map from electron density
+| `liquidize` | Apply liquid-like motion blurring to Fourier amplitudes
+| `merge_synch` | ./utils/merge_synch <file_list>
+| `poisson` | Poisson sample intensities according to given mean at edge
+| `rad_avg` | Calculate radial average of intensities
+| `read_map` | Parse CCP4/MRC map with given target voxel resolution
+| `scale_q` | Q-dependent scale factors between two intensities
+| `sharpen` | High pass filter by negative B-factor
+| `zero_outer` | Process outer and inner parts of intensity file

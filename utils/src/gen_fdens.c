@@ -12,8 +12,14 @@ int main(int argc, char *argv[]) {
 	strcpy(volume.point_group, "222") ;
 	
 	if (argc < 2) {
-		fprintf(stderr, "Format: %s <raw_model>\n", argv[0]) ;
+		fprintf(stderr, "Gen FDens: Fourier transform electron densities\n") ;
+		fprintf(stderr, "-----------------------------------------------\n") ;
+		fprintf(stderr, "Densities assumed to cube of 32-bit floats\n") ;
+		fprintf(stderr, "Also produces output symmetrized by point group (default '1')\n") ;
+		fprintf(stderr, "\nUsage: %s <model_fname>\n", argv[0]) ;
 		fprintf(stderr, "Optional: <out_fname> <point_group>\n") ;
+		fprintf(stderr, "\nOutput: <model_fname>-fdens.cpx (if <out_fname> not given)\n") ;
+		fprintf(stderr, "\t<out_fname>-sym.raw\n") ;
 		return 1 ;
 	}
 	size = get_size(argv[1], sizeof(float)) ;

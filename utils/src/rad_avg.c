@@ -13,7 +13,10 @@ int main(int argc, char *argv[]) {
 	char fname[999] ;
 	
 	if (argc < 2) {
-		fprintf(stderr, "Format: %s <model_fname>\n", argv[0]) ;
+		fprintf(stderr, "Rad Avg: Calculate radial average of intensities\n") ;
+		fprintf(stderr, "------------------------------------------------\n") ;
+		fprintf(stderr, "\nUsage: %s <intens_fname>\n", argv[0]) ;
+		fprintf(stderr, "\nOutput: <intens_fname>-avg.bin (double precision binary)\n") ;
 		return 1 ;
 	}
 	size = get_size(argv[1], sizeof(float)) ;

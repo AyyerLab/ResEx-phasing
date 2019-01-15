@@ -12,7 +12,10 @@ int main(int argc, char *argv[]) {
 	FILE *fp ;
 	
 	if (argc < 3) {
-		fprintf(stderr, "Format: %s <sym_model_fname> <merge_fname>\n", argv[0]) ;
+		fprintf(stderr, "Scale Q: Q-dependent scale factors between two intensities\n") ;
+		fprintf(stderr, "----------------------------------------------------------\n") ;
+		fprintf(stderr, "\nUsage: %s <sym_model_fname> <merge_fname>\n", argv[0]) ;
+		fprintf(stderr, "\nOutput: data/scale_q.dat\n") ;
 		return 1 ;
 	}
 	size = get_size(argv[1], sizeof(float)) ;

@@ -11,8 +11,12 @@ int main(int argc, char *argv[]) {
 	FILE *fp  ;
 	
 	if (argc < 3) {
-		fprintf(stderr, "Format: %s <model_fname> <shrink_factor>\n", argv[0]) ;
+		fprintf(stderr, "Bin Intens: Downsample given volume by integer factor\n") ;
+		fprintf(stderr, "-----------------------------------------------------\n") ;
+		fprintf(stderr, "Reduces size of 3D volume by combining nxnxn voxels\n") ;
+		fprintf(stderr, "\nUsage: %s <model_fname> <shrink_factor>\n", argv[0]) ;
 		fprintf(stderr, "Optional: <out_fname>\n") ;
+		fprintf(stderr, "\nOutput: <model_fname>-<reduced_size>.raw (if <out_fname> not given)\n") ;
 		return 1 ;
 	}
 	size = get_size(argv[1], sizeof(float)) ;
@@ -22,7 +26,7 @@ int main(int argc, char *argv[]) {
 	if (argc > 3)
 		strcpy(fname, argv[3]) ;
 	else
-		sprintf(fname, "%s_%ld.raw", remove_ext(argv[1]), red_size) ;
+		sprintf(fname, "%s-%ld.raw", remove_ext(argv[1]), red_size) ;
 	
 	row = malloc(size * sizeof(float)) ;
 	model = calloc(red_size*red_size*red_size, sizeof(float)) ;
@@ -58,27 +62,11 @@ int main(int argc, char *argv[]) {
 			model[x] = -1. ;
 	}
 	
+	fprintf(stderr, "Saving output to %s\n", fname) ;
 	fp = fopen(fname, "wb") ;
 	fwrite(model, sizeof(float), red_size*red_size*red_size, fp) ;
 	fclose(fp) ;
 	
-	float *temp = malloc(red_size*red_size*red_size*sizeof(float)) ;
-	s = red_size ;
-	long c = red_size / 2 ;
-	for (x = 0 ; x < s ; ++x)
-	for (y = 0 ; y < s ; ++y)
-	for (z = 0 ; z < s ; ++z)
-		temp[x*s*s + y*s + z] = 0.25 * (model[x*s*s + y*s + z] + 
-		                                model[x*s*s + y*s + (2*c-z)] +
-		                                model[x*s*s + (2*c-y)*s + z] +
-	                                    model[x*s*s + (2*c-y)*s + (2*c-z)]) ;
-	
-	sprintf(fname, "%s_sym.raw", remove_ext(fname)) ;
-	fp = fopen(fname, "wb") ;
-	fwrite(temp, sizeof(float), red_size*red_size*red_size, fp) ;
-	fclose(fp) ;
-	
-	free(temp) ;
 	free(counts) ;
 	free(model) ;
 	free(row) ;

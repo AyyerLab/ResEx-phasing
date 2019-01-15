@@ -36,7 +36,12 @@ int main(int argc, char *argv[]) {
 	uint8_t *mask ;
 	
 	if (argc < 2) {
-		fprintf(stderr, "Format: %s <file_list>\n", argv[0]) ;
+		fprintf(stderr, "Merge Synch: Basic frame merging using CBF file list\n") ;
+		fprintf(stderr, "----------------------------------------------------\n") ;
+		fprintf(stderr, "Applies radial average subtraction and merges in lab frame\n") ;
+		fprintf(stderr, "File list is text file with one path per line\n") ;
+		fprintf(stderr, "\nUsage: %s <file_list>\n", argv[0]) ;
+		fprintf(stderr, "\nOutput: <file_list>-merge.raw\n") ;
 		return 1 ;
 	}
 	

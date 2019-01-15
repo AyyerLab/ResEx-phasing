@@ -12,9 +12,10 @@ void input_init(struct input_data *self, long size) {
 	self->local_variation = NULL ;
 }
 
-int input_parse_intens(struct input_data *self, char *fname, float scale) {
+int input_parse_intens(struct input_data *self, char *fname, float scale, int minsubt) {
 	long i, j, k, s = self->size, c = s/2, vol = s*s*s ;
-	float *intens ;
+	int rad ;
+	float *intens, *radmin = NULL ;
 	
 	FILE *fp = fopen(fname, "r") ;
 	if (fp == NULL) {
@@ -27,17 +28,40 @@ int input_parse_intens(struct input_data *self, char *fname, float scale) {
 	fread(intens, sizeof(float), vol, fp) ;
 	fclose(fp) ;
 	fprintf(stderr, "Scale factor = %f\n", scale) ;
-	
+
+	if (minsubt) {
+		fprintf(stderr, "Positivizing intensities\n") ;
+		radmin = malloc(s * sizeof(float)) ;
+		for (i = 0 ; i < s ; ++i)
+			radmin[i] = FLT_MAX ;
+		
+		for (i = 0 ; i < s ; ++i)
+		for (j = 0 ; j < s ; ++j)
+		for (k = 0 ; k < s ; ++k) {
+			rad = (int) sqrt((i-c)*(i-c) + (j-c)*(j-c) + (k-c)*(k-c)) ;
+			if (intens[i*s*s + j*s + k] < radmin[rad] && intens[i*s*s + j*s + k] != -1.f && intens[i*s*s + j*s + k] > -1.e3)
+				radmin[rad] = intens[i*s*s + j*s + k] ;
+		}
+	}
+		
 	for (i = 0 ; i < s ; ++i)
 	for (j = 0 ; j < s ; ++j)
-	for (k = 0 ; k < s ; ++k)
+	for (k = 0 ; k < s ; ++k) {
+		if (minsubt) {
+			rad = (int) sqrt((i-c)*(i-c) + (j-c)*(j-c) + (k-c)*(k-c)) ;
+			intens[i*s*s + j*s + k] -= radmin[rad] ;
+		}
+		
 		if (intens[i*s*s + j*s + k] > 0.)
 			self->obs_mag[((i+c+1)%s)*s*s + ((j+c+1)%s)*s + ((k+c+1)%s)]
 				= sqrt(intens[i*s*s + j*s + k]) * scale ;
 		else
 			self->obs_mag[((i+c+1)%s)*s*s + ((j+c+1)%s)*s + ((k+c+1)%s)]
 				= intens[i*s*s + j*s + k] ;
+	}
 	
+	if (minsubt)
+		free(radmin) ;
 	free(intens) ;
 	
 	return 0 ;
