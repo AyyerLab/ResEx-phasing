@@ -417,17 +417,12 @@ class ConfigPanel(QtWidgets.QWidget):
             f.write('algorithm = 200 DM\n')
             f.write('avg_algorithm = 100 DM\n')
             f.write('beta = 1.\n')
-            if self.positivity_flag.text() == 1:
+            if self.positivity_flag.isChecked() == 1:
                 f.write('positivity = 1\n')
-            if self.bgfitting_flag.text() == 1:
+            if self.bgfitting_flag.isChecked() == 1:
                 f.write('bg_fitting = 1\n')
-            if self.variation_flag.text() == 1:
+            if self.variation_flag.isChecked() == 1:
                 f.write('local_variation = 1\n')
-            '''
-            if self.histogram_flag.text() == 1:
-                f.write('histogram = 1\n')
-                f.write('hist_fname = data/3wu2_hist.dat\n')
-            '''
         print('Generated %s' % self.config_fname.text())
         self.show_config()
 
