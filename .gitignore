@@ -1,34 +1,3 @@
-# Binary utilities
-/utils/*
-#	but keep the source files
-!/utils/src
-#   and the python utilities
-!/utils/*.py
-
-# Data
-/data
-/images
-/results
-/refine
-/phenix
-
-# Config file
-/*.ini
-
-# Data files
-*.log
-*.dat
-#*.png
-*.bin
-*.raw
-*.h5
-
-# External files
-*DS_Store
-*.out
-*.txt
-!CMakeLists.txt
-
 # Build directory
 build/
 
