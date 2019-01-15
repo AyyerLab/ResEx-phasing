@@ -45,7 +45,7 @@ set_target_properties(ResEx-recon PROPERTIES INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 # Install ResEx-recon and GUI
 install(TARGETS ResEx-recon DESTINATION ResEx/bin)
-install(PROGRAMS ResEx DESTINATION ResEx/bin)
+install(PROGRAMS bin/ResEx DESTINATION ResEx/bin)
 install(DIRECTORY gui DESTINATION ResEx)
 install(DIRECTORY scripts DESTINATION ResEx USE_SOURCE_PERMISSIONS)
 
