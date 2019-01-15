@@ -3,15 +3,17 @@
 #include <string.h>
 #include <math.h>
 #include "../../src/utils.h"
+#include "../../src/map.h"
 
 int main(int argc, char *argv[]) {
-	int nx, ny, nz, mode, mapx, mapy, mapz ;
+	int nx, ny, nz, section_flag ;
 	long psize, pvol, shx, shy, shz, x, y, z ;
-	float lx, ly, lz, ax, ay, az ;
 	float px, py, pz, voxres[3] ;
-	float *model, *padmodel ;
+	float central_sum = 0.f, edge_sum= 0.f ;
+	float *padmodel ;
+	struct ccp4_map map ;
 	FILE *fp ;
-	char fname[999] ;
+	char fname[1024] ;
 	
 	if (argc < 3) {
 		fprintf(stderr, "Read Map: Parse CCP4/MRC map with given target voxel resolution\n") ;
@@ -37,107 +39,31 @@ int main(int argc, char *argv[]) {
 	else
 		return 1 ;
 
-	// Reading map
-	// --------------------------------------------------------------------------------
-	fp = fopen(argv[1], "rb") ;
-	
-	// Grid size
-	fread(&nx, sizeof(int), 1, fp) ;
-	fread(&ny, sizeof(int), 1, fp) ;
-	fread(&nz, sizeof(int), 1, fp) ;
-	fprintf(stderr, "Volume = (%d, %d, %d)\n", nx, ny, nz) ;
-	
-	// Mode
-	fread(&mode, sizeof(int), 1, fp) ;
-	if (mode == 0)
-		fprintf(stderr, "Mode: (un)signed byte\n") ;
-	else if (mode == 1)
-		fprintf(stderr, "Mode: int16_t\n") ;
-	else if (mode == 2)
-		fprintf(stderr, "Mode: float32\n") ;
-	else if (mode == 3)
-		fprintf(stderr, "Mode: complex int16_t\n") ;
-	else if (mode == 4)
-		fprintf(stderr, "Mode: complex float32\n") ;
-	else if (mode == 6)
-		fprintf(stderr, "Mode: uint16_t\n") ;
-	else if (mode == 16)
-		fprintf(stderr, "Mode: RGB (3*uint8_t)\n") ;
-	
-//	fseek(fp, 12, SEEK_CUR) ;
-	int mx, my, mz ;
-	fread(&mx, sizeof(int), 1, fp) ;
-	fread(&my, sizeof(int), 1, fp) ;
-	fread(&mz, sizeof(int), 1, fp) ;
-	fprintf(stderr, "Starting indices: (%d, %d, %d)\n", mx, my, mz) ;
-	
-	// Grid size
-//	int mx, my, mz ;
-	fread(&mx, sizeof(int), 1, fp) ;
-	fread(&my, sizeof(int), 1, fp) ;
-	fread(&mz, sizeof(int), 1, fp) ;
-	fprintf(stderr, "Grid size = (%d, %d, %d)\n", mx, my, mz) ;
-	
-	// Cell size
-	fread(&lx, sizeof(float), 1, fp) ;
-	fread(&ly, sizeof(float), 1, fp) ;
-	fread(&lz, sizeof(float), 1, fp) ;
-	
-	// Cell angles
-	fread(&ax, sizeof(float), 1, fp) ;
-	fread(&ay, sizeof(float), 1, fp) ;
-	fread(&az, sizeof(float), 1, fp) ;
-	fprintf(stderr, "Cell parameters: (%.3f, %.3f, %.3f) with angles (%.1f, %.1f, %.1f)\n",
-	        lx, ly, lz, ax, ay, az) ;
-	
-	// Mapping of axes
-	fread(&mapx, sizeof(int), 1, fp) ;
-	fread(&mapy, sizeof(int), 1, fp) ;
-	fread(&mapz, sizeof(int), 1, fp) ;
-	fprintf(stderr, "xyz -> abc mapping: (%d, %d, %d)\n", mapx, mapy, mapz) ;
-	
-	// Value properties
-	float min, max, mean ;
-	fread(&min, sizeof(float), 1, fp) ;
-	fread(&max, sizeof(float), 1, fp) ;
-	fread(&mean, sizeof(float), 1, fp) ;
-	
-	fseek(fp, 128, SEEK_CUR) ;
-	float rms ;
-	fread(&rms, sizeof(float), 1, fp) ;
-	fprintf(stderr, "min, max, mean, rms = (%.3f, %.3f, %.3f, %.3f)\n", min, max, mean, rms) ;
-	fseek(fp, 804, SEEK_CUR) ;
-	
-	// Voxels
-	model = malloc(nx*ny*nz* sizeof(float)) ;
-	fread(model, sizeof(float), nx*ny*nz, fp) ;
-	fclose(fp) ;
-	// --------------------------------------------------------------------------------
+	if (parse_map(argv[1], &map))
+		return 1 ;
 
-	// Comparing edge slices to central slices
-	float central_sum = 0.f, edge_sum= 0.f ;
+	if (map.header.mode != 2) {
+		fprintf(stderr, "Need float32 map data\n") ;
+		return 1 ;
+	}
+	nx = map.header.nx ;
+	ny = map.header.ny ;
+	nz = map.header.nz ;
 	
+	// Comparing edge slices to central slices
 	for (y = 0 ; y < ny ; ++y)
 	for (z = 0 ; z < nz ; ++z) {
-		edge_sum += fabsf(model[y*nz + z]) ;
-		central_sum += fabsf(model[(nx/2)*ny*nz + y*nz + z]) ;
+		edge_sum += fabsf(map.data[y*nz + z]) ;
+		central_sum += fabsf(map.data[(nx/2)*ny*nz + y*nz + z]) ;
 	}
 	
-	int section_flag = edge_sum > central_sum ? 0 : 1 ;
-	fprintf(stderr, "sums: (%e, %e)\n", edge_sum, central_sum) ;
+	section_flag = edge_sum > central_sum ? 0 : 1 ;
+	fprintf(stderr, "Edge vs central sums: (%e, %e)\n", edge_sum, central_sum) ;
 	// --------------------------------------------------------------------------------
 	 
-	/*
-	sprintf(fname, "data/%s-map.raw", remove_ext(extract_fname(argv[1]))) ;
-	fprintf(stderr, "Saving model to %s\n", fname) ;
-	fp = fopen(fname, "wb") ;
-	fwrite(model, sizeof(float), nx*ny*nz, fp) ;
-	fclose(fp) ;
-	*/
-	
-	px = voxres[0]*mx/lx ;
-	py = voxres[1]*my/ly ;
-	pz = voxres[2]*mz/lz ;
+	px = voxres[0]*map.header.mx/map.header.xlen ;
+	py = voxres[1]*map.header.my/map.header.ylen ;
+	pz = voxres[2]*map.header.mz/map.header.zlen ;
 	px = px > py ? px : py ;
 	px = px > pz ? px : pz ;
 	psize = (int) px + 3 ;
@@ -145,7 +71,7 @@ int main(int argc, char *argv[]) {
 	pvol = psize*psize*psize ;
 	
 	fprintf(stderr, "Padded volume size = %ld\n", psize) ;
-	px = voxres[0]*mx/lx ;
+	px = voxres[0]*map.header.mx/map.header.xlen ;
 	fprintf(stderr, "Ideal pad sizes = (%.3f, %.3f, %.3f)\n", pz, py, px) ;
 	fprintf(stderr, "Stretch factors = (%.5f, %.5f, %.5f)\n", psize/pz, psize/py, psize/px) ;
 	
@@ -155,37 +81,37 @@ int main(int argc, char *argv[]) {
 	
 	padmodel = calloc(pvol, sizeof(float)) ;
 	if (section_flag == 0) {
-		fprintf(stderr, "Rotating array by half its size\n") ;
-		if (mapx == 1) {
+		fprintf(stderr, "Translating array by half its size\n") ;
+		if (map.header.mapc == 1) {
 			for (x = 0 ; x < nx ; ++x)
 			for (y = 0 ; y < ny ; ++y)
 			for (z = 0 ; z < nz ; ++z)
 				padmodel[(x+shx)*psize*psize + (y+shy)*psize + (z+shz)]
-				 = model[((x+nx/2)%nx)*ny*nz + ((y+ny/2)%ny)*nz + ((z+nz/2)%nz)] ;
+				 = map.data[((x+nx/2)%nx)*ny*nz + ((y+ny/2)%ny)*nz + ((z+nz/2)%nz)] ;
 		}
 		else {
 			for (x = 0 ; x < nx ; ++x)
 			for (y = 0 ; y < ny ; ++y)
 			for (z = 0 ; z < nz ; ++z)
 				padmodel[(x+shx)*psize*psize + (y+shy)*psize + (z+shz)]
-				 = model[((z+nz/2)%nz)*ny*nx + ((y+ny/2)%ny)*nx + ((x+nx/2)%nx)] ;
+				 = map.data[((z+nz/2)%nz)*ny*nx + ((y+ny/2)%ny)*nx + ((x+nx/2)%nx)] ;
 		}
 	}
 	else {
-		fprintf(stderr, "Saving array without rotation\n") ;
-		if (mapx == 1) {
+		fprintf(stderr, "Saving array without translation\n") ;
+		if (map.header.mapc == 1) {
 			for (x = 0 ; x < nx ; ++x)
 			for (y = 0 ; y < ny ; ++y)
 			for (z = 0 ; z < nz ; ++z)
 				padmodel[(x+shx)*psize*psize + (y+shy)*psize + (z+shz)]
-				 = model[x*ny*nz + y*nz + z] ;
+				 = map.data[x*ny*nz + y*nz + z] ;
 		}
 		else {
 			for (x = 0 ; x < nx ; ++x)
 			for (y = 0 ; y < ny ; ++y)
 			for (z = 0 ; z < nz ; ++z)
 				padmodel[(x+shx)*psize*psize + (y+shy)*psize + (z+shz)]
-				 = model[z*ny*nx + y*nx + x] ;
+				 = map.data[z*ny*nx + y*nx + x] ;
 		}
 	}
 	
@@ -195,7 +121,7 @@ int main(int argc, char *argv[]) {
 	fwrite(padmodel, sizeof(float), pvol, fp) ;
 	fclose(fp) ;
 	
-	free(model) ;
+	free_map(&map) ;
 	free(padmodel) ;
 	
 	return 0 ;
