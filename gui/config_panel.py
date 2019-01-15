@@ -457,7 +457,7 @@ class ConfigPanel(QtWidgets.QWidget):
             self.launcher.process_map(skip=skip)
         else:
             self.add_to_map_tab(mapnoext)
-            with open('results/'+mapnoext+'.log', 'r') as f:
+            with open('data/logs/'+mapnoext+'.log', 'r') as f:
                 words = f.read().split()
                 warray = np.array(words)
                 self.resedge.setText(str(float(words[words.index('./utils/read_map')+2])/(self.canvas_panel.vol_size//2)))
