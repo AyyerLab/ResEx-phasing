@@ -15,6 +15,7 @@ int main(int argc, char *argv[]) {
 	FILE *fp ;
 	char fname[1024] ;
 	
+	// Parse command line arguments
 	if (argc < 3) {
 		fprintf(stderr, "Read Map: Parse CCP4/MRC map with given target voxel resolution\n") ;
 		fprintf(stderr, "---------------------------------------------------------------\n") ;
@@ -39,6 +40,7 @@ int main(int argc, char *argv[]) {
 	else
 		return 1 ;
 
+	// Parse map file
 	if (parse_map(argv[1], &map))
 		return 1 ;
 
@@ -50,7 +52,7 @@ int main(int argc, char *argv[]) {
 	ny = map.header.ny ;
 	nz = map.header.nz ;
 	
-	// Comparing edge slices to central slices
+	// Test if translation needed by comparing edge slice to central slice
 	for (y = 0 ; y < ny ; ++y)
 	for (z = 0 ; z < nz ; ++z) {
 		edge_sum += fabsf(map.data[y*nz + z]) ;
@@ -59,8 +61,8 @@ int main(int argc, char *argv[]) {
 	
 	section_flag = edge_sum > central_sum ? 0 : 1 ;
 	fprintf(stderr, "Edge vs central sums: (%e, %e)\n", edge_sum, central_sum) ;
-	// --------------------------------------------------------------------------------
 	 
+	// Calculate padded model size
 	px = voxres[0]*map.header.mx/map.header.xlen ;
 	py = voxres[1]*map.header.my/map.header.ylen ;
 	pz = voxres[2]*map.header.mz/map.header.zlen ;
@@ -79,6 +81,7 @@ int main(int argc, char *argv[]) {
 	shy = (psize - ny) / 2 ;
 	shz = (psize - nz) / 2 ;
 	
+	// Generate padded model
 	padmodel = calloc(pvol, sizeof(float)) ;
 	if (section_flag == 0) {
 		fprintf(stderr, "Translating array by half its size\n") ;
@@ -115,6 +118,7 @@ int main(int argc, char *argv[]) {
 		}
 	}
 	
+	// Save to file
 	sprintf(fname, "data/convert/%s-%ld.raw", remove_ext(extract_fname(argv[1])), psize) ;
 	fprintf(stderr, "Saving padded model to %s\n", fname) ;
 	fp = fopen(fname, "wb") ;
