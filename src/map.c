@@ -159,12 +159,12 @@ int save_mask_as_map(char *fname, int8_t *mask, int size[3], float vox_size[3], 
 	nz = size[2] ;
 	
 	for (x = 0 ; x < nx*ny*nz ; ++x) {
-		mean += vol[x] ;
-		rms += vol[x] * vol[x] ;
-		if (vol[x] > max)
-			max = vol[x] ;
-		if (vol[x] < min)
-			min = vol[x] ;
+		mean += mask[x] ;
+		rms += mask[x] * mask[x] ;
+		if (mask[x] > max)
+			max = mask[x] ;
+		if (mask[x] < min)
+			min = mask[x] ;
 	}
 	mean /= nx*ny*nz ;
 	rms = sqrtf(rms / (nx*ny*nz) - mean*mean) ;
