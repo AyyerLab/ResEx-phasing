@@ -407,10 +407,10 @@ void volume_dump_slices(float *vol, char *fname, long size, int is_fourier) {
 	free(slices) ;
 }
 
-void volume_dump_support_slices(uint8_t *vol, char *fname, long size) {
+void volume_dump_support_slices(int8_t *vol, char *fname, long size) {
 	long x, y, c = size/2 ;
 	FILE *fp ;
-	uint8_t *slices = malloc(3*size*size*sizeof(float)) ;
+	int8_t *slices = malloc(3*size*size*sizeof(float)) ;
 	
 	for (x = 0 ; x < size ; ++x)
 	for (y = 0 ; y < size ; ++y) {
@@ -420,7 +420,7 @@ void volume_dump_support_slices(uint8_t *vol, char *fname, long size) {
 	}
 	
 	fp = fopen(fname, "wb") ;
-	fwrite(slices, sizeof(uint8_t), 3*size*size, fp) ;
+	fwrite(slices, sizeof(int8_t), 3*size*size, fp) ;
 	fclose(fp) ;
 	
 	free(slices) ;

@@ -19,7 +19,7 @@ struct locval_pair {
 struct input_data {
 	long size, num_supp, support_bounds[6] ;
 	float *obs_mag ;
-	uint8_t *support ;
+	int8_t *support ;
 	float complex *bragg_calc ;
 	
 	// do_histogram

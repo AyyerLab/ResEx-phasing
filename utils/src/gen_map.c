@@ -12,7 +12,7 @@ int main(int argc, char *argv[]) {
 	long mmin_y, mmax_y, ms_y ;
 	long mmin_z, mmax_z, ms_z ;
 	float vox_x, vox_y, vox_z, *model, *mmodel ;
-	uint8_t *support ;
+	int8_t *support ;
 	char fname[1024], label[800] ;
 	FILE *fp ;
 	
@@ -39,7 +39,7 @@ int main(int argc, char *argv[]) {
 	fread(model, sizeof(float), vol, fp) ;
 	fclose(fp) ;
 	
-	support = malloc(vol * sizeof(uint8_t)) ;
+	support = malloc(vol * sizeof(int8_t)) ;
 	if (strncmp(argv[5], "all", 3) == 0) {
 		fprintf(stderr, "Assuming full cube to be within support\n") ;
 		for (x = 0 ; x < vol ; ++x)
@@ -47,7 +47,7 @@ int main(int argc, char *argv[]) {
 	}
 	else {
 		fp = fopen(argv[5], "rb") ;
-		fread(support, sizeof(uint8_t), vol, fp) ;
+		fread(support, sizeof(int8_t), vol, fp) ;
 		fclose(fp) ;
 	}
 

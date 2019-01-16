@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
 	long z ;
 	double tx, ty, tz, fx, fy, fz, cx, cy, cz, w, f ;
 	double rot_pix[3] ;
-	uint8_t *mask ;
+	int8_t *mask ;
 	
 	if (argc < 2) {
 		fprintf(stderr, "Merge Synch: Basic frame merging using CBF file list\n") ;
@@ -61,11 +61,11 @@ int main(int argc, char *argv[]) {
 	model3d = calloc(size*size*size, sizeof(float)) ;
 	weight = calloc(size*size*size, sizeof(float)) ;
 	frame = malloc(fsize*fsize*sizeof(unsigned short)) ;
-	mask = malloc(fsize*fsize*sizeof(uint8_t)) ;
+	mask = malloc(fsize*fsize*sizeof(int8_t)) ;
 	
 	// Read in mask
 	fp = fopen("data/adsc_mask.byt", "rb") ;
-	fread(mask, sizeof(uint8_t), fsize*fsize, fp) ;
+	fread(mask, sizeof(int8_t), fsize*fsize, fp) ;
 	fclose(fp) ;
 	
 	fp_list = fopen(argv[1], "r") ;

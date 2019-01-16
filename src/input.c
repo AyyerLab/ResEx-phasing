@@ -110,9 +110,9 @@ int input_parse_support(struct input_data *self, char *fname) {
 		fprintf(stderr, "%s not found.\n", fname) ;
 		return 1 ;
 	}
-	self->support = malloc(vol * sizeof(uint8_t)) ;
+	self->support = malloc(vol * sizeof(int8_t)) ;
 	self->supp_locval = malloc(vol / 8 * sizeof(struct locval_pair)) ;
-	fread(self->support, sizeof(uint8_t), vol, fp) ;
+	fread(self->support, sizeof(int8_t), vol, fp) ;
 	fclose(fp) ;
 	
 	for (x = 0 ; x < 6 ; ++x)
@@ -343,7 +343,7 @@ void input_update_support(struct input_data *self, float *model, long box_rad) {
 	// Sort and set keep highest num_supp values
 	qsort(self->local_variation, num_vox, sizeof(long), compare_indices) ;
 	
-	memset(self->support, 0, vol*sizeof(uint8_t)) ;
+	memset(self->support, 0, vol*sizeof(int8_t)) ;
 	for (i = 0 ; i < self->num_supp ; ++i)
 		self->support[self->local_variation[i].loc] = 1 ;
 }

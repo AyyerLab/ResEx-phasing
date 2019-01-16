@@ -58,7 +58,7 @@ void fft_gaussian_blur(struct fft_data *self, float *model, float blur) {
 		model[x] = crealf(self->rdensity[x]) / vol ;
 }
 
-long fft_apply_shrinkwrap(struct fft_data *self, float *model, float blur, float threshold, uint8_t *support, char *fname) {
+long fft_apply_shrinkwrap(struct fft_data *self, float *model, float blur, float threshold, int8_t *support, char *fname) {
 	long x, num_supp = 0, size = self->size, vol = size*size*size ;
 	
 	// Blur model
@@ -77,7 +77,7 @@ long fft_apply_shrinkwrap(struct fft_data *self, float *model, float blur, float
 	if (fname != NULL) {
 		mkdir(dirname(fname), S_IRWXU|S_IRGRP|S_IROTH) ;
 		FILE *fp = fopen(fname, "wb") ;
-		fwrite(support, sizeof(uint8_t), vol, fp) ;
+		fwrite(support, sizeof(int8_t), vol, fp) ;
 		fclose(fp) ;
 	}
 	

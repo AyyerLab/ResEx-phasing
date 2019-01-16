@@ -361,7 +361,7 @@ void save_output(struct algorithm_data *self) {
 	if (self->do_local_variation) {
 		sprintf(fname, "%s-supp.supp", self->output_prefix) ;
 		fp = fopen(fname, "wb") ;
-		fwrite(self->input->support, sizeof(uint8_t), self->vol, fp) ;
+		fwrite(self->input->support, sizeof(int8_t), self->vol, fp) ;
 		fclose(fp) ;
 	}
 }

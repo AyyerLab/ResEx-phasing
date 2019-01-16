@@ -26,5 +26,5 @@ void volume_free(struct volume_data*) ;
 
 void volume_accumulate(float*, float*, long) ;
 void volume_dump_slices(float*, char*, long, int) ;
-void volume_dump_support_slices(uint8_t*, char*, long) ;
+void volume_dump_support_slices(int8_t*, char*, long) ;
 float volume_positive_mode(float*, long) ;

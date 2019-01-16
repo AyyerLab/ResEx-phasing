@@ -4,7 +4,7 @@
 int main(int argc, char* argv[]) {
 	long size, vol, num_supp ;
 	float blur, thresh, *density ;
-	uint8_t *support ;
+	int8_t *support ;
 	char fname[1024] ;
 	FILE *fp ;
 	struct fft_data fft ;
@@ -28,7 +28,7 @@ int main(int argc, char* argv[]) {
 	
 	// Parse density
 	density = malloc(vol * sizeof(float)) ;
-	support = calloc(vol, sizeof(uint8_t)) ;
+	support = calloc(vol, sizeof(int8_t)) ;
 	fp = fopen(argv[1], "rb") ;
 	fread(density, sizeof(float), vol, fp) ;
 	fclose(fp) ;
@@ -47,7 +47,7 @@ int main(int argc, char* argv[]) {
 	}
 	fprintf(stderr, "Writing support to %s\n", fname) ;
 	fp = fopen(fname, "wb") ;
-	fwrite(support, sizeof(uint8_t), vol, fp) ;
+	fwrite(support, sizeof(int8_t), vol, fp) ;
 	fclose(fp) ;
 	
 	// Free memory

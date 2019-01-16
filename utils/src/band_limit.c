@@ -11,7 +11,7 @@
 int main(int argc, char *argv[]) {
 	long i, size, vol, num_autocorr, num_supp ;
 	float *intens ;
-	uint8_t *support ;
+	int8_t *support ;
 	FILE *fp ;
 	char fname[999] ;
 	struct fft_data fft ;
@@ -38,9 +38,9 @@ int main(int argc, char *argv[]) {
 		intens[i] = 0.f ;
 	
 	// Read support
-	support = malloc(vol * sizeof(uint8_t)) ;
+	support = malloc(vol * sizeof(int8_t)) ;
 	fp = fopen(argv[2], "rb") ;
-	fread(support, sizeof(uint8_t), vol, fp) ;
+	fread(support, sizeof(int8_t), vol, fp) ;
 	fclose(fp) ;
 	
 	num_supp = 0 ;
