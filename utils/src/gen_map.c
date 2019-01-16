@@ -4,19 +4,21 @@
 #include <math.h>
 #include <stdint.h>
 #include "../../src/utils.h"
+#include "../../src/map.h"
 
 int main(int argc, char *argv[]) {
 	long s, vol, mvol, x, y, z, vox, num_supp = 0 ;
 	long mmin_x, mmax_x, ms_x ;
 	long mmin_y, mmax_y, ms_y ;
 	long mmin_z, mmax_z, ms_z ;
-	int ival ;
-	float fval, vox_x, vox_y, vox_z, *model, *mmodel ;
+	float vox_x, vox_y, vox_z, *model, *mmodel ;
 	float mean = 0.f, rms = 0.f, max = -1.e20, min = 1.e20 ;
-	char *buffer, fname[999] ;
 	uint8_t *support ;
+	struct ccp4_map map = {0} ;
+	char fname[1024] ;
 	FILE *fp ;
 	
+	// Parse command line arguments
 	if (argc < 6) {
 		fprintf(stderr, "Gen Map: Produce CCP4/MRC map from electron density\n") ;
 		fprintf(stderr, "---------------------------------------------------\n") ;
@@ -113,115 +115,54 @@ int main(int argc, char *argv[]) {
 			= model[(x+mmin_x)*s*s + (y+mmin_y)*s + (z+mmin_z)] ; // s*s*s
 	free(model) ;
 
-	// Start writing map
-	// --------------------------------------------------------------------------------
-	sprintf(fname, "data/maps/%s.map.ccp4", remove_ext(extract_fname(argv[1]))) ;
-	fp = fopen(fname, "wb") ;
-	// NC, NR, NS
-	ival = ms_x ;
-	fwrite(&ival, sizeof(int), 1, fp) ;
-	ival = ms_y ;
-	fwrite(&ival, sizeof(int), 1, fp) ;
-	ival = ms_z ;
-	fwrite(&ival, sizeof(int), 1, fp) ;
-	// MODE
-	ival = 2 ;
-	fwrite(&ival, sizeof(int), 1, fp) ;
-
-	// NCSTART, NRSTART, NSSTART
-	ival = 0 ;
-	fwrite(&ival, sizeof(int), 1, fp) ;
-	fwrite(&ival, sizeof(int), 1, fp) ;
-	fwrite(&ival, sizeof(int), 1, fp) ;
-
-	// NX, NY, NZ
-	ival = ms_z ;
-	fwrite(&ival, sizeof(int), 1, fp) ;
-	ival = ms_y ;
-	fwrite(&ival, sizeof(int), 1, fp) ;
-	ival = ms_x ;
-	fwrite(&ival, sizeof(int), 1, fp) ;
-
-	// X_LENGTH, Y_LENGTH, Z_LENGTH
-	fval = vox_z * ms_z ;
-	fprintf(stderr, "box size = %f", fval) ;
-	fwrite(&fval, sizeof(float), 1, fp) ;
-	fval = vox_y * ms_y ;
-	fprintf(stderr, " x %f", fval) ;
-	fwrite(&fval, sizeof(float), 1, fp) ;
-	fval = vox_x * ms_x ;
-	fprintf(stderr, " x %f A\n", fval) ;
-	fwrite(&fval, sizeof(float), 1, fp) ;
-	// ALPHA, BETA, GAMMA
-	fval = 90. ;
-	fwrite(&fval, sizeof(float), 1, fp) ;
-	fwrite(&fval, sizeof(float), 1, fp) ;
-	fwrite(&fval, sizeof(float), 1, fp) ;
-
-	// MAPC, MAPR, MAPS
-	ival = 3 ;
-	fwrite(&ival, sizeof(int), 1, fp) ;
-	ival = 2 ;
-	fwrite(&ival, sizeof(int), 1, fp) ;
-	ival = 1 ;
-	fwrite(&ival, sizeof(int), 1, fp) ;
-
-	// AMIN, AMAX, AMEAN
-	fwrite(&max, sizeof(float), 1, fp) ;
-	fwrite(&min, sizeof(float), 1, fp) ;
-	fwrite(&mean, sizeof(float), 1, fp) ;
-
-	// ISPG, NSYMBT
-	ival = 1 ;
-	fwrite(&ival, sizeof(int), 1, fp) ;
-	ival = 0 ;
-	fwrite(&ival, sizeof(int), 1, fp) ;
-	// LSKFlG, SKWMAT, SKWTRN
-	ival = 0 ;
-	fwrite(&ival, sizeof(int), 1, fp) ;
-	fval = 0. ;
-	for (x = 0 ; x < 12 ; ++x)
-		fwrite(&fval, sizeof(float), 1, fp) ;
-
-	// EXTRA
-	buffer = calloc(15*4, sizeof(char)) ;
-	fwrite(buffer, sizeof(char), 15*4, fp) ;
-	free(buffer) ;
-	// MAP
-	buffer = malloc(4 * sizeof(char)) ;
-	buffer[0] = 'M' ;
-	buffer[1] = 'A' ;
-	buffer[2] = 'P' ;
-	buffer[3] = ' ' ;
-	fwrite(buffer, sizeof(char), 4, fp) ;
-	free(buffer) ;
-
-	// MACHST
-	buffer = malloc(4 * sizeof(char)) ;
-	buffer[0] = 0x44 ;
-	buffer[1] = 0x41 ;
-	buffer[2] = 0x00 ;
-	buffer[3] = 0x00 ;
-	fwrite(buffer, sizeof(char), 4, fp) ;
-	free(buffer) ;
-
-	// RMS
-	fwrite(&rms, sizeof(float), 1, fp) ;
-	// NLABL
-	ival = 1 ;
-	fwrite(&ival, sizeof(int), 1, fp) ;
-	// LABEL_N
-	char label[800] ;
-	sprintf(label, "%s %ld %s", argv[1], s, argv[5]) ;
-	fprintf(stderr, "label = %s\n", label) ;
-	fwrite(label, sizeof(char), 800, fp) ;
-
-	// VOXELS
-	fwrite(mmodel, sizeof(float), mvol, fp) ;
+	// Create map
+	map.header.nx = ms_x ;
+	map.header.ny = ms_y ;
+	map.header.nz = ms_z ;
+	map.header.mode = 2 ;
+	map.header.nxstart = 0 ;
+	map.header.nystart = 0 ;
+	map.header.nzstart = 0 ;
+	map.header.mx = ms_z ; // Note reversed axes
+	map.header.my = ms_y ;
+	map.header.mz = ms_x ;
+	map.header.xlen = ms_z * vox_z ;
+	map.header.ylen = ms_y * vox_y ;
+	map.header.zlen = ms_x * vox_x ;
+	map.header.alpha = 90.f ;
+	map.header.beta = 90.f ;
+	map.header.gamma = 90.f ;
+	map.header.mapc = 3 ; // Due to reversed axes
+	map.header.mapr = 2 ;
+	map.header.maps = 1 ;
+	map.header.dmax = max ;
+	map.header.dmin = min ;
+	map.header.dmean = mean ;
+	map.header.ispg = 1 ;
+	map.header.nsymbt = 0 ;
+	memset(map.header.extra, 0, 100) ;
+	map.header.xorig = 0.f ;
+	map.header.yorig = 0.f ;
+	map.header.zorig = 0.f ;
+	strcpy(map.header.cmap, "MAP") ;
+	map.header.cmap[3] = ' ' ;
+	map.header.machst[0] = 0x44 ;
+	map.header.machst[1] = 0x41 ; // Other two bytes zeroed
+	map.header.rms = rms ;
+	map.header.nlabl = 1 ;
+	sprintf(map.header.labels[0], "ResEx-phasing:gen_map %s %ld %s", argv[1], s, argv[5]) ;
+	map.data = malloc(mvol * sizeof(float)) ;
+	memcpy(map.data, mmodel, mvol*sizeof(float)) ;
 	
-	fclose(fp) ;
+	// Write map to file
+	fprintf(stderr, "box size = %f x %f x %f\n", map.header.xlen, map.header.ylen, map.header.zlen) ;
+	sprintf(fname, "%s.ccp4", remove_ext(argv[1])) ;
+	fprintf(stderr, "Saving map file to %s\n", fname) ;
+	write_map(fname, &map) ;
 	
+	// Free memory
 	free(mmodel) ;
+	free_map(&map) ;
 	
 	return 0 ;
 }

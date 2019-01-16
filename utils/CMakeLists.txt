@@ -15,6 +15,7 @@ endforeach(src)
 # Add specific object libraries for different utilities
 target_sources(gen_fdens PUBLIC $<TARGET_OBJECTS:fft.o> $<TARGET_OBJECTS:volume.o>)
 target_sources(read_map PUBLIC $<TARGET_OBJECTS:map.o>)
+target_sources(gen_map PUBLIC $<TARGET_OBJECTS:map.o>)
 target_sources(band_limit PUBLIC $<TARGET_OBJECTS:fft.o>)
 target_sources(boost_cont PUBLIC $<TARGET_OBJECTS:fft.o>)
 target_sources(calc_fsc PUBLIC $<TARGET_OBJECTS:fft.o>)
