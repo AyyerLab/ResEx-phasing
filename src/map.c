@@ -84,6 +84,136 @@ int write_map(char *fname, struct ccp4_map *map) {
 	return 0 ;
 }
 
+int save_vol_as_map(char *fname, float *vol, int size[3], float vox_size[3], char *label) {
+	int x, nx, ny, nz ;
+	float min = FLT_MAX, max = -FLT_MAX, mean = 0, rms = 0 ;
+	struct ccp4_map map = {0} ;
+	
+	nx = size[0] ;
+	ny = size[1] ;
+	nz = size[2] ;
+	
+	for (x = 0 ; x < nx*ny*nz ; ++x) {
+		mean += vol[x] ;
+		rms += vol[x] * vol[x] ;
+		if (vol[x] > max)
+			max = vol[x] ;
+		if (vol[x] < min)
+			min = vol[x] ;
+	}
+	mean /= nx*ny*nz ;
+	rms = sqrtf(rms / (nx*ny*nz) - mean*mean) ;
+	
+	map.header.nx = nx ;
+	map.header.ny = ny ;
+	map.header.nz = nz ;
+	map.header.mode = 2 ;
+	map.header.nxstart = 0 ;
+	map.header.nystart = 0 ;
+	map.header.nzstart = 0 ;
+	map.header.mx = nz ; // Note reversed axes
+	map.header.my = ny ;
+	map.header.mz = nx ;
+	map.header.xlen = nz * vox_size[2] ;
+	map.header.ylen = ny * vox_size[1] ;
+	map.header.zlen = nx * vox_size[0] ;
+	map.header.alpha = 90.f ;
+	map.header.beta = 90.f ;
+	map.header.gamma = 90.f ;
+	map.header.mapc = 3 ; // Due to reversed axes
+	map.header.mapr = 2 ;
+	map.header.maps = 1 ;
+	map.header.dmax = max ;
+	map.header.dmin = min ;
+	map.header.dmean = mean ;
+	map.header.ispg = 1 ;
+	map.header.nsymbt = 0 ;
+	memset(map.header.extra, 0, 100) ;
+	map.header.xorig = 0.f ;
+	map.header.yorig = 0.f ;
+	map.header.zorig = 0.f ;
+	strcpy(map.header.cmap, "MAP") ;
+	map.header.cmap[3] = ' ' ;
+	map.header.machst[0] = 0x44 ;
+	map.header.machst[1] = 0x41 ; // Other two bytes zeroed
+	map.header.rms = rms ;
+	map.header.nlabl = 1 ;
+	x = strlen(label) > 800 ? 800 : strlen(label) ;
+	memcpy(map.header.labels[0], label, x) ;
+	map.data = vol ;
+
+	if (write_map(fname, &map))
+		return 1 ;
+	free_map(&map) ;
+	
+	return 1 ;
+}
+
+int save_mask_as_map(char *fname, int8_t *mask, int size[3], float vox_size[3], char *label) {
+	int x, nx, ny, nz ;
+	float min = FLT_MAX, max = -FLT_MAX, mean = 0, rms = 0 ;
+	struct ccp4_map map = {0} ;
+	
+	nx = size[0] ;
+	ny = size[1] ;
+	nz = size[2] ;
+	
+	for (x = 0 ; x < nx*ny*nz ; ++x) {
+		mean += vol[x] ;
+		rms += vol[x] * vol[x] ;
+		if (vol[x] > max)
+			max = vol[x] ;
+		if (vol[x] < min)
+			min = vol[x] ;
+	}
+	mean /= nx*ny*nz ;
+	rms = sqrtf(rms / (nx*ny*nz) - mean*mean) ;
+	
+	map.header.nx = nx ;
+	map.header.ny = ny ;
+	map.header.nz = nz ;
+	map.header.mode = 0 ;
+	map.header.nxstart = 0 ;
+	map.header.nystart = 0 ;
+	map.header.nzstart = 0 ;
+	map.header.mx = nz ; // Note reversed axes
+	map.header.my = ny ;
+	map.header.mz = nx ;
+	map.header.xlen = nz * vox_size[2] ;
+	map.header.ylen = ny * vox_size[1] ;
+	map.header.zlen = nx * vox_size[0] ;
+	map.header.alpha = 90.f ;
+	map.header.beta = 90.f ;
+	map.header.gamma = 90.f ;
+	map.header.mapc = 3 ; // Due to reversed axes
+	map.header.mapr = 2 ;
+	map.header.maps = 1 ;
+	map.header.dmax = max ;
+	map.header.dmin = min ;
+	map.header.dmean = mean ;
+	map.header.ispg = 1 ;
+	map.header.nsymbt = 0 ;
+	memset(map.header.extra, 0, 100) ;
+	map.header.xorig = 0.f ;
+	map.header.yorig = 0.f ;
+	map.header.zorig = 0.f ;
+	strcpy(map.header.cmap, "MAP") ;
+	map.header.cmap[3] = ' ' ;
+	map.header.machst[0] = 0x44 ;
+	map.header.machst[1] = 0x41 ; // Other two bytes zeroed
+	map.header.rms = rms ;
+	map.header.nlabl = 1 ;
+	x = strlen(label) > 800 ? 800 : strlen(label) ;
+	memcpy(map.header.labels[0], label, x) ;
+	map.i8_data = mask ;
+
+	if (write_map(fname, &map))
+		return 1 ;
+	free_map(&map) ;
+	
+	return 1 ;
+}
+
 void free_map(struct ccp4_map *map) {
 	if (map->ext_header != NULL)
 		free(map->ext_header) ;
