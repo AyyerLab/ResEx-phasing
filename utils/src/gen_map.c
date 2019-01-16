@@ -12,10 +12,8 @@ int main(int argc, char *argv[]) {
 	long mmin_y, mmax_y, ms_y ;
 	long mmin_z, mmax_z, ms_z ;
 	float vox_x, vox_y, vox_z, *model, *mmodel ;
-	float mean = 0.f, rms = 0.f, max = -1.e20, min = 1.e20 ;
 	uint8_t *support ;
-	struct ccp4_map map = {0} ;
-	char fname[1024] ;
+	char fname[1024], label[800] ;
 	FILE *fp ;
 	
 	// Parse command line arguments
@@ -76,17 +74,8 @@ int main(int argc, char *argv[]) {
 		if (z > mmax_z)
 			mmax_z = z ;
 		
-		mean += model[vox] ;
-		rms += model[vox] * model[vox] ;
-		
-		if (model[vox] > max)
-			max = model[vox] ;
-		if (model[vox] < min)
-			min = model[vox] ;
-		
 		num_supp++ ;
 	}
-	free(support) ;
 	
 //	mmin_x -= 2 ; mmin_y -= 2 ; mmin_z -= 2 ;
 //	mmax_x += 2 ; mmax_y += 2 ; mmax_z += 2 ;
@@ -98,12 +87,7 @@ int main(int argc, char *argv[]) {
 	fprintf(stderr, "max = (%ld, %ld, %ld)\n", mmax_x, mmax_y, mmax_z) ;
 	fprintf(stderr, "Model volume = %ld x %ld x %ld = %ld\n", ms_x, ms_y, ms_z, mvol) ;
 	
-	mean /= (float) num_supp ;
-	rms /= (float) num_supp ;
-	rms = sqrtf(rms - mean*mean) ;
 	fprintf(stderr, "Effective solvent fraction = %f\n", 1. - ((double) num_supp) / mvol) ;
-	fprintf(stderr, "max = %.6e, min = %.6e\n", max, min) ;
-	fprintf(stderr, "mean = %.6e, rms = %.6e\n", mean, rms) ;
 	
 	// Extract sub-volume
 	mmodel = malloc(mvol * sizeof(float)) ;
@@ -113,56 +97,19 @@ int main(int argc, char *argv[]) {
 //		mmodel[((z+ms_z/2)%ms_z)*ms_y*ms_x + ((y+ms_y/2)%ms_y)*ms_x + ((x+ms_x/2)%ms_x)] // ms_x*ms_y*ms_z, translated
 		mmodel[z*ms_y*ms_x + y*ms_x + x] // ms_x*ms_y*ms_z
 			= model[(x+mmin_x)*s*s + (y+mmin_y)*s + (z+mmin_z)] ; // s*s*s
-	free(model) ;
-
-	// Create map
-	map.header.nx = ms_x ;
-	map.header.ny = ms_y ;
-	map.header.nz = ms_z ;
-	map.header.mode = 2 ;
-	map.header.nxstart = 0 ;
-	map.header.nystart = 0 ;
-	map.header.nzstart = 0 ;
-	map.header.mx = ms_z ; // Note reversed axes
-	map.header.my = ms_y ;
-	map.header.mz = ms_x ;
-	map.header.xlen = ms_z * vox_z ;
-	map.header.ylen = ms_y * vox_y ;
-	map.header.zlen = ms_x * vox_x ;
-	map.header.alpha = 90.f ;
-	map.header.beta = 90.f ;
-	map.header.gamma = 90.f ;
-	map.header.mapc = 3 ; // Due to reversed axes
-	map.header.mapr = 2 ;
-	map.header.maps = 1 ;
-	map.header.dmax = max ;
-	map.header.dmin = min ;
-	map.header.dmean = mean ;
-	map.header.ispg = 1 ;
-	map.header.nsymbt = 0 ;
-	memset(map.header.extra, 0, 100) ;
-	map.header.xorig = 0.f ;
-	map.header.yorig = 0.f ;
-	map.header.zorig = 0.f ;
-	strcpy(map.header.cmap, "MAP") ;
-	map.header.cmap[3] = ' ' ;
-	map.header.machst[0] = 0x44 ;
-	map.header.machst[1] = 0x41 ; // Other two bytes zeroed
-	map.header.rms = rms ;
-	map.header.nlabl = 1 ;
-	sprintf(map.header.labels[0], "ResEx-phasing:gen_map %s %ld %s", argv[1], s, argv[5]) ;
-	map.data = malloc(mvol * sizeof(float)) ;
-	memcpy(map.data, mmodel, mvol*sizeof(float)) ;
 	
 	// Write map to file
-	fprintf(stderr, "box size = %f x %f x %f\n", map.header.xlen, map.header.ylen, map.header.zlen) ;
+	sprintf(label, "ResEx-phasing:gen_map %s %ld %s", argv[1], s, argv[5]) ;
 	sprintf(fname, "%s.ccp4", remove_ext(argv[1])) ;
 	fprintf(stderr, "Saving map file to %s\n", fname) ;
-	write_map(fname, &map) ;
+	int size[3] = {ms_x, ms_y, ms_z} ;
+	float vsize[3] = {vox_x, vox_y, vox_z} ;
+	save_vol_as_map(fname, mmodel, size, vsize, label) ;
 	
 	// Free memory
+	free(support) ;
+	free(model) ;
 	free(mmodel) ;
-	free_map(&map) ;
 	
 	return 0 ;
 }
