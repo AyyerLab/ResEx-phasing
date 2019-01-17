@@ -39,6 +39,6 @@ struct ccp4_map {
 
 int parse_map(char*, struct ccp4_map*) ;
 int write_map(char*, struct ccp4_map*) ;
-int save_vol_as_map(char*, float*, int[3], float[3], char*) ;
-int save_mask_as_map(char*, int8_t*, int[3], float[3], char*) ;
+int save_vol_as_map(char*, float*, int[3], float[3], char*, int) ;
+int save_mask_as_map(char*, int8_t*, int[3], float[3], char*, int) ;
 void free_map(struct ccp4_map*) ;
