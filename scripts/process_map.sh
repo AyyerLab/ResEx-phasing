@@ -61,11 +61,11 @@ map_name=`basename $1`
 mapnoext="${map_name%.*}"
 log_name=data/logs/${mapnoext}.log
 echo Log file: $log_name
-strmodel=data/convert/${mapnoext}-str.cpx
-lowresmodel_name=data/convert/${mapnoext}-recon.raw
-supp_name=data/convert/${mapnoext}.supp
-supprecon_name=data/convert/${mapnoext}-srecon.raw
-cpx_name=data/convert/${mapnoext}.cpx
+strmodel=data/convert/${mapnoext}-str.ccp4
+lowresmodel_name=data/convert/${mapnoext}-recon.ccp4
+supp_name=data/convert/${mapnoext}-supp.ccp4
+supprecon_name=data/convert/${mapnoext}-srecon.ccp4
+cpx_name=data/convert/${mapnoext}-cpx.ccp4
 
 # Read map and generate 3D model
 if [ $skip -eq 0 ]
@@ -78,15 +78,15 @@ then
 	padsize=`grep "volume size" $log_name|awk '{print $5}'`
 	padnoext="${padmodel%.*}"
 	echo -------------------------------------------------------------------------------- >> $log_name
-	echo ./utils/gen_fdens $padmodel ${padnoext}-fdens.cpx 1| tee -a $log_name
-	${utils}/gen_fdens $padmodel ${padnoext}-fdens.cpx 1 >> $log_name 2>&1
+	echo ./utils/gen_fdens $padmodel ${padnoext}-fdens.ccp4 1| tee -a $log_name
+	${utils}/gen_fdens $padmodel ${padnoext}-fdens.ccp4 1 >> $log_name 2>&1
 	
 	sx=`grep Stretch $log_name|awk -F'[=,()]' '{print $3}'`
 	sy=`grep Stretch $log_name|awk -F'[=,()]' '{print $4}'`
 	sz=`grep Stretch $log_name|awk -F'[=,()]' '{print $5}'`
 	echo -------------------------------------------------------------------------------- >> $log_name
-	echo ./utils/fstretch ${padnoext}-fdens.cpx $size $sx $sy $sz $strmodel | tee -a $log_name
-	${utils}/fstretch ${padnoext}-fdens.cpx $size $sx $sy $sz $strmodel >> $log_name 2>&1
+	echo ./utils/fstretch ${padnoext}-fdens.ccp4 $size $sx $sy $sz $strmodel | tee -a $log_name
+	${utils}/fstretch ${padnoext}-fdens.ccp4 $size $sx $sy $sz $strmodel >> $log_name 2>&1
 	
 	echo -------------------------------------------------------------------------------- >> $log_name
 	echo ./utils/gen_dens $strmodel $lowresmodel_name | tee -a $log_name
@@ -94,7 +94,7 @@ then
 	
 	echo -------------------------------------------------------------------------------- >> $log_name
 	echo Removing temporary files
-	rm -v $padmodel ${padnoext}-fdens.cpx ${padnoext}-fdens-sym.raw ${strmodel} ${strmodel%.*}-sym.raw >> $log_name
+	rm -v $padmodel ${padnoext}-fdens.ccp4 ${padnoext}-fdens-sym.ccp4 ${strmodel} ${strmodel%.*}-sym.ccp4 >> $log_name
 fi
 
 # Calculate support and constrain model by support
@@ -109,8 +109,8 @@ then
 	python <<-EOF
 	import numpy as np
 	m = np.fromfile('$lowresmodel_name', '=f4')
-	s = np.fromfile('$supp_name', '=u1')
-	m *= s
+	s = np.fromfile('$supp_name', '=i1')[1024:]
+	m[256:] *= s
 	m.tofile('$supprecon_name')
 	EOF
 	
