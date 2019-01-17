@@ -104,7 +104,7 @@ int main(int argc, char *argv[]) {
 	fprintf(stderr, "Saving map file to %s\n", fname) ;
 	int size[3] = {ms_x, ms_y, ms_z} ;
 	float vsize[3] = {vox_x, vox_y, vox_z} ;
-	save_vol_as_map(fname, mmodel, size, vsize, label) ;
+	save_vol_as_map(fname, mmodel, size, vsize, label, 1) ;
 	
 	// Free memory
 	free(support) ;
