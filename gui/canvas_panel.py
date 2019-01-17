@@ -29,6 +29,7 @@ class CanvasPanel(QtWidgets.QWidget):
         self.setAttribute(QtCore.Qt.WA_StyledBackground)
         self.typestr = 'f4'
         self.size = None
+        self.vol_size = None
         self.vol = None
         self.rad = None
         self.old_fname = None

@@ -480,6 +480,8 @@ class ConfigPanel(QtWidgets.QWidget):
             self.add_to_map_tab(mapnoext)
             with open('data/logs/'+mapnoext+'.log', 'r') as f:
                 words = f.read().split()
+                if self.canvas_panel.vol_size is None:
+                    self.canvas_panel.vol_size = int(words[::-1][words[::-1].index('size')-2])
                 warray = np.array(words)
                 self.resedge.setText(str(float(words[words.index('./utils/read_map')+2])/(self.canvas_panel.vol_size//2)))
                 self.point_group.setText(words[np.where(warray=='data/convert/'+mapnoext+'-srecon.raw')[0][0]+2])
