@@ -11,8 +11,7 @@ int main(int argc, char *argv[]) {
 	float px, py, pz, voxres[3] ;
 	float central_sum = 0.f, edge_sum= 0.f ;
 	float *padmodel ;
-	struct ccp4_map map ;
-	FILE *fp ;
+	struct ccp4_map map = {0} ;
 	char fname[1024] ;
 	
 	// Parse command line arguments
@@ -22,8 +21,7 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "\nUsage: %s <map_fname> <voxres>\n", argv[0]) ;
 		fprintf(stderr, "\twhere <voxres> is the resolution at 1 pixel in Angstroms\n") ;
 		fprintf(stderr, "One can also give three different <voxres> parameters for different axes\n") ;
-		fprintf(stderr, "\nOutput: data/<map_fname>-map.raw for just a dump of map\n") ;
-		fprintf(stderr, "\tdata/convert/<map_fname>-<padded_size>.raw for padded model with approx. target voxel size\n") ;
+		fprintf(stderr, "\nOutput: data/convert/<map_fname>-<padded_size>.ccp4 for padded model with approx. target voxel size\n") ;
 		fprintf(stderr, "\tAlso output correction factors to get exact voxel size (to be used by 'fstretch')\n") ;
 		return 1 ;
 	}
@@ -55,8 +53,8 @@ int main(int argc, char *argv[]) {
 	// Test if translation needed by comparing edge slice to central slice
 	for (y = 0 ; y < ny ; ++y)
 	for (z = 0 ; z < nz ; ++z) {
-		edge_sum += fabsf(map.data[y*nz + z]) ;
-		central_sum += fabsf(map.data[(nx/2)*ny*nz + y*nz + z]) ;
+		edge_sum += fabsf(map.f32_data[y*nz + z]) ;
+		central_sum += fabsf(map.f32_data[(nx/2)*ny*nz + y*nz + z]) ;
 	}
 	
 	section_flag = edge_sum > central_sum ? 0 : 1 ;
@@ -90,14 +88,14 @@ int main(int argc, char *argv[]) {
 			for (y = 0 ; y < ny ; ++y)
 			for (z = 0 ; z < nz ; ++z)
 				padmodel[(x+shx)*psize*psize + (y+shy)*psize + (z+shz)]
-				 = map.data[((x+nx/2)%nx)*ny*nz + ((y+ny/2)%ny)*nz + ((z+nz/2)%nz)] ;
+				 = map.f32_data[((x+nx/2)%nx)*ny*nz + ((y+ny/2)%ny)*nz + ((z+nz/2)%nz)] ;
 		}
 		else {
 			for (x = 0 ; x < nx ; ++x)
 			for (y = 0 ; y < ny ; ++y)
 			for (z = 0 ; z < nz ; ++z)
 				padmodel[(x+shx)*psize*psize + (y+shy)*psize + (z+shz)]
-				 = map.data[((z+nz/2)%nz)*ny*nx + ((y+ny/2)%ny)*nx + ((x+nx/2)%nx)] ;
+				 = map.f32_data[((z+nz/2)%nz)*ny*nx + ((y+ny/2)%ny)*nx + ((x+nx/2)%nx)] ;
 		}
 	}
 	else {
@@ -107,26 +105,28 @@ int main(int argc, char *argv[]) {
 			for (y = 0 ; y < ny ; ++y)
 			for (z = 0 ; z < nz ; ++z)
 				padmodel[(x+shx)*psize*psize + (y+shy)*psize + (z+shz)]
-				 = map.data[x*ny*nz + y*nz + z] ;
+				 = map.f32_data[x*ny*nz + y*nz + z] ;
 		}
 		else {
 			for (x = 0 ; x < nx ; ++x)
 			for (y = 0 ; y < ny ; ++y)
 			for (z = 0 ; z < nz ; ++z)
 				padmodel[(x+shx)*psize*psize + (y+shy)*psize + (z+shz)]
-				 = map.data[z*ny*nx + y*nx + x] ;
+				 = map.f32_data[z*ny*nx + y*nx + x] ;
 		}
 	}
 	
 	// Save to file
-	sprintf(fname, "data/convert/%s-%ld.raw", remove_ext(extract_fname(argv[1])), psize) ;
+	sprintf(fname, "data/convert/%s-%ld.ccp4", remove_ext(extract_fname(argv[1])), psize) ;
+	int sizes[3] = {psize, psize, psize} ;
+	float vsizes[3] = {1.f, 1.f, 1.f} ;
+	char label[800] ;
+	sprintf(label, "ResEx-phasing:read_map %s %.3e %.3e %.3e\n", extract_fname(argv[1]), voxres[0], voxres[1], voxres[2]) ;
 	fprintf(stderr, "Saving padded model to %s\n", fname) ;
-	fp = fopen(fname, "wb") ;
-	fwrite(padmodel, sizeof(float), pvol, fp) ;
-	fclose(fp) ;
+	save_vol_as_map(fname, padmodel, sizes, vsizes, label, 0) ;
 	
-	free_map(&map) ;
 	free(padmodel) ;
+	free_map(&map) ;
 	
 	return 0 ;
 }
