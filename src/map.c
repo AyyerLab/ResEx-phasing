@@ -31,13 +31,13 @@ int parse_map(char *fname, struct ccp4_map *map) {
 	}
 	else if (mode == 2) {
 		fprintf(stderr, "Parsing (%d, %d, %d) float volume\n", nx, ny, nz) ;
-		map->data = malloc(vol * sizeof(float)) ;
-		fread(map->data, sizeof(float), vol, fp) ;
+		map->f32_data = malloc(vol * sizeof(float)) ;
+		fread(map->f32_data, sizeof(float), vol, fp) ;
 	}
 	else if (mode == 4) {
 		fprintf(stderr, "Parsing (%d, %d, %d) float complex volume\n", nx, ny, nz) ;
-		map->c8_data = malloc(vol * sizeof(float complex)) ;
-		fread(map->c8_data, sizeof(float complex), vol, fp) ;
+		map->c64_data = malloc(vol * sizeof(float complex)) ;
+		fread(map->c64_data, sizeof(float complex), vol, fp) ;
 	}
 	else if (mode == 6) {
 		fprintf(stderr, "Parsing (%d, %d, %d) uint16_t volume\n", nx, ny, nz) ;
@@ -74,14 +74,69 @@ int write_map(char *fname, struct ccp4_map *map) {
 	else if (mode == 1)
 		fwrite(map->i16_data, sizeof(int16_t), vol, fp) ;
 	else if (mode == 2)
-		fwrite(map->data, sizeof(float), vol, fp) ;
+		fwrite(map->f32_data, sizeof(float), vol, fp) ;
 	else if (mode == 4)
-		fwrite(map->c8_data, sizeof(float complex), vol, fp) ;
+		fwrite(map->c64_data, sizeof(float complex), vol, fp) ;
 	else if (mode == 6)
 		fwrite(map->u16_data, sizeof(uint16_t), vol, fp) ;
 	fclose(fp) ;
 	
 	return 0 ;
+}
+
+static void make_common_header(struct ccp4_map *map, int size[3], float vox_size[3], char *label, int flipped) {
+	int nx, ny, nz ;
+	nx = size[0] ;
+	ny = size[1] ;
+	nz = size[2] ;
+	
+	map->header.nx = nx ;
+	map->header.ny = ny ;
+	map->header.nz = nz ;
+	map->header.nxstart = 0 ;
+	map->header.nystart = 0 ;
+	map->header.nzstart = 0 ;
+	if (flipped) {
+		map->header.mx = nz ;
+		map->header.my = ny ;
+		map->header.mz = nx ;
+		map->header.xlen = nz * vox_size[2] ;
+		map->header.ylen = ny * vox_size[1] ;
+		map->header.zlen = nx * vox_size[0] ;
+		map->header.mapc = 3 ;
+		map->header.mapr = 2 ;
+		map->header.maps = 1 ;
+	}
+	else {
+		map->header.mx = nx ;
+		map->header.my = ny ;
+		map->header.mz = nz ;
+		map->header.xlen = nx * vox_size[0] ;
+		map->header.ylen = ny * vox_size[1] ;
+		map->header.zlen = nz * vox_size[2] ;
+		map->header.mapc = 1 ;
+		map->header.mapr = 2 ;
+		map->header.maps = 3 ;
+	}
+	map->header.alpha = 90.f ;
+	map->header.beta = 90.f ;
+	map->header.gamma = 90.f ;
+	map->header.ispg = 1 ;
+	map->header.nsymbt = 0 ;
+	memset(map->header.extra1, 0, 8) ;
+	memset(map->header.exttyp, 0, 4) ;
+	map->header.nversion = 20140 ;
+	memset(map->header.extra2, 0, 84) ;
+	map->header.xorig = 0.f ;
+	map->header.yorig = 0.f ;
+	map->header.zorig = 0.f ;
+	strcpy(map->header.cmap, "MAP") ;
+	map->header.cmap[3] = ' ' ;
+	map->header.machst[0] = 0x44 ;
+	map->header.machst[1] = 0x41 ; // Other two bytes zeroed
+	map->header.nlabl = 1 ;
+	nx = strlen(label) > 800 ? 800 : strlen(label) ;
+	memcpy(map->header.labels, label, nx) ;
 }
 
 int save_vol_as_map(char *fname, float *vol, int size[3], float vox_size[3], char *label, int flipped) {
@@ -104,56 +159,49 @@ int save_vol_as_map(char *fname, float *vol, int size[3], float vox_size[3], cha
 	mean /= nx*ny*nz ;
 	rms = sqrtf(rms / (nx*ny*nz) - mean*mean) ;
 	
-	map.header.nx = nx ;
-	map.header.ny = ny ;
-	map.header.nz = nz ;
+	make_common_header(&map, size, vox_size, label, flipped) ;
 	map.header.mode = 2 ;
-	map.header.nxstart = 0 ;
-	map.header.nystart = 0 ;
-	map.header.nzstart = 0 ;
-	if (flipped) {
-		map.header.mx = nz ;
-		map.header.my = ny ;
-		map.header.mz = nx ;
-		map.header.xlen = nz * vox_size[2] ;
-		map.header.ylen = ny * vox_size[1] ;
-		map.header.zlen = nx * vox_size[0] ;
-		map.header.mapc = 3 ;
-		map.header.mapr = 2 ;
-		map.header.maps = 1 ;
-	}
-	else {
-		map.header.mx = nx ;
-		map.header.my = ny ;
-		map.header.mz = nz ;
-		map.header.xlen = nx * vox_size[0] ;
-		map.header.ylen = ny * vox_size[1] ;
-		map.header.zlen = nz * vox_size[2] ;
-		map.header.mapc = 1 ;
-		map.header.mapr = 2 ;
-		map.header.maps = 3 ;
-	}
-	map.header.alpha = 90.f ;
-	map.header.beta = 90.f ;
-	map.header.gamma = 90.f ;
 	map.header.dmax = max ;
 	map.header.dmin = min ;
 	map.header.dmean = mean ;
-	map.header.ispg = 1 ;
-	map.header.nsymbt = 0 ;
-	memset(map.header.extra, 0, 100) ;
-	map.header.xorig = 0.f ;
-	map.header.yorig = 0.f ;
-	map.header.zorig = 0.f ;
-	strcpy(map.header.cmap, "MAP") ;
-	map.header.cmap[3] = ' ' ;
-	map.header.machst[0] = 0x44 ;
-	map.header.machst[1] = 0x41 ; // Other two bytes zeroed
 	map.header.rms = rms ;
-	map.header.nlabl = 1 ;
-	x = strlen(label) > 800 ? 800 : strlen(label) ;
-	memcpy(map.header.labels[0], label, x) ;
-	map.data = vol ;
+	map.f32_data = vol ;
+
+	if (write_map(fname, &map))
+		return 1 ;
+	// Not freeing map because data may be used later
+	
+	return 0 ;
+}
+
+int save_cpx_as_map(char *fname, float complex *cpx, int size[3], float vox_size[3], char *label, int flipped) {
+	int x, nx, ny, nz ;
+	float val, min = FLT_MAX, max = -FLT_MAX, mean = 0, rms = 0 ;
+	struct ccp4_map map = {0} ;
+	
+	nx = size[0] ;
+	ny = size[1] ;
+	nz = size[2] ;
+	
+	for (x = 0 ; x < nx*ny*nz ; ++x) {
+		val = cabsf(cpx[x]) ;
+		mean += val ;
+		rms += val * val ;
+		if (val > max)
+			max = val ;
+		if (val < min)
+			min = val ;
+	}
+	mean /= nx*ny*nz ;
+	rms = sqrtf(rms / (nx*ny*nz) - mean*mean) ;
+	
+	make_common_header(&map, size, vox_size, label, flipped) ;
+	map.header.mode = 4 ;
+	map.header.dmax = max ;
+	map.header.dmin = min ;
+	map.header.dmean = mean ;
+	map.header.rms = rms ;
+	map.c64_data = cpx ;
 
 	if (write_map(fname, &map))
 		return 1 ;
@@ -185,55 +233,12 @@ int save_mask_as_map(char *fname, int8_t *mask, int size[3], float vox_size[3], 
 	rms = sqrtf(rms / (nx*ny*nz) - mean*mean) ;
 	fprintf(stderr, "%ld voxels in mask\n", sum) ;
 	
-	map.header.nx = nx ;
-	map.header.ny = ny ;
-	map.header.nz = nz ;
+	make_common_header(&map, size, vox_size, label, flipped) ;
 	map.header.mode = 0 ;
-	map.header.nxstart = 0 ;
-	map.header.nystart = 0 ;
-	map.header.nzstart = 0 ;
-	if (flipped) {
-		map.header.mx = nz ;
-		map.header.my = ny ;
-		map.header.mz = nx ;
-		map.header.xlen = nz * vox_size[2] ;
-		map.header.ylen = ny * vox_size[1] ;
-		map.header.zlen = nx * vox_size[0] ;
-		map.header.mapc = 3 ;
-		map.header.mapr = 2 ;
-		map.header.maps = 1 ;
-	}
-	else {
-		map.header.mx = nx ;
-		map.header.my = ny ;
-		map.header.mz = nz ;
-		map.header.xlen = nx * vox_size[0] ;
-		map.header.ylen = ny * vox_size[1] ;
-		map.header.zlen = nz * vox_size[2] ;
-		map.header.mapc = 1 ;
-		map.header.mapr = 2 ;
-		map.header.maps = 3 ;
-	}
-	map.header.alpha = 90.f ;
-	map.header.beta = 90.f ;
-	map.header.gamma = 90.f ;
 	map.header.dmax = max ;
 	map.header.dmin = min ;
 	map.header.dmean = mean ;
-	map.header.ispg = 1 ;
-	map.header.nsymbt = 0 ;
-	memset(map.header.extra, 0, 100) ;
-	map.header.xorig = 0.f ;
-	map.header.yorig = 0.f ;
-	map.header.zorig = 0.f ;
-	strcpy(map.header.cmap, "MAP") ;
-	map.header.cmap[3] = ' ' ;
-	map.header.machst[0] = 0x44 ;
-	map.header.machst[1] = 0x41 ; // Other two bytes zeroed
 	map.header.rms = rms ;
-	map.header.nlabl = 1 ;
-	x = strlen(label) > 800 ? 800 : strlen(label) ;
-	memcpy(map.header.labels[0], label, x) ;
 	map.i8_data = mask ;
 
 	if (write_map(fname, &map))
@@ -250,10 +255,10 @@ void free_map(struct ccp4_map *map) {
 		free(map->i8_data) ;
 	if (map->i16_data != NULL)
 		free(map->i16_data) ;
-	if (map->data != NULL)
-		free(map->data) ;
-	if (map->c8_data != NULL)
-		free(map->c8_data) ;
+	if (map->f32_data != NULL)
+		free(map->f32_data) ;
+	if (map->c64_data != NULL)
+		free(map->c64_data) ;
 	if (map->u16_data != NULL)
 		free(map->u16_data) ;
 }

@@ -17,13 +17,15 @@ struct ccp4_header {
 	float dmin, dmax, dmean ;
 	int32_t ispg ;
 	int32_t nsymbt ;
-	char extra[100] ;
+	char extra1[8], exttyp[4] ;
+	int nversion ;
+	char extra2[84] ;
 	float xorig, yorig, zorig ;
 	char cmap[4] ;
 	char machst[4] ;
 	float rms ;
 	int32_t nlabl ;
-	char labels[10][80] ;
+	char labels[800] ;
 } ;
 
 struct ccp4_map {
@@ -32,13 +34,14 @@ struct ccp4_map {
 	
 	int8_t *i8_data ;
 	int16_t *i16_data ;
-	float *data ;
-	float complex *c8_data ;
+	float *f32_data ;
+	float complex *c64_data ;
 	uint16_t *u16_data ;
 } ;
 
 int parse_map(char*, struct ccp4_map*) ;
 int write_map(char*, struct ccp4_map*) ;
 int save_vol_as_map(char*, float*, int[3], float[3], char*, int) ;
+int save_cpx_as_map(char*, float complex*, int[3], float[3], char*, int) ;
 int save_mask_as_map(char*, int8_t*, int[3], float[3], char*, int) ;
 void free_map(struct ccp4_map*) ;
