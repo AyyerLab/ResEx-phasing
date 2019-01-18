@@ -35,7 +35,8 @@ int main(int argc, char *argv[]) {
 		strcpy(volume.point_group, argv[3]) ;
 	
 	// Parse real-space density
-	parse_map(argv[1], &map) ;
+	if (parse_map(argv[1], &map))
+		return 1 ;
 	if (map.f32_data == NULL) {
 		fprintf(stderr, "Need float data in input model\n") ;
 		return 1 ;

@@ -30,7 +30,8 @@ int main(int argc, char *argv[]) {
 	}
 	
 	// Read complex Fourier amplitudes
-	parse_map(argv[1], &map) ;
+	if (parse_map(argv[1], &map))
+		return 1 ;
 	if (map.c64_data == NULL) {
 		fprintf(stderr, "Need float complex data in input fmodel\n") ;
 		return 1 ;

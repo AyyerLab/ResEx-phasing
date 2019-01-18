@@ -24,7 +24,8 @@ int main(int argc, char *argv[]) {
 	rmin = atof(argv[2]) ;
 	rmax = atof(argv[3]) ;
 	
-	parse_map(argv[1], &map) ;
+	if (parse_map(argv[1], &map))
+		return 1 ;
 	if (map.f32_data == NULL) {
 		fprintf(stderr, "Need float data in input intens\n") ;
 		return 1 ;
