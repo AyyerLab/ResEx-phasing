@@ -13,20 +13,18 @@ void input_init(struct input_data *self, long size) {
 }
 
 int input_parse_intens(struct input_data *self, char *fname, float scale, int minsubt) {
-	long i, j, k, s = self->size, c = s/2, vol = s*s*s ;
+	long i, j, k, vox, s = self->size, c = s/2, vol = s*s*s ;
 	int rad ;
-	float *intens, *radmin = NULL ;
+	float *radmin = NULL ;
+	struct ccp4_map map = {0} ;
 	
-	FILE *fp = fopen(fname, "r") ;
-	if (fp == NULL) {
-		fprintf(stderr, "%s not found. Exiting.\n", fname) ;
+	if (parse_map(fname, &map))
+		return 1 ;
+	if (map.f32_data == NULL) {
+		fprintf(stderr, "Intensity file needs to have float data\n") ;
 		return 1 ;
 	}
-	
-	intens = malloc(vol * sizeof(float)) ;
 	self->obs_mag = malloc(vol * sizeof(float)) ;
-	fread(intens, sizeof(float), vol, fp) ;
-	fclose(fp) ;
 	fprintf(stderr, "Scale factor = %f\n", scale) ;
 
 	if (minsubt) {
@@ -38,31 +36,33 @@ int input_parse_intens(struct input_data *self, char *fname, float scale, int mi
 		for (i = 0 ; i < s ; ++i)
 		for (j = 0 ; j < s ; ++j)
 		for (k = 0 ; k < s ; ++k) {
+			vox = i*s*s + j*s + k ;
 			rad = (int) sqrt((i-c)*(i-c) + (j-c)*(j-c) + (k-c)*(k-c)) ;
-			if (intens[i*s*s + j*s + k] < radmin[rad] && intens[i*s*s + j*s + k] != -1.f && intens[i*s*s + j*s + k] > -1.e3)
-				radmin[rad] = intens[i*s*s + j*s + k] ;
+			if (map.f32_data[vox] < radmin[rad] && map.f32_data[vox] != -1.f && map.f32_data[vox] > -1.e3)
+				radmin[rad] = map.f32_data[vox] ;
 		}
 	}
 		
 	for (i = 0 ; i < s ; ++i)
 	for (j = 0 ; j < s ; ++j)
 	for (k = 0 ; k < s ; ++k) {
+		vox = i*s*s + j*s + k ;
 		if (minsubt) {
 			rad = (int) sqrt((i-c)*(i-c) + (j-c)*(j-c) + (k-c)*(k-c)) ;
-			intens[i*s*s + j*s + k] -= radmin[rad] ;
+			map.f32_data[vox] -= radmin[rad] ;
 		}
 		
-		if (intens[i*s*s + j*s + k] > 0.)
+		if (map.f32_data[vox] > 0.)
 			self->obs_mag[((i+c+1)%s)*s*s + ((j+c+1)%s)*s + ((k+c+1)%s)]
-				= sqrt(intens[i*s*s + j*s + k]) * scale ;
+				= sqrtf(map.f32_data[vox]) * scale ;
 		else
 			self->obs_mag[((i+c+1)%s)*s*s + ((j+c+1)%s)*s + ((k+c+1)%s)]
-				= intens[i*s*s + j*s + k] ;
+				= map.f32_data[vox] ;
 	}
 	
 	if (minsubt)
 		free(radmin) ;
-	free(intens) ;
+	free_map(&map) ;
 	
 	return 0 ;
 }
@@ -70,18 +70,15 @@ int input_parse_intens(struct input_data *self, char *fname, float scale, int mi
 int input_parse_bragg(struct input_data *self, char *fname, float braggqmax) {
 	long x, y, z, s = self->size, c = s/2, vol = s*s*s ;
 	double distsq, c2 = c*c ;
+	struct ccp4_map map = {0} ;
 	
-	FILE *fp = fopen(fname, "r") ;
-	if (fp == NULL) {
-		fprintf(stderr, "%s not found. Exiting.\n", fname) ;
+	if (parse_map(fname, &map))
+		return 1 ;
+	if (map.c64_data == NULL) {
+		fprintf(stderr, "Bragg file needs to have float complex data\n") ;
 		return 1 ;
 	}
-	
-	float complex *bragg_temp = malloc(vol * sizeof(float complex)) ;
 	self->bragg_calc = malloc(vol * sizeof(float complex)) ;
-	
-	fread(bragg_temp, sizeof(float complex), vol, fp) ;
-	fclose(fp) ;
 	
 	for (x = 0 ; x < s ; ++x)
 	for (y = 0 ; y < s ; ++y)
@@ -91,29 +88,29 @@ int input_parse_bragg(struct input_data *self, char *fname, float braggqmax) {
 		if (distsq < braggqmax*braggqmax) 
 			// Move (q=0) from center to corner
 			self->bragg_calc[((x+c+1)%s)*s*s + ((y+c+1)%s)*s + ((z+c+1)%s)] 
-			 = bragg_temp[x*s*s + y*s + z] 
+			 = map.c64_data[x*s*s + y*s + z] 
 			   * cexpf(-I * 2. * M_PI * (x-c+y-c+z-c) * c / s) ;
 		else
 			self->bragg_calc[((x+c+1)%s)*s*s + ((y+c+1)%s)*s + ((z+c+1)%s)] = FLT_MAX ;
 	}
 	
-	free(bragg_temp) ;
+	free_map(&map) ;
 	
 	return 0 ;
 }
 
 int input_parse_support(struct input_data *self, char *fname) {
 	long x, y, z, size = self->size, vol = size*size*size ;
+	struct ccp4_map map = {0} ;
 	
-	FILE *fp = fopen(fname, "rb") ;
-	if (fp == NULL) {
-		fprintf(stderr, "%s not found.\n", fname) ;
+	if (parse_map(fname, &map))
+		return 1 ;
+	if (map.i8_data == NULL) {
+		fprintf(stderr, "Support file needs to have int8_t data\n") ;
 		return 1 ;
 	}
-	self->support = malloc(vol * sizeof(int8_t)) ;
+	self->support = map.i8_data ; // Pointer transferred
 	self->supp_locval = malloc(vol / 8 * sizeof(struct locval_pair)) ;
-	fread(self->support, sizeof(int8_t), vol, fp) ;
-	fclose(fp) ;
 	
 	for (x = 0 ; x < 6 ; ++x)
 		self->support_bounds[x] = size * (1 - (x % 2)) ;
@@ -150,30 +147,31 @@ void input_init_iterate(struct input_data *self, char *fname, char *bg_fname, fl
 	float val = sqrtf(vol) ;
 	const gsl_rng_type *T ;
 	gsl_rng *r ;
-	FILE *fp ;
 	int do_random_model = 0, do_init_bg = 0 ;
+	struct ccp4_map map = {0} ;
 	
-	fp = fopen(fname, "rb") ;
-	if (fp == NULL) {
+	if (parse_map(fname, &map)) {
 		fprintf(stderr, "Random start") ;
 		do_random_model = 1 ;
 	}
 	else {
+		if (map.f32_data == NULL) {
+			fprintf(stderr, "Initial model must have float data\n") ;
+			fprintf(stderr, "WARNING: Defaulting to random start\n") ;
+			do_random_model = 1 ;
+		}
 		fprintf(stderr, "Starting from %s", fname) ;
-		fread(model, sizeof(float), vol, fp) ;
-		fclose(fp) ;
+		memcpy(model, map.f32_data, vol*sizeof(float)) ;
 	}
 	
 	if (do_bg_fitting) {
-		fp = fopen(bg_fname, "rb") ;
-		if (fp == NULL) {
+		if (parse_map(bg_fname, &map)) {
 			fprintf(stderr, " and with uniform background\n") ;
 			do_init_bg = 1 ;
 		}
 		else {
+			memcpy(&(model[vol]), map.f32_data, vol*sizeof(float)) ;
 			fprintf(stderr, " with background from %s\n", fname) ;
-			fread(&(model[vol]), sizeof(float), vol, fp) ;
-			fclose(fp) ;
 		}
 	}
 	else {

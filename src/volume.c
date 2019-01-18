@@ -378,10 +378,11 @@ void volume_accumulate(float *current, float *sum, long num_vox) {
 
 /* Save orthogonal central slices to file
 */
-void volume_dump_slices(float *vol, char *fname, long size, int is_fourier) {
+void volume_dump_slices(float *vol, char *fname, long size, int is_fourier, char *label) {
 	long x, y, c = size/2 ;
-	FILE *fp ;
 	float *slices = malloc(3*size*size*sizeof(float)) ;
+	int sizes[3] = {size, size, 3} ;
+	float vsizes[3] ;
 	
 	if (is_fourier) {
 		for (x = 0 ; x < size ; ++x)
@@ -390,6 +391,9 @@ void volume_dump_slices(float *vol, char *fname, long size, int is_fourier) {
 			slices[size*size + x*size + y] = vol[((x+c)%size)*size*size + ((y+c)%size)] ;
 			slices[2*size*size + x*size + y] = vol[((x+c)%size)*size*size + ((y+c)%size)*size] ;
 		}
+		vsizes[0] = -1.f ;
+		vsizes[1] = -1.f ;
+		vsizes[2] = -1.f ;
 	}
 	else {
 		for (x = 0 ; x < size ; ++x)
@@ -398,19 +402,21 @@ void volume_dump_slices(float *vol, char *fname, long size, int is_fourier) {
 			slices[size*size + x*size + y] = vol[x*size*size + c*size + y] ;
 			slices[2*size*size + x*size + y] = vol[x*size*size + y*size + c] ;
 		}
+		vsizes[0] = 1.f ;
+		vsizes[1] = 1.f ;
+		vsizes[2] = 1.f ;
 	}
 	
-	fp = fopen(fname, "wb") ;
-	fwrite(slices, sizeof(float), 3*size*size, fp) ;
-	fclose(fp) ;
+	save_vol_as_map(fname, slices, sizes, vsizes, label, 0) ;
 	
 	free(slices) ;
 }
 
-void volume_dump_support_slices(int8_t *vol, char *fname, long size) {
+void volume_dump_support_slices(int8_t *vol, char *fname, long size, char *label) {
 	long x, y, c = size/2 ;
-	FILE *fp ;
-	int8_t *slices = malloc(3*size*size*sizeof(float)) ;
+	int8_t *slices = malloc(3*size*size*sizeof(int8_t)) ;
+	int sizes[3] = {size, size, 3} ;
+	float vsizes[3] = {1.f, 1.f, 1.f} ;
 	
 	for (x = 0 ; x < size ; ++x)
 	for (y = 0 ; y < size ; ++y) {
@@ -419,9 +425,7 @@ void volume_dump_support_slices(int8_t *vol, char *fname, long size) {
 		slices[2*size*size + x*size + y] = vol[x*size*size + y*size + c] ;
 	}
 	
-	fp = fopen(fname, "wb") ;
-	fwrite(slices, sizeof(int8_t), 3*size*size, fp) ;
-	fclose(fp) ;
+	save_mask_as_map(fname, slices, sizes, vsizes, label, 0) ;
 	
 	free(slices) ;
 }

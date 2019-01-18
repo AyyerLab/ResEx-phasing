@@ -10,6 +10,7 @@
 #include <omp.h>
 #include <sys/time.h>
 #include <gsl/gsl_rng.h>
+#include "map.h"
 
 struct locval_pair {
 	long loc ;

@@ -8,6 +8,7 @@
 #include <complex.h>
 #include <omp.h>
 #include "quat.h"
+#include "map.h"
 
 struct volume_data {
 	long size ;
@@ -25,6 +26,6 @@ void volume_rotational_blur(struct volume_data*, float*, float*, struct rotation
 void volume_free(struct volume_data*) ;
 
 void volume_accumulate(float*, float*, long) ;
-void volume_dump_slices(float*, char*, long, int) ;
-void volume_dump_support_slices(int8_t*, char*, long) ;
+void volume_dump_slices(float*, char*, long, int, char*) ;
+void volume_dump_support_slices(int8_t*, char*, long, char*) ;
 float volume_positive_mode(float*, long) ;

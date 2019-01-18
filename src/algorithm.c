@@ -300,7 +300,7 @@ float run_iteration(struct algorithm_data *self, int iter) {
 }
 
 void save_current(struct algorithm_data *self, int iter, struct timeval t1, struct timeval t2, float error) {
-	char fname[1024] ;
+	char fname[1024], label[800] ;
 	FILE *fp ;
 	
 	sprintf(fname, "%s-log.dat", self->output_prefix) ;
@@ -310,12 +310,17 @@ void save_current(struct algorithm_data *self, int iter, struct timeval t1, stru
 	fclose(fp) ;
 	
 	sprintf(fname, "%s-slices/%.4d.raw", self->output_prefix, iter) ;
-	volume_dump_slices(self->p1, fname, self->size, 0) ;
+	sprintf(label, "ResEx-recon p1 %d\n", iter) ;
+	volume_dump_slices(self->p1, fname, self->size, 0, label) ;
+	
 	sprintf(fname, "%s-fslices/%.4d.raw", self->output_prefix, iter) ;
-	volume_dump_slices(self->exp_mag, fname, self->size, 1) ;
+	sprintf(label, "ResEx-recon exp_mag %d\n", iter) ;
+	volume_dump_slices(self->exp_mag, fname, self->size, 1, label) ;
+	
 	if (self->do_local_variation) {
 		sprintf(fname, "%s-support/%.4d.supp", self->output_prefix, iter) ;
-		volume_dump_support_slices(self->input->support, fname, self->size) ;
+		sprintf(label, "ResEx-recon support %d\n", iter) ;
+		volume_dump_support_slices(self->input->support, fname, self->size, label) ;
 	}
 	if (self->do_bg_fitting) {
 		sprintf(fname, "%s-radavg/%.4d.raw", self->output_prefix, iter) ;
@@ -499,10 +504,6 @@ void calc_prtf(struct algorithm_data *self, int num_bins) {
 		volume_symmetrize_incoherent(volume, fft->fdensity, self->exp_mag, &(model2[vol])) ;
 	else
 		volume_symmetrize_incoherent(volume, fft->fdensity, self->exp_mag, NULL) ;
-	
-	// Save exp_mag
-	sprintf(fname, "%s-expmag.raw", self->output_prefix) ;
-	volume_dump_slices(self->exp_mag, fname, size, 1) ;
 	
 	// Calculate PRTF by comparing with obs_mag
 	for (x = 0 ; x < size ; ++x)
