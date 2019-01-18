@@ -21,7 +21,7 @@ struct fft_data {
 void fft_init(struct fft_data*, long, int) ;
 void fft_create_plans(struct fft_data*) ;
 void fft_gaussian_blur(struct fft_data*, float*, float) ;
-long fft_apply_shrinkwrap(struct fft_data*, float*, float, float, int8_t*, char*) ;
+long fft_apply_shrinkwrap(struct fft_data*, float*, float, float, int8_t*) ;
 void fft_forward(struct fft_data*) ;
 void fft_inverse(struct fft_data*) ;
 void fft_shift_complex(struct fft_data*, float complex*, float complex*, float) ;

@@ -42,7 +42,7 @@ int main(int argc, char* argv[]) {
 	
 	// Apply Shrinkwrap to create support
 	support = calloc(vol, sizeof(int8_t)) ;
-	num_supp = fft_apply_shrinkwrap(&fft, map.f32_data, blur, thresh, support, NULL) ;
+	num_supp = fft_apply_shrinkwrap(&fft, map.f32_data, blur, thresh, support) ;
 	fprintf(stderr, "Calculated support with %ld voxels\n", num_supp) ;
 	
 	// Write to file
