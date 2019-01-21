@@ -30,10 +30,10 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "sym_model needs float data\n") ;
 		return 1 ;
 	}
-	if (parse_map(argv[2], &model_map))
+	if (parse_map(argv[2], &obs_map))
 		return 1 ;
 	if (obs_map.f32_data == NULL) {
-		fprintf(stderr, "merge needs float data\n") ;
+		fprintf(stderr, "merge %s needs float data\n", argv[2]) ;
 		return 1 ;
 	}
 	
