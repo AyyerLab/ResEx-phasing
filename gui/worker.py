@@ -48,7 +48,7 @@ class Launcher(object):
         rmin = float(self.parent.scaleradmin.text())
         rmax = float(self.parent.scaleradmax.text())
         mapnoext = os.path.splitext(os.path.basename(self.parent.map_fname.text()))[0]
-        map_fname = 'data/convert/'+mapnoext+'-sym.raw'
+        map_fname = 'data/convert/'+mapnoext+'-cpx-sym.ccp4'
         self.thread.started.connect(partial(self.worker.calc_scale, map_fname, fname, rmin, rmax))
         self.worker.returnval.connect(self.parent.calc_scale_line.show)
         self.worker.returnval.connect(lambda val: self.parent.scale_label.setText('Scale factor = %e'%float(val)))

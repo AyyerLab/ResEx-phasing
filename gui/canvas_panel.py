@@ -19,6 +19,7 @@ except ImportError:
     matplotlib.use('qt4agg')
     from matplotlib.backends.backend_qt4agg import FigureCanvas # pylint: disable=no-name-in-module
     os.environ['QT_API'] = 'pyqt'
+import mrcfile
 
 class CanvasPanel(QtWidgets.QWidget):
     def __init__(self, parent, **kwargs):
@@ -28,6 +29,7 @@ class CanvasPanel(QtWidgets.QWidget):
         self.setObjectName('canvas')
         self.setAttribute(QtCore.Qt.WA_StyledBackground)
         self.typestr = 'f4'
+        self.typedict = {'0': 'i1', '2': 'f4', '4': 'c8'}
         self.size = None
         self.vol_size = None
         self.vol = None
@@ -139,28 +141,34 @@ class CanvasPanel(QtWidgets.QWidget):
             print("Did not understand data type from extension. Defaulting to float.")
             self.typestr = 'f4'
 
-    def parse_vol(self, reset=False):
+    def parse_vol(self, reset=False, noncube=False):
         if not os.path.isfile(self.current_fname.text()):
             if self.current_fname.text() != '':
                 print("Unable to open", self.current_fname.text())
             return False
-        self.parse_extension(self.current_fname.text())
-        self.vol = np.fromfile(self.current_fname.text(), dtype=self.typestr)
-        size = int(round(self.vol.size**(1/3.)))
-        self.size = size
-        self.vol_size = size
-        try:
-            self.vol = self.vol.reshape(size, size, size)
-        except ValueError:
-            print('Unable to create cubic grid of numbers from %s'%self.current_fname.text())
-            return
-        self.vol_slices = False
+        with mrcfile.open(self.current_fname.text(), 'r') as f:
+            self.vol = f.data
+            nx, ny, nz = f.header.nx, f.header.ny, f.header.nz
+            self.typestr = self.typedict[str(f.header.mode)]
+        s = max(nx, ny, nz)
+        self.size = s
+        if not noncube:
+            self.vol_size = s
+        self.vol_slices = (nz <= 3)
+        if self.vol_slices:
+            print(self.current_fname.text(), 'is image stack')
+        if not self.vol_slices:
+            edgesum = (np.abs(self.vol[:,:,0]).sum() + np.abs(self.vol[:,0]).sum() + np.abs(self.vol[0]).sum()) / 3.
+            centralsum = (np.abs(self.vol[:,:,nz//2]).sum() + np.abs(self.vol[:,ny//2]).sum() + np.abs(self.vol[nx//2]).sum()) / 3.
+            if edgesum > centralsum:
+                self.vol = np.fft.fftshift(self.vol)
+            self.vol = np.pad(self.vol, (((s-nx)//2, s-nx-(s-nx)//2), ((s-ny)//2, s-ny-(s-ny)//2), ((s-nz)//2, s-nz-(s-nz)//2)), mode='constant', constant_values=0)
 
-        if self.typestr == 'complex64':
+        if self.typestr == 'c8':
             self.vol = np.square(np.absolute(self.vol))
         if not self.rangelock.isChecked():
             self.autoset_rangemax(self.vol)
-        self.layer_slider.setRange(0, size-1)
+        self.layer_slider.setRange(0, self.size-1)
         if reset or not self.vol_image_exists or self.layernum.maximum() != self.size-1:
             self.layernum.setMaximum(self.size-1)
             self.layer_slider.setValue(self.size//2)
@@ -291,12 +299,12 @@ class CanvasPanel(QtWidgets.QWidget):
     def plot_map(self, fname, event=None, force=False, sigma=False, **kwargs):
         self.current_fname.setText(fname)
         if not self.map_image_exists:
-            self.parse_map()
+            self.parse_vol(noncube=True)
             if not self.rangelock.isChecked():
                 self.rangemax.setText('%.1e' % 10)
         elif self.old_fname != self.current_fname.text() or force:
             print("Reparsing map:", self.current_fname.text())
-            self.parse_map()
+            self.parse_vol(noncube=True)
         self.plot_slices(self.layernum.value(), space='real', **kwargs)
         self.map_image_exists = True
         self.vol_image_exists = False
@@ -311,9 +319,9 @@ class CanvasPanel(QtWidgets.QWidget):
             return
 
         if fslices:
-            self.current_fname.setText(prefix+'-fslices/%.4d.raw'%iternum)
+            self.current_fname.setText(prefix+'-fslices/%.4d.ccp4'%iternum)
         else:
-            self.current_fname.setText(prefix+'-slices/%.4d.raw'%iternum)
+            self.current_fname.setText(prefix+'-slices/%.4d.ccp4'%iternum)
 
         if os.path.isfile(self.current_fname.text()):
             done = False

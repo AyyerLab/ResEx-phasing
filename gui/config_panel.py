@@ -184,7 +184,7 @@ class ConfigPanel(QtWidgets.QWidget):
         label = QtWidgets.QLabel('Zero-ed volume:', self)
         hbox.addWidget(label)
         button = QtWidgets.QPushButton('Show', self)
-        button.clicked.connect(lambda: self.plot_vol(fname=os.path.splitext(self.merge_fname.text())[0] + '-zero.raw'))
+        button.clicked.connect(lambda: self.plot_vol(fname=os.path.splitext(self.merge_fname.text())[0] + '-zero.ccp4'))
         hbox.addWidget(button)
         hbox.addStretch(1)
         self.zero_outer_line.hide()
@@ -345,23 +345,23 @@ class ConfigPanel(QtWidgets.QWidget):
         vbox.addLayout(grid)
         label = QtWidgets.QLabel('Complex:', self)
         grid.addWidget(label, 0, 0)
-        button = QtWidgets.QPushButton(os.path.basename(prefix + '.cpx'), self)
-        button.clicked.connect(lambda: self.plot_vol(fname=prefix + '.cpx', sigma=self.suppressflag.isChecked()))
+        button = QtWidgets.QPushButton(os.path.basename(prefix + '-cpx'), self)
+        button.clicked.connect(lambda: self.plot_vol(fname=prefix + '-cpx.ccp4', sigma=self.suppressflag.isChecked()))
         grid.addWidget(button, 0, 1)
         label = QtWidgets.QLabel('Symmetrized:', self)
         grid.addWidget(label, 1, 0)
-        button = QtWidgets.QPushButton(os.path.basename(prefix + '-sym.raw'), self)
-        button.clicked.connect(lambda: self.plot_vol(fname=prefix + '-sym.raw', sigma=self.suppressflag.isChecked()))
+        button = QtWidgets.QPushButton(os.path.basename(prefix + '-cpx-sym'), self)
+        button.clicked.connect(lambda: self.plot_vol(fname=prefix + '-cpx-sym.ccp4', sigma=self.suppressflag.isChecked()))
         grid.addWidget(button, 1, 1)
         label = QtWidgets.QLabel('Density:', self)
         grid.addWidget(label, 2, 0)
-        button = QtWidgets.QPushButton(os.path.basename(prefix + '-srecon.raw'), self)
-        button.clicked.connect(lambda: self.plot_vol(fname=prefix + '-srecon.raw', zoom=True))
+        button = QtWidgets.QPushButton(os.path.basename(prefix + '-srecon'), self)
+        button.clicked.connect(lambda: self.plot_vol(fname=prefix + '-srecon.ccp4', zoom=True))
         grid.addWidget(button, 2, 1)
         label = QtWidgets.QLabel('Support:', self)
         grid.addWidget(label, 3, 0)
-        button = QtWidgets.QPushButton(os.path.basename(prefix + '.supp'), self)
-        button.clicked.connect(lambda: self.plot_vol(fname=prefix + '.supp', zoom=True, interpolation=None))
+        button = QtWidgets.QPushButton(os.path.basename(prefix + '-supp'), self)
+        button.clicked.connect(lambda: self.plot_vol(fname=prefix + '-supp.ccp4', zoom=True, interpolation=None))
         grid.addWidget(button, 3, 1)
 
         hbox = QtWidgets.QHBoxLayout()
@@ -404,9 +404,9 @@ class ConfigPanel(QtWidgets.QWidget):
             
             mapnoext = os.path.splitext(os.path.basename(self.map_fname.text()))[0]
             f.write('\n[files]\n')
-            f.write('intens_fname = %s\n' % (os.path.splitext(self.merge_fname.text())[0].rstrip()+'-zero.raw'))
-            f.write('bragg_fname = %s\n' % ('data/convert/'+mapnoext+'.cpx'))
-            f.write('support_fname = %s\n' % ('data/convert/'+mapnoext+'.supp'))
+            f.write('intens_fname = %s\n' % (os.path.splitext(self.merge_fname.text())[0].rstrip()+'-zero.ccp4'))
+            f.write('bragg_fname = %s\n' % ('data/convert/'+mapnoext+'-cpx.ccp4'))
+            f.write('support_fname = %s\n' % ('data/convert/'+mapnoext+'-supp.ccp4'))
             #f.write('input_fname = %s\n')
             f.write('output_prefix = %s\n' % self.output_prefix.text())
             
@@ -450,16 +450,14 @@ class ConfigPanel(QtWidgets.QWidget):
     def select_file(self, select_type):
         if select_type == 'merge':
             title = 'Select 3D intensity merge'
-            ext_str = 'Raw Files (*.raw);;All Files (*)'
             target = self.merge_fname
         elif select_type == 'map':
             title = 'Select low-resolution CCP4/MRC map'
-            ext_str = 'CCP4/MRC Maps (*.ccp4 *.mrc);;All Files (*)'
             target = self.map_fname
         else:
             return
 
-        fname = QtWidgets.QFileDialog.getOpenFileName(self, title, "", ext_str)
+        fname = QtWidgets.QFileDialog.getOpenFileName(self, title, "", 'CCP4/MRC Maps (*.ccp4 *.mrc);;All Files (*)')
         if isinstance(fname, tuple):
             fname = fname[0]
         target.setText(fname)
@@ -471,7 +469,7 @@ class ConfigPanel(QtWidgets.QWidget):
     def process_map(self, event=None, skip=False):
         '''Wrapper around launcher.process_map'''
         mapnoext = os.path.splitext(os.path.basename(self.map_fname.text()))[0]
-        if skip or (not os.path.isfile('data/convert/'+mapnoext+'.cpx')) or QtWidgets.QMessageBox.question(self, 'Process Map', 'Found processed map output. Overwrite?', QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No) == QtWidgets.QMessageBox.Yes:
+        if skip or (not os.path.isfile('data/convert/'+mapnoext+'-cpx.ccp4')) or QtWidgets.QMessageBox.question(self, 'Process Map', 'Found processed map output. Overwrite?', QtWidgets.QMessageBox.Yes, QtWidgets.QMessageBox.No) == QtWidgets.QMessageBox.Yes:
             if self.resedge.text() is '':
                 print('Need resolution at edge of volume')
                 return
@@ -484,7 +482,7 @@ class ConfigPanel(QtWidgets.QWidget):
                     self.canvas_panel.vol_size = int(words[::-1][words[::-1].index('size')-2])
                 warray = np.array(words)
                 self.resedge.setText(str(float(words[words.index('./utils/read_map')+2])/(self.canvas_panel.vol_size//2)))
-                self.point_group.setText(words[np.where(warray=='data/convert/'+mapnoext+'-srecon.raw')[0][0]+2])
+                self.point_group.setText(words[np.where(warray=='data/convert/'+mapnoext+'-srecon.ccp4')[0][0]+2])
                 self.suppradstr.setText('%.1f'%float(words[np.where(warray=='./utils/create_support')[0][-1]+2]))
                 self.suppthreshstr.setText('%.1f'%float(words[np.where(warray=='./utils/create_support')[0][-1]+3]))
 
