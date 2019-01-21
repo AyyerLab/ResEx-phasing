@@ -257,12 +257,6 @@ int input_read_histogram(struct input_data *self, char *fname) {
 		}
 	}
 	
-	/*
-	fp = fopen("data/inverse_cdf.raw", "wb") ; // Dump for debugging
-	fwrite(self->inverse_cdf, sizeof(float), self->num_supp, fp) ;
-	fclose(fp) ;
-	*/
-	
 	free(hist) ;
 	free(val) ;
 	free(cdf) ;
