@@ -3,6 +3,7 @@
 #include "fft.h"
 #include "input.h"
 #include "volume.h"
+#include "map.h"
 
 // Algorithm parameters
 struct algorithm_data {

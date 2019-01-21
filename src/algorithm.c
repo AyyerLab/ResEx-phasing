@@ -309,16 +309,16 @@ void save_current(struct algorithm_data *self, int iter, struct timeval t1, stru
 			iter, (double)(t2.tv_sec - t1.tv_sec) + (t2.tv_usec - t1.tv_usec) / 1000000., error) ;
 	fclose(fp) ;
 	
-	sprintf(fname, "%s-slices/%.4d.raw", self->output_prefix, iter) ;
+	sprintf(fname, "%s-slices/%.4d.ccp4", self->output_prefix, iter) ;
 	sprintf(label, "ResEx-recon p1 %d\n", iter) ;
 	volume_dump_slices(self->p1, fname, self->size, 0, label) ;
 	
-	sprintf(fname, "%s-fslices/%.4d.raw", self->output_prefix, iter) ;
+	sprintf(fname, "%s-fslices/%.4d.ccp4", self->output_prefix, iter) ;
 	sprintf(label, "ResEx-recon exp_mag %d\n", iter) ;
 	volume_dump_slices(self->exp_mag, fname, self->size, 1, label) ;
 	
 	if (self->do_local_variation) {
-		sprintf(fname, "%s-support/%.4d.supp", self->output_prefix, iter) ;
+		sprintf(fname, "%s-support/%.4d.ccp4", self->output_prefix, iter) ;
 		sprintf(label, "ResEx-recon support %d\n", iter) ;
 		volume_dump_support_slices(self->input->support, fname, self->size, label) ;
 	}
@@ -330,32 +330,34 @@ void save_current(struct algorithm_data *self, int iter, struct timeval t1, stru
 	}
 	
 	if (iter == self->num_iter) {
-		sprintf(fname, "%s-last.raw", self->output_prefix) ;
-		fp = fopen(fname, "w") ;
-		fwrite(self->iterate, sizeof(float), self->num_vox, fp) ;
-		fclose(fp) ;
+		sprintf(fname, "%s-last.ccp4", self->output_prefix) ;
+		sprintf(label, "ResEx-recon Last iteration %d\n", iter) ;
+		int sizes[3] = {self->size, self->size, self->size} ;
+		float vsizes[3] = {1.f, 1.f, 1.f} ;
+		sizes[2] *= (self->do_bg_fitting ? 2 : 1) ;
+		save_vol_as_map(fname, self->iterate, sizes, vsizes, label, 0) ;
 	}
 }
 
 void save_output(struct algorithm_data *self) {
-	char fname[1024] ;
+	char fname[1024], label[800] ;
 	FILE *fp ;
+	int sizes[3] = {self->size, self->size, self->size} ;
+	float rvsizes[3] = {1.f, 1.f, 1.f} ;
+	float fvsizes[3] = {-1.f, -1.f, -1.f} ;
 	
-	sprintf(fname, "%s-pf.raw", self->output_prefix) ;
-	fp = fopen(fname, "wb") ;
-	fwrite(self->average_p1, sizeof(float), self->vol, fp) ;
-	fclose(fp) ;
+	sprintf(fname, "%s-pf.ccp4", self->output_prefix) ;
+	sprintf(label, "ResEx-recon average_p1\n") ;
+	save_vol_as_map(fname, self->average_p1, sizes, rvsizes, label, 0) ;
 	
-	sprintf(fname, "%s-pd.raw", self->output_prefix) ;
-	fp = fopen(fname, "wb") ;
-	fwrite(self->average_p2, sizeof(float), self->vol, fp) ;
-	fclose(fp) ;
+	sprintf(fname, "%s-pd.ccp4", self->output_prefix) ;
+	sprintf(label, "ResEx-recon average_p2\n") ;
+	save_vol_as_map(fname, self->average_p2, sizes, rvsizes, label, 0) ;
 	
 	if (self->do_bg_fitting) {
-		sprintf(fname, "%s-bg.raw", self->output_prefix) ;
-		fp = fopen(fname, "wb") ;
-		fwrite(&(self->p1[self->vol]), sizeof(float), self->vol, fp) ;
-		fclose(fp) ;
+		sprintf(fname, "%s-bg.ccp4", self->output_prefix) ;
+		sprintf(label, "ResEx-recon average_p2\n") ;
+		save_vol_as_map(fname, &(self->p2[self->vol]), sizes, fvsizes, label, 0) ;
 		
 		sprintf(fname, "%s-radavg.raw", self->output_prefix) ;
 		fp = fopen(fname, "wb") ;
@@ -365,9 +367,8 @@ void save_output(struct algorithm_data *self) {
 	
 	if (self->do_local_variation) {
 		sprintf(fname, "%s-supp.supp", self->output_prefix) ;
-		fp = fopen(fname, "wb") ;
-		fwrite(self->input->support, sizeof(int8_t), self->vol, fp) ;
-		fclose(fp) ;
+		sprintf(label, "ResEx-recon Refined support\n") ;
+		save_mask_as_map(fname, self->input->support, sizes, rvsizes, label, 0) ;
 	}
 }
 
@@ -486,12 +487,14 @@ void calc_prtf(struct algorithm_data *self, int num_bins) {
 	float obs_val, *prtf = calloc(num_bins, sizeof(float)) ;
 	long *bin_count = calloc(num_bins, sizeof(long)) ;
 	FILE *fp ;
-	char fname[1024] ;
+	char fname[1024], label[800] ;
 	float *model1 = self->average_p1 ;
 	float *model2 = self->average_p2 ;
 	struct volume_data *volume = self->volume ;
 	struct input_data *input = self->input ;
 	struct fft_data *fft = self->fft ;
+	int sizes[3] = {size, size, size} ;
+	float vsizes[3] = {-1.f, -1.f, -1.f} ;
 	
 	// FFT average p2 model
 	for (x = 0 ; x < vol ; ++x)
@@ -541,10 +544,9 @@ void calc_prtf(struct algorithm_data *self, int num_bins) {
 	fclose(fp) ;
 	
 	// Save frecon (intensity from model)
-	sprintf(fname, "%s-frecon.raw", self->output_prefix) ;
-	fp = fopen(fname, "wb") ;
-	fwrite(self->p2, sizeof(float), vol, fp) ;
-	fclose(fp) ;
+	sprintf(fname, "%s-frecon.ccp4", self->output_prefix) ;
+	sprintf(label, "ResEx-recon Fourier intensities of reconstruction\n") ;
+	save_vol_as_map(fname, self->p2, sizes, vsizes, label, 0) ;
 	
 	// If needed, normalize models by PRTF
 	if (self->do_normalize_prtf) {
