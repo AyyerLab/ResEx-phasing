@@ -27,6 +27,7 @@ utils/gen_fdens: bin/fft.o bin/volume.o
 utils/band_limit utils/boost_cont utils/calc_fsc utils/combine: bin/fft.o
 utils/create_support utils/gen_dens utils/liquidize: bin/fft.o
 utils/sharpen: bin/volume.o
+utils/rot_blur: bin/volume.o bin/quat.o
 $(utils): utils/%: utils/src/%.c bin/utils.o
 	$(CC) $^ -o $@ $(LDFLAGS) $(CFLAGS)
 
