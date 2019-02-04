@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "Format: %s <intens_fname> <sigma_deg> <num_div>\n", argv[0]) ;
 		return 1 ;
 	}
-	sigma = atof(argv[2])*0.017453 ; /*degrees to radians*/
+	sigma = atof(argv[2]) * M_PI / 180. ;
 	size = get_size(argv[1], sizeof(float)) ;
 	vol = size*size*size ;
 	num_div = atof(argv[3]) ;
@@ -35,13 +35,13 @@ int main(int argc, char *argv[]) {
 	fclose(fp) ;
 	
 	/*Sample quad angles */
-	quat = malloc(sizeof(struct rotation)) ;
+	quat = calloc(1, sizeof(struct rotation)) ;
 	quat_gen(quat, num_div, sigma) ; 
 	
 	/* Blur Volume */
-	volume = malloc(sizeof(struct volume_data)) ;
+	volume = calloc(1, sizeof(struct volume_data)) ;
 	volume->size = size ;
-	output_array = malloc(vol * sizeof(float)) ;
+	output_array = calloc(vol, sizeof(float)) ;
 	volume_rotational_blur(volume, input_array, output_array, quat) ;
 	
 	/* Save output */
@@ -52,6 +52,3 @@ int main(int argc, char *argv[]) {
 	
 	return 0 ;
 }
-
-
-
