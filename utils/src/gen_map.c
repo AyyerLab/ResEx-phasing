@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
 		fprintf(stderr, "Also needs support mask file to calculat ebounding box\n") ;
 		fprintf(stderr, "\nUsage: %s <model_fname> <vox_x> <vox_y> <vox_z> <supp_fname>\n", argv[0]) ;
 		fprintf(stderr, "Set <supp_fname> = all if you want full volume in map\n") ;
-		fprintf(stderr, "\nOutput: data/maps/<model_fname>.map.ccp4\n") ;
+		fprintf(stderr, "\nOutput: <model_fname>.ccp4\n") ;
 		return 1 ;
 	}
 	s = get_size(argv[1], sizeof(float)) ;
