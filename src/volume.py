@@ -56,6 +56,7 @@ class Volume():
            Note that q=0 is at (0,0,0) and not in the center of the array
         '''
         size = self.size
+        c = size // 2
         self.radavg = np.zeros(size, dtype='f4')
         self.obs_radavg = np.zeros(size, dtype='f4')
         self.radcount = np.zeros(size, dtype='f4')
@@ -65,8 +66,8 @@ class Volume():
         iy -= c
         iz -= c
         self.intrad = np.fft.ifftshift(np.sqrt(ix*ix + iy*iy + iz*iz).astype('i4'))
-        np.add.at(self.radcount, intrad, 1)
-        radcount[radcount==0] = 1
+        np.add.at(self.radcount, self.intrad, 1)
+        self.radcount[self.radcount==0] = 1
 
     def radial_average(self, in_arr, out_arr=None, positive=True):
         '''Radial average calculation
