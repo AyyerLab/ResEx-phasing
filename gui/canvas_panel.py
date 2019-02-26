@@ -51,19 +51,24 @@ class CanvasPanel(QtWidgets.QWidget):
         hbox = QtWidgets.QHBoxLayout()
         vbox.addLayout(hbox)
         self.current_fname = QtWidgets.QLabel('', self)
+        self.current_fname.setToolTip('Map file currently being displayed')
         hbox.addWidget(self.current_fname)
         hbox.addStretch(1)
         button = QtWidgets.QPushButton("Prev", self)
         button.clicked.connect(self.next_angle)
+        button.setToolTip('Previous orthogonal view')
         hbox.addWidget(button)
         self.current_angle = QtWidgets.QLabel('XY', self)
+        self.current_angle.setToolTip('Current view axes (h, v)')
         hbox.addWidget(self.current_angle)
         button = QtWidgets.QPushButton("Next", self)
         button.clicked.connect(self.next_angle)
+        button.setToolTip('Next orthogonal view')
         hbox.addWidget(button)
         hbox.addStretch(1)
         self.project_flag = QtWidgets.QCheckBox('Projection', self)
         self.project_flag.stateChanged.connect(self.toggle_projection)
+        self.project_flag.setToolTip('When checked, shows projection (sum along third axis) rather than slice')
         hbox.addWidget(self.project_flag)
 
         self.figure = plt.figure(figsize=(7, 7))
@@ -91,6 +96,7 @@ class CanvasPanel(QtWidgets.QWidget):
         hbox.addWidget(self.image_name, stretch=1)
         button = QtWidgets.QPushButton("Save", self)
         button.clicked.connect(self.save_plot)
+        button.setToolTip('Save current view to file')
         hbox.addWidget(button)
 
         hbox = QtWidgets.QHBoxLayout()
@@ -99,6 +105,7 @@ class CanvasPanel(QtWidgets.QWidget):
         self.layer_slider.setRange(0, 100)
         self.layer_slider.sliderMoved.connect(self.layer_slider_moved)
         self.layer_slider.sliderReleased.connect(lambda: self.replot(zoom='current'))
+        self.layer_slider.setToolTip('Change slice number in 3D stack')
         hbox.addWidget(self.layer_slider, stretch=1)
         self.layernum = QtWidgets.QSpinBox(self)
         self.layernum.setValue(self.layer_slider.value())
@@ -107,6 +114,7 @@ class CanvasPanel(QtWidgets.QWidget):
         self.layernum.valueChanged.connect(self.layernum_changed)
         self.layernum.editingFinished.connect(self.layernum_changed)
         self.layernum.setFixedWidth(48)
+        self.layernum.setToolTip('Change slice number in 3D stack')
         hbox.addWidget(self.layernum)
 
         hbox = QtWidgets.QHBoxLayout()
@@ -115,12 +123,16 @@ class CanvasPanel(QtWidgets.QWidget):
         hbox.addWidget(label)
         self.rangemin = QtWidgets.QLineEdit('0.', self)
         self.rangemin.setFixedWidth(80)
+        self.rangemin.setToolTip('Min value of color scale')
         hbox.addWidget(self.rangemin)
         self.rangemax = QtWidgets.QLineEdit('10.', self)
         self.rangemax.setFixedWidth(80)
+        self.rangemax.setToolTip('Max value of color scale')
         hbox.addWidget(self.rangemax)
-        self.rangelock = QtWidgets.QCheckBox('Lock', self)
-        hbox.addWidget(self.rangelock)
+        self.autorange= QtWidgets.QCheckBox('Auto', self)
+        self.autorange.setChecked(True)
+        self.autorange.setToolTip('If checked, color range is auto-calculated from data')
+        hbox.addWidget(self.autorange)
         hbox.addStretch(1)
 
         widget.show()
@@ -166,7 +178,7 @@ class CanvasPanel(QtWidgets.QWidget):
 
         if self.typestr == 'c8':
             self.vol = np.square(np.absolute(self.vol))
-        if not self.rangelock.isChecked():
+        if self.autorange.isChecked():
             self.autoset_rangemax(self.vol)
         self.layer_slider.setRange(0, self.size-1)
         if reset or not self.vol_image_exists or self.layernum.maximum() != self.size-1:
@@ -243,7 +255,7 @@ class CanvasPanel(QtWidgets.QWidget):
         else:
             view = c
 
-        if project or slices is not None:
+        if slices is not None:
             self.autoset_rangemax(view, maxval=True)
         rangemax = float(self.rangemax.text())
         rangemin = float(self.rangemin.text())
@@ -300,7 +312,7 @@ class CanvasPanel(QtWidgets.QWidget):
         self.current_fname.setText(fname)
         if not self.map_image_exists:
             self.parse_vol(noncube=True)
-            if not self.rangelock.isChecked():
+            if self.autorange.isChecked():
                 self.rangemax.setText('%.1e' % 10)
         elif self.old_fname != self.current_fname.text() or force:
             print("Reparsing map:", self.current_fname.text())
@@ -351,6 +363,7 @@ class CanvasPanel(QtWidgets.QWidget):
         if self.project_flag.isChecked():
             self.layer_slider.setEnabled(False)
             self.layernum.setEnabled(False)
+            self.autoset_rangemax(self.vol.mean(0))
         else:
             self.layer_slider.setEnabled(True)
             self.layernum.setEnabled(True)
