@@ -70,7 +70,6 @@ class Input():
 
     def init_iterate(self, model, fname=None, bg_fname=None, do_bg_fitting=False, fixed_seed=False):
         size = self.size
-        vol = size*size*size
         do_random_model = False
         do_init_bg = False
         
@@ -80,7 +79,7 @@ class Input():
             with mrcfile.open(fname, 'r') as mrc:
                 if mrc.data.dtype != np.dtype('f4'):
                     raise TypeError('Initial model needs to have float32 data')
-                model[:vol] = mrc.data
+                model[0] = mrc.data
             print('Starting from', fname)
         
         if do_bg_fitting:
@@ -91,7 +90,7 @@ class Input():
                 with mrcfile.open(bg_fname, 'r') as mrc:
                     if mrc.data.dtype != np.dtype('f4'):
                         raise TypeError('Initial background model needs to have float32 data')
-                    model[vol:] = mrc.data
+                    model[1] = mrc.data
                 print("...with background from", bg_fname)
         
         if fixed_seed:
@@ -101,13 +100,13 @@ class Input():
         if do_random_model:
             if self.support is None:
                 raise ValueError('Need support to generate random model')
-            model[:vol] = 0
-            model[:vol][self.support > 0] = np.random.random(self.num_supp)
+            model[0] = 0
+            model[0][self.support > 0] = np.random.random(self.num_supp)
 
         if do_init_bg:
-            model[vol:] = 0
+            model[1] = 0
             val = sqrt(vol)
-            model[vol:][self.obs_mag > 0] = val
+            model[1][self.obs_mag > 0] = val
 
     def parse_histogram(self, fname):
         if self.num_supp == 0:

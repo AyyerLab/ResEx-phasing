@@ -3,11 +3,12 @@ import argparse
 import configparser
 import time
 from multiprocessing import cpu_count
+import algorithm
+import fft
+import input
+import volume
 
 def setup(self, config_fname, fixed_seed):
-    #self.quat = malloc(sizeof(struct rotation)) ;
-    #struct rotation *quat = self.quat ;
-    
     config = configparser.ConfigParser()
     config.read(config_fname)
 
@@ -51,7 +52,7 @@ def setup(self, config_fname, fixed_seed):
     self.volume = volume.Volume(size, point_group)
 
     self.parse_algorithm_strings(algorithm_string, avg_algorithm_string)
-    self.algorithm_allocate_memory()
+    self.allocate_memory()
     self.input.parse_intens(intens_fname, scale_factor, self.do_bg_fitting)
     self.input.parse_bragg(bragg_fname, bragg_qmax)
     self.input.parse_support(support_fname)
@@ -61,8 +62,8 @@ def setup(self, config_fname, fixed_seed):
         print('Blurring currently not implemented')
         self.do_blurring = False
 
-    self.input.init_iterate(self.iterate, input_fname, inputbg_fname, do_bg_fitting, fixed_seed)
-    if do_bg_fitting:
+    self.input.init_iterate(self.iterate, input_fname, inputbg_fname, self.do_bg_fitting, fixed_seed)
+    if self.do_bg_fitting:
         self.volume.init_radavg()
     
     with open('%s-log.dat' % self.output_prefix, 'w') as f:
@@ -91,7 +92,7 @@ def setup(self, config_fname, fixed_seed):
     self.make_recon_folders()
 
 def main():
-    parser = argparse.ArgumentParser(help='Resolution extension phasing')
+    parser = argparse.ArgumentParser(description='Resolution extension phasing')
     parser.add_argument('-c', '--config_fname', help='Path to configuration file. Default=config.ini', default='config.ini')
     parser.add_argument('-T', '--testing', help='Flag for whether to run in testing (fixed seed) mode', action='store_true')
     args = parser.parse_args()
@@ -124,7 +125,7 @@ def main():
         algo.average_p2 = algo.p2
     
     algo.calc_prtf(100)
-    algo.save_output(algo)
+    algo.save_output()
 
 if __name__ == '__main__':
     main()

@@ -4,9 +4,11 @@ import numpy as np
 import input
 import volume
 import fft
+import mapio
 
 class Algorithm():
     def __init__(self):
+        self._alg_list = ['ER', 'DM', 'HIO', 'mod-DM', 'RAAR']
         pass
     
     def proj_fourier(self, in_arr, out_arr):
@@ -23,7 +25,7 @@ class Algorithm():
             
             self.fft.forward()
             self.volume.symmetrize_incoherent(self.fft.fdensity, self.exp_mag, out_arr[1])
-            self.input.match_bragg(fft.fdensity, 0.)
+            self.input.match_bragg(self.fft.fdensity, 0.)
             #self.volume.rotational_blur(self.exp_mag, self.exp_mag, self.quat)
             
             sel = (self.input.obs_mag > 0)
@@ -40,11 +42,11 @@ class Algorithm():
             self.fft.rdensity[:] = in_arr
             self.fft.forward()
             self.volume.symmetrize_incoherent(self.fft.fdensity, self.exp_mag)
-            self.input.match_bragg(fft.fdensity, 0.)
+            self.input.match_bragg(self.fft.fdensity, 0.)
              
             sel = (self.input.obs_mag > 0)
             self.fft.fdensity[sel] *= self.input.obs_mag[sel] / self.exp_mag[sel]
-            self.fft.fdensity[self.input_obs_mag == 0.] = 0
+            self.fft.fdensity[self.input.obs_mag == 0.] = 0
             
         self.fft.inverse()
         out_arr[0] = np.real(self.fft.rdensity) / vol
@@ -171,12 +173,12 @@ class Algorithm():
     #============================================================
 
     def make_recon_folders(self):
-        os.mkdir("%s-slices" % self.output_prefix, 0755)
-        os.mkdir("%s-fslices" % self.output_prefix, 0755)
+        os.makedirs("%s-slices" % self.output_prefix, 0o755, exist_ok=True)
+        os.makedirs("%s-fslices" % self.output_prefix, 0o755, exist_ok=True)
         if self.do_bg_fitting:
-            os.mkdir("%s-radavg" % self.output_prefix, 0755)
+            os.makedirs("%s-radavg" % self.output_prefix, 0o755, exist_ok=True)
         if self.do_local_variation:
-            os.mkdir("%s-support" % self.output_prefix, 0755)
+            os.makedirs("%s-support" % self.output_prefix, 0o755, exist_ok=True)
 
     def run_iteration(self, i):
         if i <= self.num_iter:
@@ -186,13 +188,13 @@ class Algorithm():
         
         if algo == "DM":
             error = self.DM_algorithm()
-        else if algo == "HIO":
+        elif algo == "HIO":
             error = self.HIO_algorithm()
-        else if algo == "RAAR":
+        elif algo == "RAAR":
             error = self.RAAR_algorithm()
-        else if algo == "mod-DM":
+        elif algo == "mod-DM":
             error = self.mod_DM_algorithm()
-        else if algo == "ER":
+        elif algo == "ER":
             error = self.ER_algorithm()
         else:
             print("Could not understand algorithm name:", algo)
@@ -204,11 +206,11 @@ class Algorithm():
         with open("%s-log.dat" % self.output_prefix, "a") as f:
             f.write("%.4d\t%.2f s\t%f\n" % (i, t2 - t1, error))
         
-        self.volume.dump_slices(self.p1, "%s-slices/%.4d.ccp4" % (self.output_prefix, i), self.size, 0, "ResEx-recon p1 %d\n" % i)
-        self.volume.dump_slices(self.exp_mag, "%s-fslices/%.4d.ccp4" % (self.output_prefix, i), self.size, 1, "ResEx-recon exp_mag %d\n" % i)
+        self.volume.dump_slices(self.p1, "%s-slices/%.4d.ccp4" % (self.output_prefix, i), "ResEx-recon p1 %d\n" % i)
+        self.volume.dump_slices(self.exp_mag, "%s-fslices/%.4d.ccp4" % (self.output_prefix, i), "ResEx-recon exp_mag %d\n" % i, is_fourier=True)
         
         if self.do_local_variation:
-            self.volume.dump_support_slices(self.input.support, "%s-support/%.4d.ccp4" % (self.output_prefix, i), self.size, "ResEx-recon support %d\n" % i)
+            self.volume.dump_slices(self.input.support, "%s-support/%.4d.ccp4" % (self.output_prefix, i), "ResEx-recon support %d\n" % i)
         if self.do_bg_fitting:
             self.volume.radavg[self.size//2].tofile("%s-radavg/%.4d.raw" % (self.output_prefix, i))
         
@@ -224,57 +226,41 @@ class Algorithm():
         mapio.save_vol_as_map("%s-pd.ccp4" % self.output_prefix, self.average_p2, rvsizes, "ResEx-recon average_p2\n")
         
         if self.do_bg_fitting:
-            mapio.save_vol_as_map("%s-bg.ccp4" % self.output_prefix, &(self.p2[self.vol]), fvsizes, "ResEx-recon average_p2\n")
+            mapio.save_vol_as_map("%s-bg.ccp4" % self.output_prefix, self.p2[1], fvsizes, "ResEx-recon average_p2\n")
             self.volume.radavg[:self.size//2].tofile("%s-radavg.raw" % self.output_prefix)
         
         if self.do_local_variation:
             mapio.save_vol_as_map("%s-supp.supp" % self.output_prefix, self.input.support, rvsizes, "ResEx-recon Refined support\n")
 
-    @staticmethod
-    def _test_alg_name(name):
-        if name != "DM" and
-           name != "HIO" and
-           name != "RAAR" and
-           name != "mod-DM" and
-           name != "ER":
-            return False
-        else
-            print('Unrecognized algorithm:', name)
-            return True
-
     def parse_algorithm_strings(self, alg_string, avg_string):
         '''Generates list of algorithms given algorithm and avg_algorithm strings.
         '''
-        char *token, string[9999]
-        int i, current_num = 0, is_num = 1
         self.num_iter = 0
         self.num_avg_iter = 0
         
         tokens = alg_string.split()
         nums = [int(s) for s in tokens[::2]]
         names = tokens[1::2]
-        tests = np.array([self._test_alg_name(n) for n in names])
+        tests = np.array([(n in self._alg_list) for n in names])
         if not tests.all():
             raise ValueError('Could not parse algorithm string')
         self.num_iter = sum(nums)
         print("Total number of normal iterations = %d" % self.num_iter)
-        self.algorithms = [None] * self.num_iter
-        current_num = 0
+        self.algorithms = []
         for num, name in zip(nums, names):
-            self.algorithms[current_num:current_num+num] = name
+            self.algorithms += [name]*num
         
-        tokens = avg_alg_string.split()
+        tokens = avg_string.split()
         nums = [int(s) for s in tokens[::2]]
         names = tokens[1::2]
-        tests = np.array([self._test_alg_name(n) for n in names])
+        tests = np.array([(n in self._alg_list) for n in names])
         if not tests.all():
             raise ValueError('Could not parse algorithm string')
         self.num_avg_iter = sum(nums)
-        print("Total number of averaging iterations = %d" % self.num_iter)
-        self.avg_algorithms = [None] * self.num_avg_iter
-        current_num = 0
+        print("Total number of averaging iterations = %d" % self.num_avg_iter)
+        self.avg_algorithms = []
         for num, name in zip(nums, names):
-            self.avg_algorithms[current_num:current_num+num] = name
+            self.avg_algorithms += [name]*num
 
     def allocate_memory(self):
         nmodels = 2 if self.do_bg_fitting else 1
@@ -282,43 +268,33 @@ class Algorithm():
         fshape = (self.size, self.size, self.size)
         
         self.iterate = np.empty(mshape, dtype='f4')
-        self.exp_mag = np.empty(fshape, dtype='f4'
+        self.exp_mag = np.empty(fshape, dtype='f4')
         
         self.p1 = np.empty(mshape, dtype='f4')
         self.p2 = np.empty(mshape, dtype='f4')
         self.average_p1 = np.zeros(mshape, dtype='f4')
         self.average_p2 = np.zeros(mshape, dtype='f4')
         self.r1 = np.empty(mshape, dtype='f4')
-        if (self.beta != 1.)
+        if self.beta != 1.:
             self.r2 = np.empty(mshape, dtype='f4')
 
     def calc_prtf(self, num_bins):
-        long x, y, z, bin
-        long dx, dy, dz, size = self.size, vol = self.vol, c = size/2, c1 = size/2+1
-        float obs_val, *prtf = calloc(num_bins, sizeof(float))
-        long *bin_count = calloc(num_bins, sizeof(long))
-        FILE *fp
-        char fname[1024], label[800]
-        float *model1 = self.average_p1
-        float *model2 = self.average_p2
-        struct volume_data *volume = self.volume
-        struct input_data *input = self.input
-        struct fft_data *fft = self.fft
-        int sizes[3] = {size, size, size}
-        float vsizes[3] = {-1.f, -1.f, -1.f}
+        model1 = self.average_p1
+        model2 = self.average_p2
+        c = self.size // 2
         
         # FFT average_p2 model
-        fft.rdensity[:] = model2[0]
+        self.fft.rdensity[:] = model2[0]
         self.fft.forward()
         
         # Calculate exp_mag for average_p2 model
         if self.do_bg_fitting:
-            self.volume.symmetrize_incoherent(fft.fdensity, self.exp_mag, model2[1])
-        else
-            self.volume.symmetrize_incoherent(fft.fdensity, self.exp_mag, None)
+            self.volume.symmetrize_incoherent(self.fft.fdensity, self.exp_mag, model2[1])
+        else:
+            self.volume.symmetrize_incoherent(self.fft.fdensity, self.exp_mag, None)
         
         # Calculate PRTF by comparing with obs_mag
-        self = (self.input.obs_mag > 0)
+        sel = (self.input.obs_mag > 0)
         prtf = np.ones(self.exp_mag.shape, dtype='f4')*-1
         prtf[sel] = self.exp_mag[sel] / self.input.obs_mag[sel]
         self.p2 = np.fft.fftshift(np.abs(self.fft.fdensity)**2)
@@ -344,6 +320,7 @@ class Algorithm():
             w.writerows(zip(np.linspace(0, 1, num_bins), prtf_avg))
         
         # Save frecon (intensity from model)
+        vsizes = np.ones(3, dtype='f4')*-1
         mapio.save_vol_as_map("%s-frecon.ccp4" % self.output_prefix, self.p2, vsizes, "ResEx-recon Fourier intensities of reconstruction\n")
         
         # If needed, normalize models by PRTF

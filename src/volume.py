@@ -126,13 +126,15 @@ class Volume():
         '''Save orthogonal central slices to file
         '''
         vsizes = np.ones(3, dtype='f4')
+        if len(vol.shape) == 4:
+            vol = vol[0]
         if is_fourier:
             temp = np.fft.fftshift(vol)
             vsizes *= -1.
         else:
             temp = vol
         
-        size = vol.shape[0]
+        size = vol.shape[-1]
         cen = size // 2
         if is_support:
             slices = np.empty((3, size, size), dtype='i1')
