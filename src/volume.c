@@ -294,13 +294,17 @@ static void gen_rot(float rot[3][3], double *q) {
  * Can set out = in
  */
 void volume_rotational_blur(struct volume_data *self, float *in, float *out, struct rotation *quat) {
+	long vol = self->size*self->size*self->size ; 
+	float *weight = calloc(vol, sizeof(float)) ;
+	
 	#pragma omp parallel default(shared)
 	{
 		long r, i, j, x, y, z, vox[3] ;
 		long size = self->size, c = size / 2, vol = size*size*size ;
-		float fx, fy, fz, cx, cy, cz, w ;
+		float fx, fy, fz, cx, cy, cz, w, val ;
 		float rot_vox[3], rot[3][3] ;
 		float *priv_out = calloc(vol, sizeof(float)) ;
+		float *priv_weight = calloc(vol, sizeof(float)) ;
 		
 		#pragma omp for schedule(dynamic,1)
 		for (r = 0 ; r < quat->num_rot ; ++r) {
@@ -309,39 +313,58 @@ void volume_rotational_blur(struct volume_data *self, float *in, float *out, str
 			
 			gen_rot(rot, &(quat->quat[r*5])) ;
 			
-			for (vox[0] = -c ; vox[0] < size-c ; ++vox[0])
-			for (vox[1] = -c ; vox[1] < size-c ; ++vox[1])
-			for (vox[2] = -c ; vox[2] < size-c ; ++vox[2]) {
-				for (i = 0 ; i < 3 ; ++i) {
-					rot_vox[i] = 0. ;
+			w = quat->quat[r*5 + 4] ;
+			
+			
+			for (vox[0] = 0 ; vox[0] < size ; ++vox[0]) /* loop trough every pixel */
+			for (vox[1] = 0 ; vox[1] < size ; ++vox[1])
+			for (vox[2] = 0 ; vox[2] < size ; ++vox[2]) {
+				for (i = 0 ; i < 3 ; ++i) { /* find rotated pixel position */
+					rot_vox[i] = c ;
 					
 					for (j = 0 ; j < 3 ; ++j)
-						rot_vox[i] += rot[i][j] * vox[j] ;
+						rot_vox[i] += rot[i][j] * (vox[j] - c) ;
 					
 					rot_vox[i] = fmod(rot_vox[i] + size, size) ;
+					
 				}
 				
-				x = rot_vox[0] ;
+				
+				
+				x = rot_vox[0] ; /* integer part of rotated coordinate, confusing syntax */
 				y = rot_vox[1] ;
 				z = rot_vox[2] ;
-				fx = rot_vox[0] - x ;
+				fx = rot_vox[0] - x ; /*  fractional part of cooridnate used for linear interpolation in the next block  */
 				fy = rot_vox[1] - y ;
 				fz = rot_vox[2] - z ;
-				cx = 1. - fx ;
+				cx = 1. - fx ; 
 				cy = 1. - fy ;
 				cz = 1. - fz ;
 				
-				w = in[((vox[0]+size)%size)*size*size + ((vox[1]+size)%size)*size + ((vox[2]+size)%size)] * quat->quat[r*5 + 4] ;
+				val = in[vox[0]*size*size + vox[1]*size + vox[2]] * w ;
+	
+	            				
 				
-				priv_out[x*size*size + y*size + z]                                  += cx*cy*cz*w ;
-				priv_out[x*size*size + y*size + ((z+1)%size)]                       += cx*cy*fz*w ;
-				priv_out[x*size*size + ((y+1)%size)*size + z]                       += cx*fy*cz*w ;
-				priv_out[x*size*size + ((y+1)%size)*size + ((z+1)%size)]            += cx*fy*fz*w ;
-				priv_out[((x+1)%size)*size*size + y*size + z]                       += fx*cy*cz*w ;
-				priv_out[((x+1)%size)*size*size + y*size + ((z+1)%size)]            += fx*cy*fz*w ;
-				priv_out[((x+1)%size)*size*size + ((y+1)%size)*size + z]            += fx*fy*cz*w ;
-				priv_out[((x+1)%size)*size*size + ((y+1)%size)*size + ((z+1)%size)] += fx*fy*fz*w ;
+				priv_out[x*size*size + y*size + z]                                     += cx*cy*cz*val ;/* linear interpolation */
+				priv_weight[x*size*size + y*size + z]                                  += cx*cy*cz*w ;
+				priv_out[x*size*size + y*size + ((z+1)%size)]                          += cx*cy*fz*val ;
+				priv_weight[x*size*size + y*size + ((z+1)%size)]                       += cx*cy*fz*w ;
+				priv_out[x*size*size + ((y+1)%size)*size + z]                          += cx*fy*cz*val ;
+				priv_weight[x*size*size + ((y+1)%size)*size + z]                       += cx*fy*cz*w ;
+				priv_out[((x+1)%size)*size*size + y*size + z]                          += fx*cy*cz*val ;
+				priv_weight[((x+1)%size)*size*size + y*size + z]                       += fx*cy*cz*w ;		
+				priv_out[x*size*size + ((y+1)%size)*size + ((z+1)%size)]               += cx*fy*fz*val ;
+				priv_weight[x*size*size + ((y+1)%size)*size + ((z+1)%size)]            += cx*fy*fz*w ;
+				priv_out[((x+1)%size)*size*size + y*size + ((z+1)%size)]               += fx*cy*fz*val ;		
+				priv_weight[((x+1)%size)*size*size + y*size + ((z+1)%size)]            += fx*cy*fz*w ;
+				priv_out[((x+1)%size)*size*size + ((y+1)%size)*size + z]               += fx*fy*cz*val ;
+				priv_weight[((x+1)%size)*size*size + ((y+1)%size)*size + z]            += fx*fy*cz*w ;
+				priv_out[((x+1)%size)*size*size + ((y+1)%size)*size + ((z+1)%size)]    += fx*fy*fz*val ;
+				priv_weight[((x+1)%size)*size*size + ((y+1)%size)*size + ((z+1)%size)] += fx*fy*fz*w ;
 			}
+			if (omp_get_thread_num() == 0) 
+				fprintf(stderr, "\rRotating %ld/%d", r, quat->num_rot) ;
+		
 		}
 		
 		if (omp_get_thread_num() == 0)
@@ -350,12 +373,22 @@ void volume_rotational_blur(struct volume_data *self, float *in, float *out, str
 		
 		#pragma omp critical(priv_out)
 		{
-			for (x = 0 ; x < vol ; ++x)
+			for (x = 0 ; x < vol ; ++x) {
 				out[x] += priv_out[x] ;
+				weight[x] += priv_weight[x] ;
+			}
 		}
 		
 		free(priv_out) ;
+		free(priv_weight) ;
 	}
+	
+	long x ;
+	for (x = 0 ; x < vol ; ++x)
+	if (weight[x] > 0.)
+		out[x] /= weight[x] ;
+	free(weight) ;
+	fprintf(stderr, "\n") ;
 }
 
 void volume_free(struct volume_data *self) {

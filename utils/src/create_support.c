@@ -3,7 +3,7 @@
 
 int main(int argc, char* argv[]) {
 	long size, vol, num_supp ;
-	float blur, thresh, *density ;
+	float blur, thresh, *density, *absdensity ;
 	uint8_t *support ;
 	char fname[1024] ;
 	FILE *fp ;
@@ -35,7 +35,11 @@ int main(int argc, char* argv[]) {
 	fprintf(stderr, "Parsed density\n") ;
 	
 	// Apply Shrinkwrap to create support
-	num_supp = fft_apply_shrinkwrap(&fft, density, blur, thresh, support, NULL) ;
+	absdensity = malloc(vol * sizeof(float)) ;
+	for (int i=0; i!=vol; i=1+i){ 
+	    absdensity[i] = fabsf(density[i]);
+	}
+	num_supp = fft_apply_shrinkwrap(&fft, absdensity, blur, thresh, support, NULL) ;
 	fprintf(stderr, "Calculated support with %ld voxels\n", num_supp) ;
 	
 	// Write to file

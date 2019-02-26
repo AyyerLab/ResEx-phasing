@@ -743,9 +743,12 @@ static void quat_free_mem(int num) {
 		free(cell_points) ;
 }
 
+// Public functions below
+
 int quat_gen(struct rotation *quat, int num_div, double sigma) {
 	int r, num_rel = 0 ;
-	double min_dist2, total_weight = 0. ;
+	double angle, min_dist2, total_weight = 0. ;
+	const double thresh = 1.e-2 ;
 	
 	make_vertex(num_div) ; 
 	min_dist2 = calc_min_dist2() ;
@@ -771,20 +774,26 @@ int quat_gen(struct rotation *quat, int num_div, double sigma) {
 	quat_free_mem(num_div) ;
 	
 	for (r = 0 ; r < quat->num_rot ; ++r) {
-		quat->quat[r*5 + 4] *= exp(-0.5*pow(quat->quat[r*5 + 4]/sigma, 2.f)) ;
-		total_weight += quat->quat[r*5 + 4] ;
-	}
-	total_weight = 1. / total_weight ;
-	for (r = 0 ; r < quat->num_rot ; ++r) {
-		quat->quat[r*5 + 4] *= total_weight ;
-		if (quat->quat[r*5 + 4] > 0.1 / quat->num_rot)
-			num_rel++ ;
-		else
-			quat->quat[r*5 + 4] = -1. ;
+		// Angle w.r.t (1,0,0,0) quaternion
+		angle = acos(2*pow(quat->quat[r*5+0], 2.) - 1) ;
+		// Gaussian weight as a function of angle
+		quat->quat[r*5 + 4] = exp(-0.5*pow(angle/sigma, 2.f)) ;
 	}
 	
+	for (r = 0 ; r < quat->num_rot ; ++r)
+	if (quat->quat[r*5 + 4] > thresh) {
+		num_rel++ ;
+		total_weight += quat->quat[r*5 + 4] ;
+	}
+	else {
+		quat->quat[r*5 + 4] = -1. ;
+	}
+	
+	for (r = 0 ; r < quat->num_rot ; ++r)
+	if (quat->quat[r*5 + 4] > thresh)
+		quat->quat[r*5 + 4] /= total_weight ;
+	
 	fprintf(stderr, "Number of relevant orientations = %d/%d\n", num_rel, quat->num_rot) ;
-	quat->num_rot = num_rel ;
 	
 	return quat->num_rot ;
 }
