@@ -4,7 +4,6 @@ import numpy as np
 import input
 import volume
 import fft
-import mapio
 
 class Algorithm():
     def __init__(self):
@@ -216,21 +215,21 @@ class Algorithm():
         
         if i == self.num_iter:
             vsizes = np.array([1., 1., 1.], dtype='f4')
-            mapio.save_vol_as_map("%s-last.ccp4" % self.output_prefix, self.iterate, vsizes, "ResEx-recon Last iteration %d\n" % i)
+            self.volume.save_as_map("%s-last.ccp4" % self.output_prefix, self.iterate, vsizes, "ResEx-recon Last iteration %d\n" % i)
 
     def save_output(self):
         rvsizes = np.array([1., 1., 1.], dtype='f4')
         fvsizes = rvsizes * -1.
         
-        mapio.save_vol_as_map("%s-pf.ccp4" % self.output_prefix, self.average_p1, rvsizes, "ResEx-recon average_p1\n")
-        mapio.save_vol_as_map("%s-pd.ccp4" % self.output_prefix, self.average_p2, rvsizes, "ResEx-recon average_p2\n")
+        self.volume.save_as_map("%s-pf.ccp4" % self.output_prefix, self.average_p1, rvsizes, "ResEx-recon average_p1\n")
+        self.volume.save_as_map("%s-pd.ccp4" % self.output_prefix, self.average_p2, rvsizes, "ResEx-recon average_p2\n")
         
         if self.do_bg_fitting:
-            mapio.save_vol_as_map("%s-bg.ccp4" % self.output_prefix, self.p2[1], fvsizes, "ResEx-recon average_p2\n")
+            self.volume.save_as_map("%s-bg.ccp4" % self.output_prefix, self.p2[1], fvsizes, "ResEx-recon average_p2\n")
             self.volume.radavg[:self.size//2].tofile("%s-radavg.raw" % self.output_prefix)
         
         if self.do_local_variation:
-            mapio.save_vol_as_map("%s-supp.supp" % self.output_prefix, self.input.support, rvsizes, "ResEx-recon Refined support\n")
+            self.volume.save_as_map("%s-supp.supp" % self.output_prefix, self.input.support, rvsizes, "ResEx-recon Refined support\n")
 
     def parse_algorithm_strings(self, alg_string, avg_string):
         '''Generates list of algorithms given algorithm and avg_algorithm strings.
@@ -321,7 +320,7 @@ class Algorithm():
         
         # Save frecon (intensity from model)
         vsizes = np.ones(3, dtype='f4')*-1
-        mapio.save_vol_as_map("%s-frecon.ccp4" % self.output_prefix, self.p2, vsizes, "ResEx-recon Fourier intensities of reconstruction\n")
+        self.volume.save_as_map("%s-frecon.ccp4" % self.output_prefix, self.p2, vsizes, "ResEx-recon Fourier intensities of reconstruction\n")
         
         # If needed, normalize models by PRTF
         if self.do_normalize_prtf:

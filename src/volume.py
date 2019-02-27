@@ -1,5 +1,5 @@
 import numpy as np
-import mapio
+import mrcfile
 
 class Volume():
     def __init__(self, size, point_group):
@@ -144,7 +144,7 @@ class Volume():
         slices[1] = temp[:,cen]
         slices[2] = temp[:,:,cen]
         
-        mapio.save_vol_as_map(fname, slices, vsizes, label)
+        self.save_as_map(fname, slices, vsizes, label)
 
     @staticmethod
     def positive_mode(model):
@@ -155,3 +155,14 @@ class Volume():
         mode_err = h[1][1] - h[1][0]
         print("Mode of positive values in volume = %.3e +- %.3e" % (mode, mode_err))
         return mode
+
+    @staticmethod
+    def save_as_map(fname, vol, vsizes, label):
+        mrc = mrcfile.new(fname, overwrite=True, data=vol)
+        mrc.header['cella']['x'] = np.array(vsizes[0])
+        mrc.header['cella']['y'] = np.array(vsizes[1])
+        mrc.header['cella']['z'] = np.array(vsizes[2])
+        num_lines = int(np.ceil(len(label) / 80.))
+        for i in range(num_lines):
+            mrc.header['label'][i] = label[i*80:(i+1)*80]
+        mrc.close()
