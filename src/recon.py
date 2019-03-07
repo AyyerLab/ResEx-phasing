@@ -1,8 +1,6 @@
 import sys
 import argparse
-import configparser
 import time
-from multiprocessing import cpu_count
 
 import algorithm
 
@@ -12,8 +10,7 @@ def main():
     parser.add_argument('-T', '--testing', help='Flag for whether to run in testing (fixed seed) mode', action='store_true')
     args = parser.parse_args()
 
-    algo = algorithm.Algorithm()
-    algo.setup(args.config_fname, args.testing)
+    algo = algorithm.Algorithm(args.config_fname, args.testing)
     
     for i in range(1, algo.num_iter + algo.num_avg_iter + 1):
         t1 = time.time()
