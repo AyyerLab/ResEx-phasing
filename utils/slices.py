@@ -2,15 +2,16 @@
 
 from __future__ import print_function
 import os
-import numpy as np
 import glob
-import pylab as P
-import matplotlib.animation as animation
 import argparse
 try:
     from ConfigParser import ConfigParser
 except ImportError:
     from configparser import ConfigParser
+import numpy as np
+import pylab as P
+import matplotlib.animation as animation
+import mrcfile
 
 parser = argparse.ArgumentParser(description='Plot real-space slices of predicted intensities')
 parser.add_argument('-c', '--config', help='Path to config file. Default: config.ini', default='config.ini')
@@ -21,7 +22,9 @@ parser.add_argument('-j', '--jump', help='Jump. Do only every j iterations. Defa
 args = parser.parse_args()
 
 def update_view(num):
-    fslices = np.fromfile(flist[num], '=f4').reshape(3,size,size)
+    with mrcfile.open(flist[num], 'r') as f:
+        fslices = f.data
+    #fslices = np.fromfile(flist[num], '=f4').reshape(3,size,size)
     v[0].set_data(fslices[0,bmin:bmax,bmin:bmax])
     v[1].set_data(fslices[1,bmin:bmax,bmin:bmax])
     v[2].set_data(fslices[2,bmin:bmax,bmin:bmax])
@@ -31,14 +34,16 @@ def update_view(num):
 config = ConfigParser()
 config.read(args.config)
 size = config.getint('parameters', 'size')
-prefix = config.get('files', 'output_prefix')
+prefix = os.path.join(os.path.dirname(args.config), config.get('files', 'output_prefix'))
 
 if args.last is None:
     with open(prefix+'-log.dat', 'r') as f:
         args.last = int(f.readlines()[-1].split()[0])
-flist = np.array([prefix+'-slices/%.4d.raw'%i for i in range(args.start, args.last+1)])
+flist = np.array([prefix+'-slices/%.4d.ccp4'%i for i in range(args.start, args.last+1)])
 
-rangemax = np.fromfile(flist[-1], '=f4').max()/1.5
+with mrcfile.open(flist[-1], 'r') as f:
+    rangemax = f.data.max() / 1.5
+#rangemax = np.fromfile(flist[-1], '=f4').max()/1.5
 print('%d slices will be plotted with rangemax %.3f' % (len(flist), rangemax))
 bmin = size//3
 bmax = 2*size//3
@@ -52,7 +57,9 @@ s1 = fig.add_subplot(131)
 s2 = fig.add_subplot(132)
 s3 = fig.add_subplot(133)
 
-fslices = np.fromfile(flist[0], '=f4').reshape(3,size,size)
+with mrcfile.open(flist[0], 'r') as f:
+    fslices = f.data
+#fslices = np.fromfile(flist[0], '=f4').reshape(3,size,size)
 v = []
 v.append(s1.matshow(fslices[0,bmin:bmax,bmin:bmax], vmax=rangemax, vmin=rangemin, cmap='cubehelix'))
 v.append(s2.matshow(fslices[1,bmin:bmax,bmin:bmax], vmax=rangemax, vmin=rangemin, cmap='cubehelix'))
