@@ -2,16 +2,24 @@ import os
 import csv
 import configparser
 from multiprocessing import cpu_count
-import numpy as np
+import numpy
 import input
 import volume
 try:
-    import pyfftw
-    import pyfftw.interfaces.numpy_fft as fft
-    PYFFTW = True
-except ImportError:
-    import numpy.fft as fft
+    import cupy as np
+    import cupy.fft as fft
+    CUDA = True
     PYFFTW = False
+except ImportError:
+    CUDA = False
+    import numpy as np
+    try:
+        import pyfftw
+        import pyfftw.interfaces.numpy_fft as fft
+        PYFFTW = True
+    except ImportError:
+        import numpy.fft as fft
+        PYFFTW = False
 
 class Algorithm():
     def __init__(self, config_fname, fixed_seed=False):
@@ -99,7 +107,7 @@ class Algorithm():
                 f.write("Normalizing output by PRTF\n")
             f.write("Output prefix: %s\n" % self.output_prefix)
             f.write("-------------------------\n")
-            f.write("iter    time    error\n")
+            f.write("iter  time (s)  error\n")
             f.write("-------------------------\n")
 
         self.make_recon_folders()
@@ -112,7 +120,11 @@ class Algorithm():
         '''
         if self.do_bg_fitting:
             out_arr[1] = in_arr[1]
-            fdensity = fft.fftn(in_arr[0], **self.fft_kwargs).astype('c8')
+            if CUDA:
+                garr = np.array(in_arr[0])
+                fdensity = fft.fftn(garr)
+            else:
+                fdensity = fft.fftn(in_arr[0], **self.fft_kwargs).astype('c8')
             self.volume.symmetrize_incoherent(fdensity, self.exp_mag, out_arr[1])
             self.input.match_bragg(fdensity, 0.)
             #self.volume.rotational_blur(self.exp_mag, self.exp_mag, self.quat)
@@ -128,7 +140,11 @@ class Algorithm():
 
             out_arr[1][self.input.obs_mag < 0] = 0
         else:
-            fdensity = fft.fftn(in_arr[0], **self.fft_kwargs).astype('c8')
+            if CUDA:
+                garr = np.array(in_arr[0])
+                fdensity = fft.fftn(garr)
+            else:
+                fdensity = fft.fftn(in_arr[0], **self.fft_kwargs).astype('c8')
             self.volume.symmetrize_incoherent(fdensity, self.exp_mag)
             self.input.match_bragg(fdensity, 0.)
 
@@ -136,7 +152,8 @@ class Algorithm():
             fdensity[sel] *= self.input.obs_mag[sel] / self.exp_mag[sel]
             fdensity[self.input.obs_mag == 0.] = 0
 
-        out_arr[0] = np.real(fft.ifftn(fdensity, **self.fft_kwargs)) / self.vol
+        #out_arr[0] = np.real(fft.ifftn(fdensity, **self.fft_kwargs)) / self.vol
+        out_arr[0] = np.real(fft.ifftn(fdensity, **self.fft_kwargs))
 
     def proj_direct(self, in_arr, out_arr):
         '''Direct-space projection
@@ -185,7 +202,7 @@ class Algorithm():
 
         diff = self.beta * (self.p2 - self.p1)
         self.iterate += diff
-        return np.linalg.norm(diff[0])
+        return np.linalg.norm(diff[0]) / np.sqrt(diff[0].size)
 
     def mod_DM_algorithm(self):
         r'''Modified Difference Map algorithm
@@ -204,7 +221,7 @@ class Algorithm():
 
         diff = self.p1 - self.p2
         self.iterate += diff
-        return np.linalg.norm(diff[0])
+        return np.linalg.norm(diff[0]) / np.sqrt(diff[0].size)
 
     def RAAR_algorithm(self):
         r'''RAAR algorithm
@@ -226,7 +243,7 @@ class Algorithm():
 
         diff = (self.beta - 1.) * self.iterate + self.beta * (self.r2 + self.p2) + (1. - 2. * self.beta) * self.p1
         self.iterate += diff
-        return np.linalg.norm(diff[0])
+        return np.linalg.norm(diff[0]) / np.sqrt(diff[0].size)
 
     def HIO_algorithm(self):
         r'''HIO algorithm
@@ -240,7 +257,7 @@ class Algorithm():
 
         diff = self.beta * (self.p2 - self.p1)
         self.iterate += diff
-        return np.linalg.norm(diff[0])
+        return np.linalg.norm(diff[0]) / np.sqrt(diff[0].size)
 
     def ER_algorithm(self):
         r'''Error Reduction algorithm
@@ -253,7 +270,7 @@ class Algorithm():
 
         self.iterate = self.p2
         diff = self.p2 - self.p1
-        return np.linalg.norm(diff[0])
+        return np.linalg.norm(diff[0]) / np.sqrt(diff[0].size)
 
     #============================================================
 
@@ -289,7 +306,7 @@ class Algorithm():
 
     def save_current(self, i, t1, t2, error):
         with open("%s-log.dat" % self.output_prefix, "a") as f:
-            f.write("%.4d\t%.2f s\t%f\n" % (i, t2 - t1, error))
+            f.write("%.4d  %.2e  %f\n" % (i, t2 - t1, error))
 
         self.volume.dump_slices(self.p1, "%s-slices/%.4d.ccp4" % (self.output_prefix, i), "ResEx-recon p1 %d\n" % i)
         self.volume.dump_slices(self.exp_mag, "%s-fslices/%.4d.ccp4" % (self.output_prefix, i), "ResEx-recon exp_mag %d\n" % i, is_fourier=True)
@@ -307,8 +324,8 @@ class Algorithm():
         rvsizes = np.array([1., 1., 1.], dtype='f4')
         fvsizes = rvsizes * -1.
 
-        self.volume.save_as_map("%s-pf.ccp4" % self.output_prefix, self.average_p1, rvsizes, "ResEx-recon average_p1\n")
-        self.volume.save_as_map("%s-pd.ccp4" % self.output_prefix, self.average_p2, rvsizes, "ResEx-recon average_p2\n")
+        self.volume.save_as_map("%s-pf.ccp4" % self.output_prefix, self.average_p1[0], rvsizes, "ResEx-recon average_p1\n")
+        self.volume.save_as_map("%s-pd.ccp4" % self.output_prefix, self.average_p2[0], rvsizes, "ResEx-recon average_p2\n")
 
         if self.do_bg_fitting:
             self.volume.save_as_map("%s-bg.ccp4" % self.output_prefix, self.p2[1], fvsizes, "ResEx-recon average_p2\n")
@@ -384,17 +401,22 @@ class Algorithm():
         self.p2 = np.fft.fftshift(np.abs(fdensity)**2)
 
         bin_size = float(c) / num_bins
-        x, y, z = np.indices(prtf.shape)
+        x, y, z = numpy.indices(prtf.shape)
         x -= c
         y -= c
         z -= c
-        intrad = np.round(np.sqrt(x*x + y*y + z*z) / bin_size).astype('i4')
+        intrad = numpy.around(numpy.sqrt(x*x + y*y + z*z) / bin_size).astype('i4')
 
-        sel = sel & (intrad < num_bins)
-        bin_count = np.zeros(num_bins)
-        prtf_avg = np.zeros(num_bins)
-        np.add.at(bin_count, intrad[sel], 1)
-        np.add.at(prtf_avg, intrad[sel], prtf[sel])
+        if CUDA:
+            numpy_sel = np.asnumpy(sel) & (intrad < num_bins)
+            numpy_prtf = np.asnumpy(prtf)
+        else:
+            numpy_sel = sel & (intrad < num_bins)
+            numpy_prtf = prtf
+        bin_count = numpy.zeros(num_bins)
+        prtf_avg = numpy.zeros(num_bins)
+        numpy.add.at(bin_count, intrad[numpy_sel], 1)
+        numpy.add.at(prtf_avg, intrad[numpy_sel], numpy_prtf[numpy_sel])
         prtf_avg[bin_count > 0] /= bin_count[bin_count > 0]
 
         # Save PRTF

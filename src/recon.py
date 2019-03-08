@@ -19,8 +19,8 @@ def main():
         if error < 0:
             sys.exit(1)
         if i > algo.num_iter:
-            algo.volume.accumulate(algo.p1, algo.average_p1)
-            algo.volume.accumulate(algo.p2, algo.average_p2)
+            algo.average_p1 += algo.p1
+            algo.average_p2 += algo.p2
         
         t2 = time.time()
         algo.save_current(i, t1, t2, error)

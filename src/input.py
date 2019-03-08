@@ -1,7 +1,10 @@
 import os
-import numpy as np
 from scipy import interpolate
 import mrcfile
+try:
+    import cupy as np
+except ImportError:
+    import numpy as np
 
 # Note: update_support (solvent flattening) not implemented here
 
@@ -56,14 +59,14 @@ class Input():
         
     def parse_support(self, fname):
         with mrcfile.open(fname, 'r') as mrc:
-            self.support = mrc.data
+            self.support = np.array(mrc.data)
             if self.support.dtype != np.dtype('i1'):
                 raise TypeError('Support file needs to have int8 data')
 
         sx, sy, sz = np.where(self.support > 0)
-        self.support_bounds = np.array([sx.min(), sx.max(), sy.min(), sy.max(), sz.min(), sz.max()])
+        self.support_bounds = np.array([int(val) for val in [sx.min(), sx.max(), sy.min(), sy.max(), sz.min(), sz.max()]])
         self.supp_loc = np.where(self.support.ravel() > 0)[0]
-        self.num_supp = (self.support>0).sum()
+        self.num_supp = int((self.support>0).sum())
         
         print("num_supp = %ld" % self.num_supp)
         print("Support bounds:", self.support_bounds) 

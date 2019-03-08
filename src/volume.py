@@ -1,5 +1,11 @@
-import numpy as np
 import mrcfile
+import numpy
+try:
+    import cupy as np
+    CUDA = True
+except ImportError:
+    import numpy as np
+    CUDA = False
 
 class Volume():
     def __init__(self, size, point_group):
@@ -17,9 +23,10 @@ class Volume():
            If shifted=True, array is assumed to have q=0 at (0,0,0) instead of in the center of the array
         '''
         if shifted:
-            in_arr = np.fft.ifftshift(in_arr)
+            in_arr[:] = np.fft.fftshift(in_arr)
+
         if self.point_group == '222':
-            in_intens = np.abs(in_arr)**2
+            in_intens = np.absolute(in_arr)**2
             out_arr[:] = 0.25 * (in_intens + in_intens[::-1] + in_intens[:,::-1] + in_intens[:,:,::-1])
             if bg is not None:
                 bg_intens = np.abs(bg)**2
@@ -49,6 +56,10 @@ class Volume():
                 out_arr[:] = in_arr
         else:
             raise ValueError("Unrecognized point group: %s\n" % self.point_group)
+
+        if shifted:
+            out_arr[:] = np.fft.ifftshift(out_arr)
+            in_arr[:] = np.fft.ifftshift(in_arr)
 
     def init_radavg(self):
         '''Radial average initialization
@@ -117,12 +128,7 @@ class Volume():
         '''
         pass
 
-    @staticmethod
-    def accumulate(current_arr, sum_arr):
-        sum_arr[:] = sum_arr + current_arr
-
-    @staticmethod
-    def dump_slices(vol, fname, label='', is_fourier=False, is_support=False):
+    def dump_slices(self, vol, fname, label='', is_fourier=False, is_support=False):
         '''Save orthogonal central slices to file
         '''
         vsizes = np.ones(3, dtype='f4')
@@ -158,10 +164,16 @@ class Volume():
 
     @staticmethod
     def save_as_map(fname, vol, vsizes, label):
-        mrc = mrcfile.new(fname, overwrite=True, data=vol)
-        mrc.header['cella']['x'] = np.array(vsizes[0])
-        mrc.header['cella']['y'] = np.array(vsizes[1])
-        mrc.header['cella']['z'] = np.array(vsizes[2])
+        if CUDA:
+            numpy_vol = np.asnumpy(vol)
+            numpy_vsizes = np.asnumpy(vsizes)
+        else:
+            numpy_vol = vol
+            numpy_vsizes = vsizes
+        mrc = mrcfile.new(fname, overwrite=True, data=numpy_vol)
+        mrc.header['cella']['x'] = numpy.array(numpy_vsizes[0])
+        mrc.header['cella']['y'] = numpy.array(numpy_vsizes[1])
+        mrc.header['cella']['z'] = numpy.array(numpy_vsizes[2])
         num_lines = int(np.ceil(len(label) / 80.))
         for i in range(num_lines):
             mrc.header['label'][i] = label[i*80:(i+1)*80]
