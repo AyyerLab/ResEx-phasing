@@ -6,6 +6,7 @@ try:
     import cupy.fft as fft
     CUDA = True
     PYFFTW = False
+    print('Using CUDA')
 except ImportError:
     CUDA = False
     import numpy as np
@@ -13,9 +14,11 @@ except ImportError:
         import pyfftw
         import pyfftw.interfaces.numpy_fft as fft
         PYFFTW = True
+        print('Using PyFFTW')
     except ImportError:
         import numpy.fft as fft
         PYFFTW = False
+        print('Using numpy FFT')
 import projection
 import fileio
 
