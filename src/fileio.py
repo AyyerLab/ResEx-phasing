@@ -32,7 +32,8 @@ class IO():
             self._calc_intrad()
             radmin = np.ones(self.size, dtype='f4') * np.finfo('f4').max
             sel = (intens != -.1) & (intens > -1.e3)
-            np.minimum.at(radmin, self._intrad[sel], intens[sel])
+            #np.minimum.at(radmin, self._intrad[sel], intens[sel])
+            radmin = np.array([float(np.min(intens[sel & (self._intrad==r)])) for r in range(int(self._intrad.max()+1))])
             intens[sel] -= radmin[self._intrad[sel]]
 
         sel = (intens > 0)
@@ -181,13 +182,13 @@ class IO():
         if proj.do_bg_fitting:
             proj.radavg[self.size//2].tofile("%s-radavg/%.4d.raw" % (self.output_prefix, i))
 
-    def save_output(self, phas, proj):
+    def save_output(self, phas, proj, p1, p2):
         rvsizes = np.array([1., 1., 1.], dtype='f4')
         fvsizes = rvsizes * -1.
 
         self.save_as_map("%s-last.ccp4" % self.output_prefix, phas.iterate, rvsizes, "ResEx-recon Last iteration\n")
-        self.save_as_map("%s-pf.ccp4" % self.output_prefix, phas.average_p1[0], rvsizes, "ResEx-recon average_p1\n")
-        self.save_as_map("%s-pd.ccp4" % self.output_prefix, phas.average_p2[0], rvsizes, "ResEx-recon average_p2\n")
+        self.save_as_map("%s-pf.ccp4" % self.output_prefix, p1[0], rvsizes, "ResEx-recon average_p1\n")
+        self.save_as_map("%s-pd.ccp4" % self.output_prefix, p2[0], rvsizes, "ResEx-recon average_p2\n")
 
         if proj.do_bg_fitting:
             self.save_as_map("%s-bg.ccp4" % self.output_prefix, phas.p2[1], fvsizes, "ResEx-recon average_p2\n")
