@@ -183,7 +183,9 @@ class Projection():
         iy -= c
         iz -= c
         self.intrad = np.fft.ifftshift(np.sqrt(ix*ix + iy*iy + iz*iz).astype('i4'))
-        np.add.at(self.radcount, self.intrad, 1)
+        self.radcount = np.bincount(self.intrad.ravel())
+        #self.radcount = np.array([float((self.intrad==r).sum()) for r in range(int(self.intrad.max()+1))])
+        #np.add.at(self.radcount, self.intrad, 1)
         self.radcount[self.radcount == 0] = 1
 
     def radial_average(self, in_arr, out_arr=None, positive=True):
@@ -193,7 +195,8 @@ class Projection():
            If positive=True, radial average forced to be non-negative
         '''
         self.radavg.fill(0)
-        np.add.at(self.radavg, self.intrad, in_arr)
+        self.radavg = np.array([float(in_arr[self.intrad==r].sum()) for r in range(int(self.intrad.max()+1))])
+        #np.add.at(self.radavg, self.intrad, in_arr)
         self.radavg /= self.radcount
         if positive:
             self.radavg[self.radavg < 0] = 0
