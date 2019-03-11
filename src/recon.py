@@ -2,6 +2,12 @@ import sys
 import argparse
 import time
 import numpy
+try:
+    import cupy as np
+    CUDA = True
+except ImportError:
+    import numpy as np
+    CUDA = False
 import phaser
 
 def main():
@@ -16,7 +22,7 @@ def main():
 
     phas = phaser.Phaser(args.config_fname, args.testing)
     average_p1 = numpy.zeros(phas.p1.shape, dtype='f4')
-    average_p1 = numpy.zeros(phas.p1.shape, dtype='f4')
+    average_p2 = numpy.zeros(phas.p1.shape, dtype='f4')
 
     for i in range(1, phas.num_iter + phas.num_avg_iter + 1):
         time1 = time.time()
@@ -25,8 +31,12 @@ def main():
         if error < 0:
             sys.exit(1)
         if i > phas.num_iter:
-            average_p1 += phas.p1
-            average_p2 += phas.p2
+            if CUDA:
+                average_p1 += phas.p1.get()
+                average_p2 += phas.p2.get()
+            else:
+                average_p1 += phas.p1
+                average_p2 += phas.p2
 
         time2 = time.time()
         phas.io.save_current(phas, phas.proj, i, time1, time2, error)
@@ -39,11 +49,15 @@ def main():
         average_p1 /= phas.num_avg_iter
         average_p2 /= phas.num_avg_iter
     else:
-        average_p1 = phas.p1
-        average_p2 = phas.p2
+        if CUDA:
+            average_p1 = phas.p1.get()
+            average_p2 = phas.p2.get()
+        else:
+            average_p1 = phas.p1
+            average_p2 = phas.p2
 
     #phas.calc_prtf(100)
-    phas.io.save_output(phas, phas.proj)
+    phas.io.save_output(phas, phas.proj, average_p1, average_p2)
 
 if __name__ == '__main__':
     main()
