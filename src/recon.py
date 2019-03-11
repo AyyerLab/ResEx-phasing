@@ -1,6 +1,7 @@
 import sys
 import argparse
 import time
+import numpy
 import phaser
 
 def main():
@@ -14,6 +15,8 @@ def main():
     args = parser.parse_args()
 
     phas = phaser.Phaser(args.config_fname, args.testing)
+    average_p1 = numpy.zeros(phas.p1.shape, dtype='f4')
+    average_p1 = numpy.zeros(phas.p1.shape, dtype='f4')
 
     for i in range(1, phas.num_iter + phas.num_avg_iter + 1):
         time1 = time.time()
@@ -22,8 +25,8 @@ def main():
         if error < 0:
             sys.exit(1)
         if i > phas.num_iter:
-            phas.average_p1 += phas.p1
-            phas.average_p2 += phas.p2
+            average_p1 += phas.p1
+            average_p2 += phas.p2
 
         time2 = time.time()
         phas.io.save_current(phas, phas.proj, i, time1, time2, error)
@@ -33,11 +36,11 @@ def main():
     sys.stderr.write("\nCalculating prtf and writing to file.\n")
 
     if phas.num_avg_iter > 0:
-        phas.average_p1 /= phas.num_avg_iter
-        phas.average_p2 /= phas.num_avg_iter
+        average_p1 /= phas.num_avg_iter
+        average_p2 /= phas.num_avg_iter
     else:
-        phas.average_p1 = phas.p1
-        phas.average_p2 = phas.p2
+        average_p1 = phas.p1
+        average_p2 = phas.p2
 
     #phas.calc_prtf(100)
     phas.io.save_output(phas, phas.proj)
