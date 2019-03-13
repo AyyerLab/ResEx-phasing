@@ -252,10 +252,10 @@ class Projection():
            Matches histogram within support volume using inverse_cdf array.
            Can be done in-place
         '''
-        supp_val = in_arr[self.supp_loc]
+        supp_val = in_arr.ravel()[self.supp_loc]
         sorter = supp_val.argsort()
-        out_arr.fill(0)
-        out_arr[self.supp_loc[sorter]] = self.inverse_cdf
+        out_arr[:] = 0
+        out_arr[0].ravel()[self.supp_loc[sorter]] = self.inverse_cdf
 
     def match_bragg(self, fdens, delta=0.):
         '''Match Bragg Fourier components
