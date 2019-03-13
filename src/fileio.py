@@ -21,24 +21,22 @@ class IO():
 
     def parse_intens(self, proj, fname, scale=1., minsubt=False):
         with mrcfile.open(fname, 'r') as mrc:
-            intens = np.fft.ifftshift(mrc.data)
-            if intens.dtype != np.dtype('f4'):
+            proj.obs_mag = np.fft.ifftshift(mrc.data)
+            if proj.obs_mag.dtype != np.dtype('f4'):
                 raise TypeError('Intensity file needs to have float32 data')
-        proj.obs_mag = np.empty_like(intens)
         print("Scale factor = %f" % scale)
 
         if minsubt:
             print("Positivizing intensities")
             self._calc_intrad()
             radmin = np.ones(self.size, dtype='f4') * np.finfo('f4').max
-            sel = (intens != -.1) & (intens > -1.e3)
-            #np.minimum.at(radmin, self._intrad[sel], intens[sel])
-            radmin = np.array([float(np.min(intens[sel & (self._intrad==r)])) for r in range(int(self._intrad.max()+1))])
-            intens[sel] -= radmin[self._intrad[sel]]
+            sel = (proj.obs_mag != -.1) & (proj.obs_mag > -1.e3)
+            #np.minimum.at(radmin, self._intrad[sel], proj.obs_mag[sel])
+            radmin = np.array([float(np.min(proj.obs_mag[sel & (self._intrad==r)])) for r in range(int(self._intrad.max()+1))])
+            proj.obs_mag[sel] -= radmin[self._intrad[sel]]
 
-        sel = (intens > 0)
-        proj.obs_mag[sel] = np.sqrt(intens[sel]) * scale
-        proj.obs_mag[~sel] = intens[~sel]
+        sel = (proj.obs_mag > 0)
+        proj.obs_mag[sel] = np.sqrt(proj.obs_mag[sel]) * scale
 
     def parse_bragg(self, proj, fname, braggqmax=1.):
         size = self.size
@@ -48,8 +46,8 @@ class IO():
             if proj.bragg_calc.dtype != np.dtype('c8'):
                 raise TypeError('Bragg file needs to have complex64 data')
 
-        x, y, z = np.indices((size, size, size))
-        proj.bragg_calc *= np.exp(-1j * 2. * np.pi * np.fft.ifftshift(x + y + z - 3*c) * c / size)
+        x, y, z = numpy.indices((size, size, size), dtype='i4')
+        proj.bragg_calc *= np.array(numpy.exp(-1j * 2. * numpy.pi * numpy.fft.ifftshift(x + y + z - 3*c) * c / size))
         self._calc_intrad()
         proj.bragg_mask = (self._intrad < braggqmax*c)
         proj.bragg_calc[~proj.bragg_mask] = np.finfo('f4').max
@@ -61,17 +59,11 @@ class IO():
                 raise TypeError('Support file needs to have int8 data')
 
         suppx, suppy, suppz = np.where(proj.support > 0)
-        proj.support_bounds = np.array([int(val) for val in [suppx.min(),
-                                                             suppx.max(),
-                                                             suppy.min(),
-                                                             suppy.max(),
-                                                             suppz.min(),
-                                                             suppz.max()]])
-        proj.supp_loc = np.where(proj.support.ravel() > 0)[0]
+        if proj.do_histogram:
+            proj.supp_loc = np.where(proj.support.ravel() > 0)[0]
         proj.num_supp = int((proj.support > 0).sum())
 
         print("num_supp = %ld" % proj.num_supp)
-        print("Support bounds:", proj.support_bounds)
 
     def init_iterate(self, proj, model, fname=None, bg_fname=None, do_bg_fitting=False, fixed_seed=False):
         do_random_model = False
@@ -133,13 +125,13 @@ class IO():
         if self._intrad is not None:
             pass
         elif self.vol is None:
-            x, y, z = np.indices(3*(self.size,))
+            x, y, z = numpy.indices(3*(self.size,))
             cen = self.size // 2
             x -= cen
             y -= cen
             z -= cen
-            self._intrad = np.sqrt(x*x + y*y + z*z).astype('i4')
-            self._intrad = np.fft.ifftshift(self._intrad)
+            self._intrad = numpy.sqrt(x*x + y*y + z*z).astype('i4')
+            self._intrad = np.array(numpy.fft.ifftshift(self._intrad))
         elif self.vol.intrad is None:
             self.vol.init_radavg()
             self._intrad = self.vol.intrad
