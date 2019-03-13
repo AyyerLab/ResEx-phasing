@@ -107,11 +107,11 @@ class IO():
     def parse_histogram(self, proj, fname):
         if proj.num_supp == 0:
             raise ValueError('num_supp not defined. Parse support first')
-        val, hist = np.loadtxt(fname, skiprows=1, unpack=True)
-        cdf = np.insert(np.cumsum(hist, dtype='f8'), 0, 0) * proj.num_supp / hist.sum()
+        val, hist = numpy.loadtxt(fname, skiprows=1, unpack=True)
+        cdf = numpy.insert(numpy.cumsum(hist, dtype='f8'), 0, 0) * int(proj.num_supp) / hist.sum()
         cdf = 0.5 * (cdf[:-1] + cdf[1:])
         ifunc = interpolate.interp1d(cdf, val, copy=False, bounds_error=False, fill_value=(val[0], val[-1]))
-        proj.inverse_cdf = ifunc(np.arange(proj.num_supp))
+        proj.inverse_cdf = np.array(ifunc(numpy.arange(int(proj.num_supp))))
 
     def make_recon_folders(self, do_bg_fitting, do_local_variation):
         os.makedirs("%s-slices" % self.output_prefix, 0o755, exist_ok=True)
