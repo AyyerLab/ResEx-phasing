@@ -78,7 +78,7 @@ class Projection():
             out_arr[1] = in_arr[1]
             if CUDA:
                 garr = np.array(in_arr[0])
-                fdensity = fft.fftn(garr)
+                fdensity = fft.fftn(garr, **self.fft_kwargs)
             else:
                 fdensity = fft.fftn(in_arr[0], **self.fft_kwargs).astype('c8')
             self.symmetrize_incoherent(fdensity, self.exp_mag, out_arr[1])
@@ -100,7 +100,7 @@ class Projection():
             if CUDA:
                 garr = np.array(in_arr[0])
                 np.get_default_memory_pool().free_all_blocks()
-                fdensity = fft.fftn(garr, axes=(0, 1, 2))
+                fdensity = fft.fftn(garr, axes=(0, 1, 2), **self.fft_kwargs)
                 np.get_default_memory_pool().free_all_blocks()
             else:
                 fdensity = fft.fftn(in_arr[0], **self.fft_kwargs).astype('c8')
