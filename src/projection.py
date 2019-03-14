@@ -37,6 +37,7 @@ class Projection():
         self.supp_loc = None
         self.inverse_cdf = None
         self.local_variation = None
+        self.sigma = 0.
         if PYFFTW:
             if num_threads is None:
                 num_threads = multiprocessing.cpu_count()
@@ -70,7 +71,8 @@ class Projection():
                 fdensity = fft.fftn(in_arr[0], **self.fft_kwargs).astype('c8')
             self.symmetrize_incoherent(fdensity, self.exp_mag, out_arr[1])
             self.match_bragg(fdensity, 0.)
-            #self.rotational_blur(self.exp_mag, self.exp_mag, self.quat)
+            if self.do_blurring:
+                self.rotational_blur(self.exp_mag, self.exp_mag)
 
             sel = (self.obs_mag > 0)
             ratio = self.obs_mag[sel] / self.exp_mag[sel]
@@ -92,6 +94,8 @@ class Projection():
                 fdensity = fft.fftn(in_arr[0], **self.fft_kwargs).astype('c8')
             self.symmetrize_incoherent(fdensity, self.exp_mag)
             self.match_bragg(fdensity, 0.)
+            if self.do_blurring:
+                self.rotational_blur(self.exp_mag, self.exp_mag)
 
             sel = (self.obs_mag > 0)
             fdensity[sel] *= self.obs_mag[sel] / self.exp_mag[sel]
@@ -113,8 +117,8 @@ class Projection():
                                     support size the same
            Can be applied in-place (out = in)
         '''
-        #if self.do_local_variation:
-        #    self.update_support(in_arr, 2)
+        if self.do_local_variation:
+            self.update_support(in_arr, 2, num_vox=self.num_supp)
 
         if self.do_histogram:
             self.match_histogram(in_arr, out_arr)
@@ -179,11 +183,7 @@ class Projection():
         self.obs_radavg = np.zeros(size, dtype='f4')
         self.radcount = np.zeros(size, dtype='f4')
 
-        ix, iy, iz = np.indices((size, size, size))
-        ix -= c
-        iy -= c
-        iz -= c
-        self.intrad = np.fft.ifftshift(np.sqrt(ix*ix + iy*iy + iz*iz).astype('i4'))
+        self._calc_intrad()
         self.radcount = np.bincount(self.intrad.ravel())
         #self.radcount = np.array([float((self.intrad==r).sum()) for r in range(int(self.intrad.max()+1))])
         #np.add.at(self.radcount, self.intrad, 1)
@@ -206,36 +206,36 @@ class Projection():
             out_arr[:] = self.radavg[self.intrad]
 
     @staticmethod
-    def _gen_rot(q):
-        q0 = q[0]
-        q1 = q[1]
-        q2 = q[2]
-        q3 = q[3]
-
-        q01 = q0*q1
-        q02 = q0*q2
-        q03 = q0*q3
-        q11 = q1*q1
-        q12 = q1*q2
-        q13 = q1*q3
-        q22 = q2*q2
-        q23 = q2*q3
-        q33 = q3*q3
+    def _rot_from_quat(q):
+        q0 = float(q[0])
+        q1 = float(q[1])
+        q2 = float(q[2])
+        q3 = float(q[3])
 
         rot = np.empty((3,3))
-        rot[0, 0] = (1. - 2.*(q22 + q33))
-        rot[0, 1] = 2.*(q12 + q03)
-        rot[0, 2] = 2.*(q13 - q02)
-        rot[1, 0] = 2.*(q12 - q03)
-        rot[1, 1] = (1. - 2.*(q11 + q33))
-        rot[1, 2] = 2.*(q01 + q23)
-        rot[2, 0] = 2.*(q02 + q13)
-        rot[2, 1] = 2.*(q23 - q01)
-        rot[2, 2] = (1. - 2.*(q11 + q22))
+        rot[0] = np.array([1. - 2.*(q2*q2 + q3*q3), 2.*(q1*q2 + q0*q3), 2.*(q1*q3 - q0*q2)])
+        rot[1] = np.array([2.*(q1*q2 - q0*q3), 1. - 2.*(q1*q1 + q3*q3), 2.*(q0*q1 + q2*q3)])
+        rot[2] = np.array([2.*(q0*q2 + q1*q3), 2.*(q2*q3 - q0*q1), 1. - 2.*(q1*q1 + q2*q2)])
 
         return rot
 
-    def rotational_blur(self, in_arr, out_arr, quat):
+    @staticmethod
+    def _rot_from_axang(ang, axis):
+        x = float(axis[0])
+        y = float(axis[1])
+        z = float(axis[2])
+        c = float(np.cos(ang))
+        s = float(np.sin(ang))
+        t = 1. - c
+        
+        rot = np.empty((3,3))
+        rot[0] = np.array([t*x*x + c, t*x*y - z*s, t*x*z + y*s])
+        rot[1] = np.array([t*x*y + z*s, t*y*y + c, t*y*z - x*s])
+        rot[2] = np.array([t*x*z - y*s, t*y*z + x*s, t*z*z + c])
+
+        return rot
+
+    def quat_blur(self, in_arr, out_arr, quat):
         '''Rotate and average intensity distribution using given quaternions and weights
            Note: q=0 is at (c,c,c) and not (0,0,0)
            Cannot set out = in
@@ -243,9 +243,30 @@ class Projection():
         out_arr[:] = 0
         c = int(in_arr.shape[0]) // 2
         for q in quat:
-            rot = self._gen_rot(q[:4])
+            rot = self._rot_from_quat(q[:4])
             out_arr += ndimage.affine_transform(in_arr*q[4], rot, order=1, offset=np.array([c]*3) - np.dot(rot, np.array([c]*3)))
         if CUDA: np.get_default_memory_pool().free_all_blocks()
+
+    def rotational_blur(self, in_arr, out_arr, num=100):
+        if self.sigma == 0.:
+            print('WARNING: sigma = 0. Not doing any blurring')
+            return
+        rot_arr = np.zeros_like(in_arr)
+        c = int(in_arr.shape[0]) // 2
+        total_w = 0
+        for i in range(num):
+            angle = np.random.randn(1, dtype='f4') * self.sigma
+            w = np.exp(-angle**2 / 2 / self.sigma**2)
+            norm = 0
+            while norm < 1:
+                axis = np.random.rand(3, dtype='f4') * 2 - 1
+                norm = np.linalg.norm(axis)
+            axis /= norm
+            rot = self._rot_from_axang(angle, axis)
+            rot_arr += ndimage.affine_transform(in_arr*w, rot, order=1, offset=np.array([c]*3) - np.dot(rot, np.array([c]*3)))
+            total_w += w
+        if CUDA: np.get_default_memory_pool().free_all_blocks()
+        out_arr[:] = rot_arr / total_w
 
     def match_histogram(self, in_arr, out_arr):
         '''Histogram matching
@@ -270,6 +291,41 @@ class Projection():
             fdens[self.bragg_mask & sel] = self.bragg_calc[self.bragg_mask & sel]
             fdens[self.bragg_mask & ~sel] = self.bragg_calc[self.bragg_mask & ~sel] + delta / mag[self.bragg_mask & ~sel] * temp[self.bragg_mask & ~sel]
 
+    def gaussian_blur(self, vol3d, blur):
+        if len(vol3d.shape) != 3:
+            raise ValueError('gaussian_blur() needs 3D input array')
+        if blur == 0:
+            return
+
+        fblur = self.size / (2. * np.pi * blur)
+        fdensity = fft.fftn(vol3d, axes=(0,1,2))
+        if CUDA: np.get_default_memory_pool().free_all_blocks()
+        self._calc_intrad()
+        if CUDA: np.get_default_memory_pool().free_all_blocks()
+        fdensity *= np.exp(-self.radsq / 2. / fblur**2)
+        vol3d[:] = np.real(fft.ifftn(fdensity)) / vol3d.size
+
+    def update_support(self, model, blur, threshold=None, num_vox=None):
+        if num_vox is None and threshold is None:
+            raise ValueError('Need either threshold or num_vox to update support')
+        elif num_vox is not None and threshold is not None:
+            raise ValueError('Specify only one of threshold or num_vox to update support')
+
+        if len(model.shape) == 4:
+            m3d = np.copy(model[0])
+        else:
+            m3d = np.copy(model)
+        if blur > 0.:
+            self.gaussian_blur(m3d, blur)
+
+        if threshold is not None:
+            self.support[:] = np.where(m3d > threshold, 1, 0)
+        elif num_vox is not None:
+            self.support[:] = 0
+            self.support.ravel()[m3d.argsort(axis=None)[-num_vox:]] = 1
+
+        return int(self.support.sum())
+
     @staticmethod
     def positive_mode(model):
         '''Get mode of positive values in volume
@@ -279,6 +335,18 @@ class Projection():
         mode_err = h[1][1] - h[1][0]
         print("Mode of positive values in volume = %.3e +- %.3e" % (mode, mode_err))
         return mode
+
+    def _calc_intrad(self):
+        if self.intrad is not None:
+            return
+        size = self.size
+        cen = size // 2
+        ix, iy, iz = np.indices((size, size, size), dtype='f4')
+        ix -= cen
+        iy -= cen
+        iz -= cen
+        self.radsq = np.fft.ifftshift(ix*ix + iy*iy + iz*iz)
+        self.intrad = np.sqrt(self.radsq).astype('i4')
 
 '''
     def calc_prtf(self, num_bins):

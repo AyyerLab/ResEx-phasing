@@ -61,10 +61,8 @@ class Phaser():
         self.proj.do_local_variation = config.getboolean('algorithm', 'local_variation', fallback=False)
         self.proj.do_positivity = config.getboolean('algorithm', 'positivity', fallback=False)
         self.proj.do_normalize_prtf = config.getboolean('algorithm', 'normalize_prtf', fallback=False)
-        #quat_fname = config.get('algorithm', 'quat_fname', fallback=None)
-        #num_div = config.getint('algorithm', 'num_div', fallback=-1)
         hist_fname = config.get('algorithm', 'hist_fname', fallback='')
-        #sigma = config.getfloat('algorithm', 'sigma_deg', fallback=0.)
+        self.proj.sigma = config.getfloat('algorithm', 'sigma_deg', fallback=0.) * np.pi / 180.
 
         self.size = size
 
@@ -82,9 +80,6 @@ class Phaser():
             self.proj.init_radavg()
         if self.proj.do_histogram:
             self.io.parse_histogram(hist_fname)
-        if self.proj.do_blurring:
-            print('Blurring currently not implemented')
-            self.proj.do_blurring = False
         self.io.make_recon_folders(self.proj.do_bg_fitting, self.proj.do_local_variation)
 
         with open('%s-log.dat' % self.io.output_prefix, 'w') as f:
@@ -101,8 +96,8 @@ class Phaser():
                 f.write("Updating support using local variation\n")
             if self.proj.do_bg_fitting:
                 f.write("Fitting spherically symmetric background\n")
-            #if self.proj.do_blurring:
-            #    f.write("Rotationally blurring model with %d orientations\n" % quat.num_rot)
+            if self.proj.do_blurring:
+                f.write("Rotationally blurring model by %.3f deg\n" % (self.proj.sigma * 180 / np.pi))
             if self.proj.do_normalize_prtf:
                 f.write("Normalizing output by PRTF\n")
             f.write("Output prefix: %s\n" % self.io.output_prefix)
