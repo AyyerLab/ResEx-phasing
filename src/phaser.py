@@ -6,7 +6,7 @@ try:
     import cupy.fft as fft
     CUDA = True
     PYFFTW = False
-    print('Using CUDA')
+    print('Using cupy (v%s)' % np.__version__)
 except ImportError:
     CUDA = False
     import numpy as np
@@ -14,7 +14,7 @@ except ImportError:
         import pyfftw
         import pyfftw.interfaces.numpy_fft as fft
         PYFFTW = True
-        print('Using PyFFTW')
+        print('Using PyFFTW (v%s)' % pyfftw.__version__)
     except ImportError:
         import numpy.fft as fft
         PYFFTW = False
@@ -27,7 +27,6 @@ class Phaser():
         self._alg_list = ['ER', 'DM', 'HIO', 'mod-DM', 'RAAR']
         self.iterate = None
         self.p1 = self.p2 = None
-        self.average_p1 = self.average_p2 = None
         self.r1 = self.r2 = None
 
         config_dir = os.path.dirname(config_fname)
@@ -71,17 +70,21 @@ class Phaser():
 
         self.parse_algorithm_strings(algorithm_string, avg_algorithm_string)
         self.allocate_memory()
+        self.io.parse_intens(self.proj, intens_fname, scale_factor, self.proj.do_bg_fitting)
+        if CUDA: np.get_default_memory_pool().free_all_blocks()
+        self.io.parse_bragg(self.proj, bragg_fname, bragg_qmax)
+        if CUDA: np.get_default_memory_pool().free_all_blocks()
+        self.io.parse_support(self.proj, support_fname)
+        if CUDA: np.get_default_memory_pool().free_all_blocks()
+        self.io.init_iterate(self.proj, self.iterate, input_fname, inputbg_fname, self.proj.do_bg_fitting, fixed_seed)
+        if CUDA: np.get_default_memory_pool().free_all_blocks()
+        if self.proj.do_bg_fitting:
+            self.proj.init_radavg()
         if self.proj.do_histogram:
             self.io.parse_histogram(hist_fname)
         if self.proj.do_blurring:
             print('Blurring currently not implemented')
             self.proj.do_blurring = False
-        self.io.parse_intens(self.proj, intens_fname, scale_factor, self.proj.do_bg_fitting)
-        self.io.parse_bragg(self.proj, bragg_fname, bragg_qmax)
-        self.io.parse_support(self.proj, support_fname)
-        self.io.init_iterate(self.proj, self.iterate, input_fname, inputbg_fname, self.proj.do_bg_fitting, fixed_seed)
-        if self.proj.do_bg_fitting:
-            self.proj.init_radavg()
         self.io.make_recon_folders(self.proj.do_bg_fitting, self.proj.do_local_variation)
 
         with open('%s-log.dat' % self.io.output_prefix, 'w') as f:
@@ -106,6 +109,7 @@ class Phaser():
             f.write("-------------------------\n")
             f.write("iter  time (s)  error\n")
             f.write("-------------------------\n")
+        if CUDA: np.get_default_memory_pool().free_all_blocks()
 
     def DM_algorithm(self): # pylint: disable=invalid-name
         r'''Difference Map algorithm
@@ -206,8 +210,6 @@ class Phaser():
         self.iterate = np.empty(mshape, dtype='f4')
         self.p1 = np.empty(mshape, dtype='f4')
         self.p2 = np.empty(mshape, dtype='f4')
-        self.average_p1 = np.zeros(mshape, dtype='f4')
-        self.average_p2 = np.zeros(mshape, dtype='f4')
         self.r1 = np.empty(mshape, dtype='f4')
         if self.beta != 1.:
             self.r2 = np.empty(mshape, dtype='f4')
@@ -234,7 +236,7 @@ class Phaser():
 
         if PYFFTW and i == self.num_iter + self.num_avg_iter:
             self.proj.export_wisdom()
-
+        if CUDA: np.get_default_memory_pool().free_all_blocks()
         return error
 
     def parse_algorithm_strings(self, alg_string, avg_string):

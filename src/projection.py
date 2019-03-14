@@ -5,11 +5,13 @@ import multiprocessing
 try:
     import cupy as np
     import cupy.fft as fft
+    from cupyx.scipy import ndimage
     CUDA = True
     PYFFTW = False
 except ImportError:
     CUDA = False
     import numpy as np
+    from scipy import ndimage
     try:
         import pyfftw
         import pyfftw.interfaces.numpy_fft as fft
@@ -36,7 +38,6 @@ class Projection():
         self.support = None
         self.num_supp = 0
         self.supp_loc = None
-        self.support_bounds = None
         self.inverse_cdf = None
         self.local_variation = None
         if PYFFTW:
@@ -96,7 +97,9 @@ class Projection():
         else:
             if CUDA:
                 garr = np.array(in_arr[0])
-                fdensity = fft.fftn(garr)
+                np.get_default_memory_pool().free_all_blocks()
+                fdensity = fft.fftn(garr, axes=(0, 1, 2))
+                np.get_default_memory_pool().free_all_blocks()
             else:
                 fdensity = fft.fftn(in_arr[0], **self.fft_kwargs).astype('c8')
             self.symmetrize_incoherent(fdensity, self.exp_mag)
@@ -140,11 +143,11 @@ class Projection():
         '''Symmetrize intensity incoherently according to given point group
            If shifted=True, array is assumed to have q=0 at (0,0,0) instead of in the center of the array
         '''
+        in_intens = np.absolute(in_arr)**2
         if shifted:
-            in_arr[:] = np.fft.fftshift(in_arr)
+            in_intens[:] = np.fft.fftshift(in_intens)
 
         if self.point_group == '222':
-            in_intens = np.absolute(in_arr)**2
             out_arr[:] = 0.25 * (in_intens + in_intens[::-1] + in_intens[:, ::-1] + in_intens[:, :, ::-1])
             if bg is not None:
                 bg_intens = np.abs(bg)**2
@@ -153,7 +156,6 @@ class Projection():
             else:
                 out_arr[:] = np.sqrt(out_arr)
         elif self.point_group == "4":
-            in_intens = np.abs(in_arr)**2
             out_arr[:] = 0.25 * (in_intens +
                                  np.rot90(in_intens, 1, axes=(1, 2)) +
                                  np.rot90(in_intens, 2, axes=(1, 2)) +
@@ -169,7 +171,7 @@ class Projection():
                 out_arr[:] = np.sqrt(out_arr)
         elif self.point_group == "1":
             if bg is not None:
-                out_arr[:] = np.sqrt(np.abs(in_arr)**2 + bg**2)
+                out_arr[:] = np.sqrt(in_intens + bg**2)
             else:
                 out_arr[:] = in_arr
         else:
@@ -177,7 +179,6 @@ class Projection():
 
         if shifted:
             out_arr[:] = np.fft.ifftshift(out_arr)
-            in_arr[:] = np.fft.ifftshift(in_arr)
 
     def init_radavg(self):
         '''Radial average initialization
@@ -217,7 +218,7 @@ class Projection():
             out_arr[:] = self.radavg[self.intrad]
 
     @staticmethod
-    def _gen_rot(rot, q):
+    def _gen_rot(q):
         q0 = q[0]
         q1 = q[1]
         q2 = q[2]
@@ -233,6 +234,7 @@ class Projection():
         q23 = q2*q3
         q33 = q3*q3
 
+        rot = np.empty((3,3))
         rot[0, 0] = (1. - 2.*(q22 + q33))
         rot[0, 1] = 2.*(q12 + q03)
         rot[0, 2] = 2.*(q13 - q02)
@@ -243,22 +245,29 @@ class Projection():
         rot[2, 1] = 2.*(q23 - q01)
         rot[2, 2] = (1. - 2.*(q11 + q22))
 
+        return rot
+
     def rotational_blur(self, in_arr, out_arr, quat):
         '''Rotate and average intensity distribution using given quaternions and weights
-           Note: q=0 is at (0,0,0) and not (c,c,c)
-           Can set out = in
+           Note: q=0 is at (c,c,c) and not (0,0,0)
+           Cannot set out = in
         '''
-        pass
+        out_arr[:] = 0
+        c = int(in_arr.shape[0]) // 2
+        for q in quat:
+            rot = self._gen_rot(q[:4])
+            out_arr += ndimage.affine_transform(in_arr*q[4], rot, order=1, offset=np.array([c]*3) - np.dot(rot, np.array([c]*3)))
+        if CUDA: np.get_default_memory_pool().free_all_blocks()
 
     def match_histogram(self, in_arr, out_arr):
         '''Histogram matching
            Matches histogram within support volume using inverse_cdf array.
            Can be done in-place
         '''
-        supp_val = in_arr[self.supp_loc]
+        supp_val = in_arr.ravel()[self.supp_loc]
         sorter = supp_val.argsort()
-        out_arr.fill(0)
-        out_arr[self.supp_loc[sorter]] = self.inverse_cdf
+        out_arr[:] = 0
+        out_arr[0].ravel()[self.supp_loc[sorter]] = self.inverse_cdf
 
     def match_bragg(self, fdens, delta=0.):
         '''Match Bragg Fourier components
