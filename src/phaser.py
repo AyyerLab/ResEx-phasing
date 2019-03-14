@@ -54,7 +54,7 @@ class Phaser():
 
         self.num_loops = config.getint('algorithm', 'num_loops', fallback=1)
         algorithm_string = config.get('algorithm', 'algorithm')
-        avg_algorithm_string = config.get('algorithm', 'avg_algorithm', fallback=None)
+        avg_algorithm_string = config.get('algorithm', 'avg_algorithm', fallback='')
         self.beta = config.getfloat('algorithm', 'beta', fallback=1.)
         self.proj.do_bg_fitting = config.getboolean('algorithm', 'bg_fitting', fallback=False)
         self.proj.do_blurring = config.getboolean('algorithm', 'blurring', fallback=False)
@@ -141,7 +141,7 @@ class Phaser():
             self.iterate = self.beta*self.iterate + (1. - self.beta) * self.p1
 
         self.proj.direct(self.iterate, self.p2)
-        self.r1 = 2. * self.p2 - self.iterate
+        self.r1[:] = 2. * self.p2 - self.iterate
         self.proj.fourier(self.r1, self.p1)
 
         diff = self.p1 - self.p2
@@ -160,10 +160,10 @@ class Phaser():
         '''
         self.proj.fourier(self.iterate, self.p1)
 
-        self.r1 = 2. * self.p1
+        self.r1[:] = 2. * self.p1
         self.proj.direct(self.r1, self.r2)
 
-        self.r1 = - self.p1
+        self.r1[:] = - self.p1
         self.proj.direct(self.r1, self.p2)
 
         diff = (self.beta - 1.) * self.iterate + self.beta * (self.r2 + self.p2) + (1. - 2. * self.beta) * self.p1
@@ -177,7 +177,7 @@ class Phaser():
            Same as all other algorithms for beta = 1
         '''
         self.proj.fourier(self.iterate, self.p1)
-        self.r1 = (1. + 1./self.beta) * self.p1 - self.iterate / self.beta
+        self.r1[:] = (1. + 1./self.beta) * self.p1 - self.iterate / self.beta
         self.proj.direct(self.r1, self.p2)
 
         diff = self.beta * (self.p2 - self.p1)
@@ -192,7 +192,7 @@ class Phaser():
         self.proj.fourier(self.iterate, self.p1)
         self.proj.direct(self.p1, self.p2)
 
-        self.iterate = self.p2
+        self.iterate[:] = self.p2
         diff = self.p2 - self.p1
         return np.linalg.norm(diff[0]) / np.sqrt(diff[0].size)
 
@@ -252,8 +252,9 @@ class Phaser():
         for num, name in zip(nums, names):
             self.algorithms += [name]*num
 
-        if self.num_loops > 1 and avg_string is not None:
-            print('Ignoring avg_algorithm string when averaging over multiple loops')
+        if self.num_loops > 1:
+            if avg_string is not None:
+                print('Ignoring avg_algorithm string when averaging over multiple loops')
             return
         tokens = avg_string.split()
         nums = [int(s) for s in tokens[::2]]
