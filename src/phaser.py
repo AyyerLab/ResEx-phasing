@@ -52,6 +52,7 @@ class Phaser():
         support_fname = os.path.join(config_dir, config.get('files', 'support_fname', fallback=''))
         self.io.output_prefix = os.path.join(config_dir, config.get('files', 'output_prefix', fallback='data/output'))
 
+        self.num_loops = config.getint('algorithm', 'num_loops', fallback=1)
         algorithm_string = config.get('algorithm', 'algorithm')
         avg_algorithm_string = config.get('algorithm', 'avg_algorithm', fallback=None)
         self.beta = config.getfloat('algorithm', 'beta', fallback=1.)
@@ -116,9 +117,9 @@ class Phaser():
         if self.beta != 1.:
             self.proj.direct(self.iterate, self.p2)
 
-        self.r1 = (1. + 1./self.beta) * self.p1 - self.iterate / self.beta
+        self.r1[:] = (1. + 1./self.beta) * self.p1 - self.iterate / self.beta
         if self.beta != 1.:
-            self.r2 = (1. - 1./self.beta) * self.p2 + self.iterate / self.beta
+            self.r2[:] = (1. - 1./self.beta) * self.p2 + self.iterate / self.beta
 
         self.proj.direct(self.r1, self.p2)
         if self.beta != 1.:
@@ -187,7 +188,6 @@ class Phaser():
         r'''Error Reduction algorithm
            Update rule (LaTeX style)
            x_{n+1} = P_D[P_F(x_n)]
-           Obviously different from others. Use only in averaging phase.
         '''
         self.proj.fourier(self.iterate, self.p1)
         self.proj.direct(self.p1, self.p2)
@@ -252,6 +252,9 @@ class Phaser():
         for num, name in zip(nums, names):
             self.algorithms += [name]*num
 
+        if self.num_loops > 1 and avg_string is not None:
+            print('Ignoring avg_algorithm string when averaging over multiple loops')
+            return
         tokens = avg_string.split()
         nums = [int(s) for s in tokens[::2]]
         names = tokens[1::2]
