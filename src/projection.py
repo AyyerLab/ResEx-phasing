@@ -1,4 +1,6 @@
 # pylint: disable=unsubscriptable-object
+import os
+import re
 import multiprocessing
 try:
     import cupy as np
@@ -22,6 +24,7 @@ class Projection():
     def __init__(self, size, point_group, num_threads=None):
         self.size = size
         self.point_group = point_group
+        self.num_threads = num_threads
         print("Symmetrizing with point group: %s" % self.point_group)
 
         self.intrad = None
@@ -39,10 +42,19 @@ class Projection():
         self.local_variation = None
         self.sigma = 0.
         if PYFFTW:
-            if num_threads is None:
-                num_threads = multiprocessing.cpu_count()
-            self.fft_kwargs = {'planner_effort': 'FFTW_MEASURE', 'threads': num_threads}
+            if self.num_threads is None:
+                self.num_threads = multiprocessing.cpu_count()
+            self.fft_kwargs = {'planner_effort': 'FFTW_MEASURE', 'threads': self.num_threads}
             pyfftw.interfaces.cache.enable()
+            if os.path.exists('data/'):
+                wisdom_fname = 'data/wisdom_%d_%d' % (self.size, self.num_threads)
+            else:
+                wisdom_fname = 'wisdom_%d_%d' % (self.size, self.num_threads)
+            if os.path.isfile(wisdom_fname):
+                print('Importing PyFFTW wisdom from', wisdom_fname)
+                with open(wisdom_fname, 'r') as fptr:
+                    wisdom = tuple([(s+')').encode() for s in re.split('\n\)\n', fptr.read())[:-1]])
+                pyfftw.import_wisdom(wisdom)
         else:
             self.fft_kwargs = {}
 
@@ -347,6 +359,18 @@ class Projection():
         iz -= cen
         self.radsq = np.fft.ifftshift(ix*ix + iy*iy + iz*iz)
         self.intrad = np.sqrt(self.radsq).astype('i4')
+
+    def export_wisdom(self):
+        if os.path.exists('data/'):
+            wisdom_fname = 'data/wisdom_%d_%d' % (self.size, self.num_threads)
+        else:
+            wisdom_fname = 'wisdom_%d_%d' % (self.size, self.num_threads)
+        if not os.path.isfile(wisdom_fname):
+            wisdom = pyfftw.export_wisdom()
+            with open(wisdom_fname, 'w') as fptr:
+                for s in wisdom:
+                    fptr.write(s.decode('utf-8'))
+            print('Saved pyFFTW wisdom to', wisdom_fname)
 
 '''
     def calc_prtf(self, num_bins):

@@ -229,6 +229,8 @@ class Phaser():
             print("Could not understand algorithm name:", algo)
             error = -1.
 
+        if PYFFTW and i == self.num_iter + self.num_avg_iter:
+            self.proj.export_wisdom()
         if CUDA: np.get_default_memory_pool().free_all_blocks()
         return error
 
