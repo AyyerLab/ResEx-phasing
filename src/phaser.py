@@ -71,7 +71,7 @@ class Phaser():
         self.allocate_memory()
         self.io.parse_intens(self.proj, intens_fname, scale_factor, self.proj.do_bg_fitting)
         if CUDA: np.get_default_memory_pool().free_all_blocks()
-        if bragg_fname == config_dir:
+        if os.path.basename(bragg_fname) != '':
             self.io.parse_bragg(self.proj, bragg_fname, bragg_qmax)
             if CUDA: np.get_default_memory_pool().free_all_blocks()
         else:
