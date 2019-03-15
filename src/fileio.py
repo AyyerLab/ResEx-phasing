@@ -45,6 +45,7 @@ class IO():
             proj.bragg_calc = np.fft.ifftshift(mrc.data)
             if proj.bragg_calc.dtype != np.dtype('c8'):
                 raise TypeError('Bragg file needs to have complex64 data')
+        print('Bragg q_max =', braggqmax)
 
         x, y, z = numpy.indices((size, size, size), dtype='i4')
         proj.bragg_calc *= np.array(numpy.exp(-1j * 2. * numpy.pi * numpy.fft.ifftshift(x + y + z - 3*c) * c / size))
