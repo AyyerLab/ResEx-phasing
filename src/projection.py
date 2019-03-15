@@ -294,6 +294,8 @@ class Projection():
         '''Match Bragg Fourier components
            delta parameter allows for small distance from input value at each voxel
         '''
+        if self.bragg_calc is None:
+            return
         if delta == 0.:
             fdens[self.bragg_mask] = self.bragg_calc[self.bragg_mask]
         else:

@@ -71,8 +71,11 @@ class Phaser():
         self.allocate_memory()
         self.io.parse_intens(self.proj, intens_fname, scale_factor, self.proj.do_bg_fitting)
         if CUDA: np.get_default_memory_pool().free_all_blocks()
-        self.io.parse_bragg(self.proj, bragg_fname, bragg_qmax)
-        if CUDA: np.get_default_memory_pool().free_all_blocks()
+        if bragg_fname == config_dir:
+            self.io.parse_bragg(self.proj, bragg_fname, bragg_qmax)
+            if CUDA: np.get_default_memory_pool().free_all_blocks()
+        else:
+            print('No Bragg model')
         self.io.parse_support(self.proj, support_fname)
         if CUDA: np.get_default_memory_pool().free_all_blocks()
         self.io.init_iterate(self.proj, self.iterate, input_fname, inputbg_fname, self.proj.do_bg_fitting, fixed_seed)
