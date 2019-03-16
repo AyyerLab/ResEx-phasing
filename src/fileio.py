@@ -30,7 +30,7 @@ class IO():
             print("Positivizing intensities")
             self._calc_intrad()
             radmin = np.ones(self.size, dtype='f4') * np.finfo('f4').max
-            sel = (proj.obs_mag != -.1) & (proj.obs_mag > -1.e3)
+            sel = (proj.obs_mag != -1.) & (proj.obs_mag > -1.e3)
             #np.minimum.at(radmin, self._intrad[sel], proj.obs_mag[sel])
             radmin = np.array([float(np.min(proj.obs_mag[sel & (self._intrad==r)])) for r in range(int(self._intrad.max()+1))])
             proj.obs_mag[sel] -= radmin[self._intrad[sel]]
@@ -72,6 +72,7 @@ class IO():
 
         if fname is None or not os.path.isfile(fname):
             do_random_model = True
+            if not quiet: print('Random initial guess')
         else:
             with mrcfile.open(fname, 'r') as mrc:
                 if mrc.data.dtype != np.dtype('f4'):
@@ -165,7 +166,7 @@ class IO():
 
     def save_current(self, phas, proj, i, time1, time2, error):
         with open("%s-log.dat" % self.output_prefix, "a") as f:
-            f.write("%.4d  %.2e  %f\n" % (i, time2 - time1, error))
+            f.write("%.4d  %.2e  %.3e\n" % (i, time2 - time1, error))
 
         self.dump_slices(phas.p1, "%s-slices/%.4d.ccp4" % (self.output_prefix, i), "ResEx-recon p1 %d\n" % i)
         self.dump_slices(proj.exp_mag, "%s-fslices/%.4d.ccp4" % (self.output_prefix, i), "ResEx-recon exp_mag %d\n" % i, is_fourier=True)
@@ -199,9 +200,9 @@ class IO():
             numpy_vol = vol
             numpy_vsizes = vsizes
         mrc = mrcfile.new(fname, overwrite=True, data=numpy_vol)
-        mrc.header['cella']['x'] = numpy.array(numpy_vsizes[0])
-        mrc.header['cella']['y'] = numpy.array(numpy_vsizes[1])
-        mrc.header['cella']['z'] = numpy.array(numpy_vsizes[2])
+        mrc.header.cella.x = numpy_vsizes[0]
+        mrc.header.cella.y = numpy_vsizes[1]
+        mrc.header.cella.z = numpy_vsizes[2]
         num_lines = int(np.ceil(len(label) / 80.))
         for i in range(num_lines):
             mrc.header['label'][i] = label[i*80:(i+1)*80]
