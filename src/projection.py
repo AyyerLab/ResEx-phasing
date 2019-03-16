@@ -39,7 +39,6 @@ class Projection():
         self.num_supp = 0
         self.supp_loc = None
         self.inverse_cdf = None
-        self.local_variation = None
         self.sigma = 0.
         if PYFFTW:
             if self.num_threads is None:
@@ -75,13 +74,9 @@ class Projection():
            Can be applied in-place (out = in)
         '''
         if self.do_bg_fitting:
-            out_arr[1] = in_arr[1]
-            if CUDA:
-                garr = np.array(in_arr[0])
-                fdensity = fft.fftn(garr, **self.fft_kwargs)
-            else:
-                fdensity = fft.fftn(in_arr[0], **self.fft_kwargs).astype('c8')
-            self.symmetrize_incoherent(fdensity, self.exp_mag, out_arr[1])
+            fdensity = fft.fftn(in_arr[0], **self.fft_kwargs)
+            if CUDA: np.get_default_memory_pool().free_all_blocks()
+            self.symmetrize_incoherent(fdensity, self.exp_mag, in_arr[1])
             self.match_bragg(fdensity, 0.)
             if self.do_blurring:
                 self.rotational_blur(self.exp_mag, self.exp_mag)
@@ -95,15 +90,12 @@ class Projection():
             fdensity[sel] = 0
             out_arr[1][sel] = 0
 
-            out_arr[1][self.obs_mag < 0] = 0
+            sel = (self.obs_mag < 0.)
+            #fdensity[sel] /= fdensity.size
+            out_arr[1][sel] = 0
         else:
-            if CUDA:
-                garr = np.array(in_arr[0])
-                np.get_default_memory_pool().free_all_blocks()
-                fdensity = fft.fftn(garr, axes=(0, 1, 2), **self.fft_kwargs)
-                np.get_default_memory_pool().free_all_blocks()
-            else:
-                fdensity = fft.fftn(in_arr[0], **self.fft_kwargs).astype('c8')
+            fdensity = fft.fftn(in_arr[0], **self.fft_kwargs)
+            if CUDA: np.get_default_memory_pool().free_all_blocks()
             self.symmetrize_incoherent(fdensity, self.exp_mag)
             self.match_bragg(fdensity, 0.)
             if self.do_blurring:
@@ -112,9 +104,11 @@ class Projection():
             sel = (self.obs_mag > 0)
             fdensity[sel] *= self.obs_mag[sel] / self.exp_mag[sel]
             fdensity[self.obs_mag == 0.] = 0
+            fdensity[self.obs_mag < 0] /= fdensity.size
 
         #out_arr[0] = np.real(fft.ifftn(fdensity, **self.fft_kwargs)) / self.vol
         out_arr[0] = np.real(fft.ifftn(fdensity, **self.fft_kwargs))
+        if CUDA: np.get_default_memory_pool().free_all_blocks()
 
     def direct(self, in_arr, out_arr):
         '''Direct-space projection
@@ -130,7 +124,7 @@ class Projection():
            Can be applied in-place (out = in)
         '''
         if self.do_local_variation:
-            self.update_support(in_arr, 2, num_vox=self.num_supp)
+            self.update_support(in_arr, 3, num_vox=self.num_supp)
 
         if self.do_histogram:
             self.match_histogram(in_arr, out_arr)
@@ -147,11 +141,11 @@ class Projection():
         '''Symmetrize intensity incoherently according to given point group
            If shifted=True, array is assumed to have q=0 at (0,0,0) instead of in the center of the array
         '''
-        in_intens = np.absolute(in_arr)**2
-        if shifted:
-            in_intens[:] = np.fft.fftshift(in_intens)
-
         if self.point_group == '222':
+            in_intens = np.absolute(in_arr)**2
+            if shifted:
+                in_intens[:] = np.fft.fftshift(in_intens)
+
             out_arr[:] = 0.25 * (in_intens + in_intens[::-1] + in_intens[:, ::-1] + in_intens[:, :, ::-1])
             if bg is not None:
                 bg_intens = np.abs(bg)**2
@@ -159,7 +153,14 @@ class Projection():
                 out_arr[:] = np.sqrt(out_arr + bg)
             else:
                 out_arr[:] = np.sqrt(out_arr)
+
+            if shifted:
+                out_arr[:] = np.fft.ifftshift(out_arr)
         elif self.point_group == "4":
+            in_intens = np.absolute(in_arr)**2
+            if shifted:
+                in_intens[:] = np.fft.fftshift(in_intens)
+
             out_arr[:] = 0.25 * (in_intens +
                                  np.rot90(in_intens, 1, axes=(1, 2)) +
                                  np.rot90(in_intens, 2, axes=(1, 2)) +
@@ -173,16 +174,16 @@ class Projection():
                 out_arr[:] = np.sqrt(out_arr + bg)
             else:
                 out_arr[:] = np.sqrt(out_arr)
+
+            if shifted:
+                out_arr[:] = np.fft.ifftshift(out_arr)
         elif self.point_group == "1":
             if bg is not None:
-                out_arr[:] = np.sqrt(in_intens + bg**2)
+                out_arr[:] = np.sqrt(np.abs(in_arr)**2 + bg**2)
             else:
-                out_arr[:] = in_arr
+                out_arr[:] = np.abs(in_arr)
         else:
             raise ValueError("Unrecognized point group: %s\n" % self.point_group)
-
-        if shifted:
-            out_arr[:] = np.fft.ifftshift(out_arr)
 
     def init_radavg(self):
         '''Radial average initialization
@@ -332,11 +333,20 @@ class Projection():
         if blur > 0.:
             self.gaussian_blur(m3d, blur)
 
+        m3d = np.abs(m3d)
         if threshold is not None:
             self.support[:] = np.where(m3d > threshold, 1, 0)
         elif num_vox is not None:
             self.support[:] = 0
             self.support.ravel()[m3d.argsort(axis=None)[-num_vox:]] = 1
+
+        if self.bragg_calc is None:
+            x, y, z = np.indices(self.support.shape)
+            c = self.support.shape[0] // 2
+            shift = - np.array([float((x*self.support).sum()),
+                                float((y*self.support).sum()),
+                                float((z*self.support).sum())]) / self.support.sum() + np.array([c,c,c])
+            self.support = np.roll(self.support, (int(shift[0]), int(shift[1]), int(shift[2])), (0,1,2))
 
         return int(self.support.sum())
 
