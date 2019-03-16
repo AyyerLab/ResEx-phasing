@@ -29,7 +29,7 @@ def main():
 
         if i > 0 and i % (phas.num_iter+phas.num_avg_iter) == 0:
             phas.allocate_memory()
-            phas.io.init_iterate(phas.proj, phas.iterate)
+            phas.io.init_iterate(phas.proj, phas.iterate, quiet=True)
         error = phas.run_iteration(i%(phas.num_iter+phas.num_avg_iter) + 1)
         if error < 0:
             sys.exit(1)

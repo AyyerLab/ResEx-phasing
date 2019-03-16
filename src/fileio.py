@@ -66,7 +66,7 @@ class IO():
 
         print("num_supp = %ld" % proj.num_supp)
 
-    def init_iterate(self, proj, model, fname=None, bg_fname=None, do_bg_fitting=False, fixed_seed=False):
+    def init_iterate(self, proj, model, fname=None, bg_fname=None, do_bg_fitting=False, fixed_seed=False, quiet=False):
         do_random_model = False
         do_init_bg = False
 
@@ -77,21 +77,21 @@ class IO():
                 if mrc.data.dtype != np.dtype('f4'):
                     raise TypeError('Initial model needs to have float32 data')
                 model[0] = np.array(mrc.data)
-            print('Starting from', fname)
+            if not quiet: print('Starting from', fname)
 
         if do_bg_fitting:
             if bg_fname is None or not os.path.isfile(bg_fname):
                 do_init_bg = True
-                print("...with uniform background")
+                if not quiet: print("...with uniform background")
             else:
                 with mrcfile.open(bg_fname, 'r') as mrc:
                     if mrc.data.dtype != np.dtype('f4'):
                         raise TypeError('Initial background model needs to have float32 data')
                     model[1] = np.array(mrc.data)
-                print("...with background from", bg_fname)
+                if not quiet: print("...with background from", bg_fname)
 
         if fixed_seed:
-            print("==== Fixed seed mode ====")
+            if not quiet: print("==== Fixed seed mode ====")
             np.random.seed(0x5EED)
 
         if do_random_model:
