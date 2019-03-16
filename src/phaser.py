@@ -69,7 +69,8 @@ class Phaser():
 
         self.parse_algorithm_strings(algorithm_string, avg_algorithm_string)
         self.allocate_memory()
-        self.io.parse_intens(self.proj, intens_fname, scale_factor, self.proj.do_bg_fitting)
+        #self.io.parse_intens(self.proj, intens_fname, scale_factor, self.proj.do_bg_fitting)
+        self.io.parse_intens(self.proj, intens_fname, scale_factor)
         if CUDA: np.get_default_memory_pool().free_all_blocks()
         if os.path.basename(bragg_fname) != '':
             self.io.parse_bragg(self.proj, bragg_fname, bragg_qmax)
