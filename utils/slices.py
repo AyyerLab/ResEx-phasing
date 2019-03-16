@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 import os
+import sys
 import glob
 import argparse
 try:
@@ -16,8 +17,9 @@ import mrcfile
 parser = argparse.ArgumentParser(description='Plot slices of iterates')
 parser.add_argument('-c', '--config', help='Path to config file. Default: config.ini', default='config.ini')
 parser.add_argument('-f', '--fourier', help='Show Fourier slices. Default: False', action='store_true', default=False)
-parser.add_argument('-s', '--start', help='First iteration to parse (default: 1)', type=int, default=1)
-parser.add_argument('-L', '--last', help='Last iteration to parse if different from log file', type=int, default=None)
+parser.add_argument('-s', '--support', help='Show support mask slices. Default: False', action='store_true', default=False)
+parser.add_argument('-b', '--begin', help='First iteration to parse (default: 1)', type=int, default=1)
+parser.add_argument('-e', '--end', help='Last iteration to parse if different from log file', type=int, default=None)
 parser.add_argument('-l', '--loop', help='Loop animation. Default=False', action='store_true', default=False)
 parser.add_argument('-j', '--jump', help='Jump. Do only every j iterations. Default=1', type=int, default=1)
 args = parser.parse_args()
@@ -25,10 +27,12 @@ args = parser.parse_args()
 def update_view(num):
     with mrcfile.open(flist[num], 'r') as f:
         fslices = f.data
+        if args.fourier:
+            fslices = fslices**0.25
     v[0].set_data(fslices[0,bmin:bmax,bmin:bmax])
     v[1].set_data(fslices[1,bmin:bmax,bmin:bmax])
     v[2].set_data(fslices[2,bmin:bmax,bmin:bmax])
-    iter_text.set_text('%d'%(args.start+num))
+    iter_text.set_text('%d'%(args.begin+num))
     return v[0], v[1], v[2], iter_text
 
 config = ConfigParser()
@@ -36,21 +40,32 @@ config.read(args.config)
 size = config.getint('parameters', 'size')
 prefix = os.path.join(os.path.dirname(args.config), config.get('files', 'output_prefix'))
 
-if args.last is None:
+if args.end is None:
     with open(prefix+'-log.dat', 'r') as f:
-        args.last = int(f.readlines()[-1].split()[0])
-if args.fourier:
-    flist = np.array([prefix+'-fslices/%.4d.ccp4'%i for i in range(args.start, args.last+1)])
+        args.end = int(f.readlines()[-1].split()[0])
+
+if args.fourier and args.support:
+    print('Cannot show both Fourier and support mask slices at the same time. Pick one.')
+    sys.exit(1)
+elif args.fourier:
+    flist = np.array([prefix+'-fslices/%.4d.ccp4'%i for i in range(args.begin, args.end + 1)])
     bmin = 0
     bmax = None
+elif args.support:
+    flist = np.array([prefix+'-support/%.4d.ccp4'%i for i in range(args.begin, args.end + 1)])
+    bmin = size//3
+    bmax = 2*size//3
 else:
-    flist = np.array([prefix+'-slices/%.4d.ccp4'%i for i in range(args.start, args.last+1)])
+    flist = np.array([prefix+'-slices/%.4d.ccp4'%i for i in range(args.begin, args.end + 1)])
     bmin = size//3
     bmax = 2*size//3
 
 with mrcfile.open(flist[-1], 'r') as f:
     if args.fourier:
-        rangemax = f.data.max() / 10.
+        rangemax = f.data.max()
+        rangemin = 0
+    elif args.support:
+        rangemax = 1
         rangemin = 0
     else:
         #rangemax = f.data.max() / 1.5
@@ -67,10 +82,13 @@ s3 = fig.add_subplot(133)
 
 with mrcfile.open(flist[0], 'r') as f:
     fslices = f.data
+    if args.fourier:
+        fslices = fslices**0.25
 v = []
-v.append(s1.matshow(fslices[0,bmin:bmax,bmin:bmax], vmax=rangemax, vmin=rangemin, cmap='cubehelix', interpolation='gaussian'))
-v.append(s2.matshow(fslices[1,bmin:bmax,bmin:bmax], vmax=rangemax, vmin=rangemin, cmap='cubehelix', interpolation='gaussian'))
-v.append(s3.matshow(fslices[2,bmin:bmax,bmin:bmax], vmax=rangemax, vmin=rangemin, cmap='cubehelix', interpolation='gaussian'))
+interp = 'gaussian' if not args.support else 'none'
+v.append(s1.matshow(fslices[0,bmin:bmax,bmin:bmax], vmax=rangemax, vmin=rangemin, cmap='cubehelix', interpolation=interp))
+v.append(s2.matshow(fslices[1,bmin:bmax,bmin:bmax], vmax=rangemax, vmin=rangemin, cmap='cubehelix', interpolation=interp))
+v.append(s3.matshow(fslices[2,bmin:bmax,bmin:bmax], vmax=rangemax, vmin=rangemin, cmap='cubehelix', interpolation=interp))
 
 s1.set_title("YZ plane", y = 1.01)
 s1.axis('off')
