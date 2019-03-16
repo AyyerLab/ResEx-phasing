@@ -18,8 +18,13 @@ def main():
     parser.add_argument('-T', '--testing',
                         help='Flag for whether to run in testing (fixed seed) mode',
                         action='store_true')
+    parser.add_argument('-D', '--device',
+                        help='If CUDA, specify device number to run on. Default: 0',
+                        type=int, default=0)
     args = parser.parse_args()
 
+    if CUDA:
+        np.cuda.Device(args.device).use()
     phas = phaser.Phaser(args.config_fname, args.testing)
     average_p1 = numpy.zeros(phas.p1.shape, dtype='f4')
     average_p2 = numpy.zeros(phas.p1.shape, dtype='f4')
@@ -40,13 +45,16 @@ def main():
             else:
                 average_p1 += phas.p1
                 average_p2 += phas.p2
+            if phas.num_loops > 1:
+                numpy.save(phas.io.output_prefix+'-pf-%.4d.npy'%(i/phas.num_iter), phas.p1.get())
+                numpy.save(phas.io.output_prefix+'-pd-%.4d.npy'%(i/phas.num_iter), phas.p2.get())
 
         time2 = time.time()
         phas.io.save_current(phas, phas.proj, i+1, time1, time2, error)
         sys.stderr.write('\r')
         if phas.num_loops > 1:
             sys.stderr.write("Loop %d/%d: " % (i // phas.num_iter + 1, phas.num_loops))
-        sys.stderr.write("Finished %d/%d iterations. (%f) " % (i%(phas.num_iter+phas.num_avg_iter) + 1, phas.num_iter+phas.num_avg_iter, error))
+        sys.stderr.write("Finished %d/%d iterations. (%e) " % (i%(phas.num_iter+phas.num_avg_iter) + 1, phas.num_iter+phas.num_avg_iter, error))
         if phas.num_loops == 1 and i > phas.num_iter:
             sys.stderr.write("Now averaging")
     sys.stderr.write("\nCalculating prtf and writing to file.\n")
