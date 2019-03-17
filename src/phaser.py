@@ -43,7 +43,7 @@ class Phaser():
             raise ValueError("Only '1', '4' and '222' point_group values supported currently")
 
         self.proj = projection.Projection(size, point_group, num_threads=num_threads)
-        self.io = fileio.IO(size)
+        self.io = fileio.IO(size, proj_object=self.proj)
 
         intens_fname = os.path.join(config_dir, config.get('files', 'intens_fname', fallback=''))
         bragg_fname = os.path.join(config_dir, config.get('files', 'bragg_fname', fallback=''))

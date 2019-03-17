@@ -12,9 +12,9 @@ except ImportError:
 # Note: update_support (solvent flattening) not implemented here
 
 class IO():
-    def __init__(self, size, vol_object=None):
+    def __init__(self, size, proj_object=None):
         self.size = size
-        self.vol = vol_object
+        self.proj = proj_object
 
         self.output_prefix = './'
         self._intrad = None
@@ -126,7 +126,7 @@ class IO():
     def _calc_intrad(self):
         if self._intrad is not None:
             pass
-        elif self.vol is None:
+        elif self.proj is None:
             x, y, z = numpy.indices(3*(self.size,))
             cen = self.size // 2
             x -= cen
@@ -134,11 +134,11 @@ class IO():
             z -= cen
             self._intrad = numpy.sqrt(x*x + y*y + z*z).astype('i4')
             self._intrad = np.array(numpy.fft.ifftshift(self._intrad))
-        elif self.vol.intrad is None:
-            self.vol.init_radavg()
-            self._intrad = self.vol.intrad
+        elif self.proj.intrad is None:
+            self.proj.init_radavg()
+            self._intrad = self.proj.intrad
         else:
-            self._intrad = self.vol.intrad
+            self._intrad = self.proj.intrad
 
     def dump_slices(self, vol, fname, label='', is_fourier=False, is_support=False):
         '''Save orthogonal central slices to file
