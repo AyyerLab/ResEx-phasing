@@ -198,8 +198,6 @@ class Projection():
 
         self._calc_intrad()
         self.radcount = np.bincount(self.intrad.ravel())
-        #self.radcount = np.array([float((self.intrad==r).sum()) for r in range(int(self.intrad.max()+1))])
-        #np.add.at(self.radcount, self.intrad, 1)
         self.radcount[self.radcount == 0] = 1
 
     def radial_average(self, in_arr, out_arr=None, positive=True):
@@ -208,9 +206,7 @@ class Projection():
            Note that q=0 is at (0,0,0) and not in the center of the array
            If positive=True, radial average forced to be non-negative
         '''
-        self.radavg.fill(0)
-        self.radavg = np.array([float(in_arr[self.intrad==r].sum()) for r in range(int(self.intrad.max()+1))])
-        #np.add.at(self.radavg, self.intrad, in_arr)
+        self.radavg = np.bincount(self.intrad.ravel(), in_arr.ravel())
         self.radavg /= self.radcount
         if positive:
             self.radavg[self.radavg < 0] = 0
