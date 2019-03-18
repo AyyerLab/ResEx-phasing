@@ -75,7 +75,7 @@ class Projection():
         '''
         if self.do_bg_fitting:
             fdensity = fft.fftn(in_arr[0], **self.fft_kwargs)
-            if CUDA: np.get_default_memory_pool().free_all_blocks()
+            #if CUDA: np.get_default_memory_pool().free_all_blocks()
             self.symmetrize_incoherent(fdensity, self.exp_mag, in_arr[1])
             self.match_bragg(fdensity, 0.)
             if self.do_blurring:
@@ -95,7 +95,7 @@ class Projection():
             out_arr[1][sel] = 0
         else:
             fdensity = fft.fftn(in_arr[0], **self.fft_kwargs)
-            if CUDA: np.get_default_memory_pool().free_all_blocks()
+            #if CUDA: np.get_default_memory_pool().free_all_blocks()
             self.symmetrize_incoherent(fdensity, self.exp_mag)
             self.match_bragg(fdensity, 0.)
             if self.do_blurring:
@@ -108,7 +108,7 @@ class Projection():
 
         #out_arr[0] = np.real(fft.ifftn(fdensity, **self.fft_kwargs)) / self.vol
         out_arr[0] = np.real(fft.ifftn(fdensity, **self.fft_kwargs))
-        if CUDA: np.get_default_memory_pool().free_all_blocks()
+        #if CUDA: np.get_default_memory_pool().free_all_blocks()
 
     def direct(self, in_arr, out_arr):
         '''Direct-space projection
@@ -254,7 +254,7 @@ class Projection():
         for q in quat:
             rot = self._rot_from_quat(q[:4])
             out_arr += ndimage.affine_transform(in_arr*q[4], rot, order=1, offset=np.array([c]*3) - np.dot(rot, np.array([c]*3)))
-        if CUDA: np.get_default_memory_pool().free_all_blocks()
+        #if CUDA: np.get_default_memory_pool().free_all_blocks()
 
     def rotational_blur(self, in_arr, out_arr, num=100):
         if self.sigma == 0.:
@@ -274,7 +274,7 @@ class Projection():
             rot = self._rot_from_axang(angle, axis)
             rot_arr += ndimage.affine_transform(in_arr*w, rot, order=1, offset=np.array([c]*3) - np.dot(rot, np.array([c]*3)))
             total_w += w
-        if CUDA: np.get_default_memory_pool().free_all_blocks()
+        #if CUDA: np.get_default_memory_pool().free_all_blocks()
         out_arr[:] = rot_arr / total_w
 
     def match_histogram(self, in_arr, out_arr):
@@ -310,9 +310,9 @@ class Projection():
 
         fblur = self.size / (2. * np.pi * blur)
         fdensity = fft.fftn(vol3d, axes=(0,1,2))
-        if CUDA: np.get_default_memory_pool().free_all_blocks()
+        #if CUDA: np.get_default_memory_pool().free_all_blocks()
         self._calc_intrad()
-        if CUDA: np.get_default_memory_pool().free_all_blocks()
+        #if CUDA: np.get_default_memory_pool().free_all_blocks()
         fdensity *= np.exp(-self.radsq / 2. / fblur**2)
         vol3d[:] = np.real(fft.ifftn(fdensity)) / vol3d.size
 
