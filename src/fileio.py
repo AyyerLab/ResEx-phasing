@@ -180,6 +180,20 @@ class IO():
         rvsizes = np.array([1., 1., 1.], dtype='f4')
         fvsizes = rvsizes * -1.
 
+        if phas.num_avg_iter > 0:
+            p1 /= phas.num_avg_iter
+            p2 /= phas.num_avg_iter
+        elif phas.num_loops == 1:
+            if CUDA:
+                p1 = phas.p1.get() / phas.num_loops
+                p2 = phas.p2.get() / phas.num_loops
+            else:
+                p1 = phas.p1 / phas.num_loops
+                p2 = phas.p2 / phas.num_loops
+        else:
+            p1 /= phas.num_loops
+            p2 /= phas.num_loops
+
         self.save_as_map("%s-last.ccp4" % self.output_prefix, phas.iterate, rvsizes, "ResEx-recon Last iteration\n")
         self.save_as_map("%s-pf.ccp4" % self.output_prefix, p1[0], rvsizes, "ResEx-recon average_p1\n")
         self.save_as_map("%s-pd.ccp4" % self.output_prefix, p2[0], rvsizes, "ResEx-recon average_p2\n")
@@ -190,6 +204,29 @@ class IO():
 
         if proj.do_local_variation:
             self.save_as_map("%s-supp.supp" % self.output_prefix, proj.support, rvsizes, "ResEx-recon Refined support\n")
+
+    def save_prtf(self, phas, p1_phasor, p2_phasor):
+        vsizes = np.array([-1., -1., -1.], dtype='f4')
+        p1 = numpy.abs(p1_phasor)
+        p2 = numpy.abs(p2_phasor)
+        if phas.num_avg_iter > 0:
+            p1 /= phas.num_avg_iter
+            p2 /= phas.num_avg_iter
+        else:
+            p1 /= phas.num_loops
+            p2 /= phas.num_loops
+
+        self.save_as_map("%s-prtff.ccp4" % self.output_prefix, p1, vsizes, "ResEx-recon 3D PRTF p1\n")
+        self.save_as_map("%s-prtfd.ccp4" % self.output_prefix, p2, vsizes, "ResEx-recon 3D PRTF p2\n")
+
+        self._calc_intrad()
+        intrad = self._intrad.get()
+        radcount = numpy.bincount(intrad.ravel())
+        prtff = numpy.bincount(intrad.ravel(), p1.ravel()) / radcount
+        prtfd = numpy.bincount(intrad.ravel(), p2.ravel()) / radcount
+        numpy.savetxt("%s-prtf.dat" % self.output_prefix,
+                      list(zip(np.arange(intrad.max()+1) / (p1.shape[0] // 2), prtfd, prtff)),
+                      fmt='%.3e')
 
     @staticmethod
     def save_as_map(fname, vol, vsizes, label):
