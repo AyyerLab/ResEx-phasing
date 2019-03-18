@@ -1,6 +1,7 @@
 import os
 import configparser
 from multiprocessing import cpu_count
+import numpy
 try:
     import cupy as np
     import cupy.fft as fft
@@ -235,7 +236,7 @@ class Phaser():
 
         if PYFFTW and i == self.num_iter + self.num_avg_iter:
             self.proj.export_wisdom()
-        if CUDA: np.get_default_memory_pool().free_all_blocks()
+        #if CUDA: np.get_default_memory_pool().free_all_blocks()
         return error
 
     def parse_algorithm_strings(self, alg_string, avg_string):
@@ -271,3 +272,47 @@ class Phaser():
         self.avg_algorithms = []
         for num, name in zip(nums, names):
             self.avg_algorithms += [name]*num
+
+    def accumulate(self, current, total=None, phasor_total=None):
+        fcurrent = np.fft.fftn(current[0])
+        
+        if total is None:
+            if CUDA:
+                total = current.get()
+                phasor_total = (fcurrent / np.abs(fcurrent)).get()
+            else:
+                total = np.copy(current)
+                phasor_total = fcurrent / np.abs(fcurrent)
+        elif self.proj.bragg_calc is not None:
+            if CUDA:
+                total += current.get()
+                phasor_total += (fcurrent / np.abs(fcurrent)).get()
+            else:
+                total += current
+                phasor_total += fcurrent / np.abs(fcurrent)
+        else:
+            ftotal = np.fft.fftn(np.array(total[0]))
+            corr = np.abs(np.fft.ifftn(ftotal * np.conj(fcurrent)))
+            icorr = np.abs(np.fft.ifftn(ftotal * fcurrent))
+            cmax = corr.max()
+            icmax = icorr.max()
+            if cmax > icmax:
+                aligned = np.roll(current[0],
+                                  tuple(numpy.array(np.where(corr == cmax)).ravel()),
+                                  axis=(0, 1, 2))
+            else:
+                aligned = np.roll(current[0, ::-1, ::-1, ::-1],
+                                  tuple(numpy.array(np.where(icorr == icmax)).ravel() + numpy.array([1, 1, 1])),
+                                  axis=(0, 1, 2))
+            faligned = np.fft.fftn(aligned)
+
+            if CUDA:
+                total[0] += aligned.get()
+                total[1] += current[1].get()
+                phasor_total += (faligned / np.abs(faligned)).get()
+            else:
+                total += aligned
+                total[1] += current[1]
+                phasor_total += faligned / np.abs(faligned)
+        
+        return total, phasor_total
