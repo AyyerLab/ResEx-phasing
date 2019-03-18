@@ -26,8 +26,8 @@ def main():
     if CUDA:
         np.cuda.Device(args.device).use()
     phas = phaser.Phaser(args.config_fname, args.testing)
-    average_p1 = numpy.zeros(phas.p1.shape, dtype='f4')
-    average_p2 = numpy.zeros(phas.p1.shape, dtype='f4')
+    avg_p1 = avg_p2 = None
+    avg_p1_phasor = avg_p2_phasor = None
 
     for i in range(phas.num_loops * (phas.num_iter + phas.num_avg_iter)):
         time1 = time.time()
@@ -39,15 +39,8 @@ def main():
         if error < 0:
             sys.exit(1)
         if (phas.num_loops == 1 and i > phas.num_iter) or (phas.num_loops > 1 and i%phas.num_iter == phas.num_iter - 1):
-            if CUDA:
-                average_p1 += phas.p1.get()
-                average_p2 += phas.p2.get()
-            else:
-                average_p1 += phas.p1
-                average_p2 += phas.p2
-            if phas.num_loops > 1:
-                numpy.save(phas.io.output_prefix+'-pf-%.4d.npy'%(i/phas.num_iter), phas.p1.get())
-                numpy.save(phas.io.output_prefix+'-pd-%.4d.npy'%(i/phas.num_iter), phas.p2.get())
+            avg_p1, avg_p1_phasor = phas.accumulate(phas.p1, avg_p1, avg_p1_phasor)
+            avg_p2, avg_p2_phasor = phas.accumulate(phas.p2, avg_p2, avg_p2_phasor)
 
         time2 = time.time()
         phas.io.save_current(phas, phas.proj, i+1, time1, time2, error)
@@ -59,19 +52,8 @@ def main():
             sys.stderr.write("Now averaging")
     sys.stderr.write("\nCalculating prtf and writing to file.\n")
 
-    if phas.num_avg_iter > 0:
-        average_p1 /= phas.num_avg_iter
-        average_p2 /= phas.num_avg_iter
-    else:
-        if CUDA:
-            average_p1 = phas.p1.get() / phas.num_loops
-            average_p2 = phas.p2.get() / phas.num_loops
-        else:
-            average_p1 = phas.p1 / phas.num_loops
-            average_p2 = phas.p2 / phas.num_loops
-
-    #phas.calc_prtf(100)
-    phas.io.save_output(phas, phas.proj, average_p1, average_p2)
+    phas.io.save_output(phas, phas.proj, avg_p1, avg_p2)
+    phas.io.save_prtf(phas, avg_p1_phasor, avg_p2_phasor)
 
 if __name__ == '__main__':
     main()
