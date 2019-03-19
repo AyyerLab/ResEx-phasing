@@ -53,7 +53,8 @@ def main():
     sys.stderr.write("\nCalculating prtf and writing to file.\n")
 
     phas.io.save_output(phas, phas.proj, avg_p1, avg_p2)
-    phas.io.save_prtf(phas, avg_p1_phasor, avg_p2_phasor)
+    if phas.num_avg_iter > 0 or phas.num_loops > 1:
+        phas.io.save_prtf(phas, avg_p1_phasor, avg_p2_phasor)
 
 if __name__ == '__main__':
     main()
