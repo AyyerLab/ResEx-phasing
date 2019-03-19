@@ -207,8 +207,8 @@ class IO():
 
     def save_prtf(self, phas, p1_phasor, p2_phasor):
         vsizes = np.array([-1., -1., -1.], dtype='f4')
-        p1 = numpy.abs(p1_phasor)
-        p2 = numpy.abs(p2_phasor)
+        p1 = numpy.abs(p1_phasor).astype('f4')
+        p2 = numpy.abs(p2_phasor).astype('f4')
         if phas.num_avg_iter > 0:
             p1 /= phas.num_avg_iter
             p2 /= phas.num_avg_iter
@@ -220,7 +220,10 @@ class IO():
         self.save_as_map("%s-prtfd.ccp4" % self.output_prefix, p2, vsizes, "ResEx-recon 3D PRTF p2\n")
 
         self._calc_intrad()
-        intrad = self._intrad.get()
+        if CUDA:
+            intrad = self._intrad.get()
+        else:
+            intrad = self._intrad
         radcount = numpy.bincount(intrad.ravel())
         prtff = numpy.bincount(intrad.ravel(), p1.ravel()) / radcount
         prtfd = numpy.bincount(intrad.ravel(), p2.ravel()) / radcount
