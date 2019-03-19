@@ -308,11 +308,13 @@ class Phaser():
 
             if CUDA:
                 total[0] += aligned.get()
-                total[1] += current[1].get()
+                if self.proj.do_bg_fitting:
+                    total[1] += current[1].get()
                 phasor_total += (faligned / np.abs(faligned)).get()
             else:
                 total += aligned
-                total[1] += current[1]
+                if self.proj.do_bg_fitting:
+                    total[1] += current[1]
                 phasor_total += faligned / np.abs(faligned)
         
         return total, phasor_total
