@@ -62,7 +62,7 @@ else:
 
 with mrcfile.open(flist[-1], 'r') as f:
     if args.fourier:
-        rangemax = f.data.max()
+        rangemax = f.data.max()**0.25
         rangemin = 0
     elif args.support:
         rangemax = 1
