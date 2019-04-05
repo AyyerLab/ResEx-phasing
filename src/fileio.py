@@ -164,12 +164,13 @@ class IO():
 
         self.save_as_map(fname, slices, vsizes, label)
 
-    def save_current(self, phas, proj, i, time1, time2, error):
+    def save_current(self, phas, proj, i, time1, time2, error, slices=True):
         with open("%s-log.dat" % self.output_prefix, "a") as f:
             f.write("%.4d  %.2e  %.3e\n" % (i, time2 - time1, error))
 
-        self.dump_slices(phas.p1, "%s-slices/%.4d.ccp4" % (self.output_prefix, i), "ResEx-recon p1 %d\n" % i)
-        self.dump_slices(proj.exp_mag, "%s-fslices/%.4d.ccp4" % (self.output_prefix, i), "ResEx-recon exp_mag %d\n" % i, is_fourier=True)
+        if slices:
+            self.dump_slices(phas.p1, "%s-slices/%.4d.ccp4" % (self.output_prefix, i), "ResEx-recon p1 %d\n" % i)
+            self.dump_slices(proj.exp_mag, "%s-fslices/%.4d.ccp4" % (self.output_prefix, i), "ResEx-recon exp_mag %d\n" % i, is_fourier=True)
 
         if proj.do_local_variation:
             self.dump_slices(proj.support, "%s-support/%.4d.ccp4" % (self.output_prefix, i), "ResEx-recon support %d\n" % i)
@@ -207,8 +208,8 @@ class IO():
 
     def save_prtf(self, phas, p1_phasor, p2_phasor):
         vsizes = np.array([-1., -1., -1.], dtype='f4')
-        p1 = numpy.abs(p1_phasor).astype('f4')
-        p2 = numpy.abs(p2_phasor).astype('f4')
+        p1 = p1_phasor
+        p2 = p2_phasor
         if phas.num_avg_iter > 0:
             p1 /= phas.num_avg_iter
             p2 /= phas.num_avg_iter
