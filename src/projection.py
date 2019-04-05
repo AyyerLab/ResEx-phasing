@@ -55,7 +55,7 @@ class Projection():
                     wisdom = tuple([(s+')').encode() for s in re.split('\n\)\n', fptr.read())[:-1]])
                 pyfftw.import_wisdom(wisdom)
         else:
-            self.fft_kwargs = {}
+            self.fft_kwargs = {'norm': 'ortho'}
 
         self.exp_mag = np.empty((size, size, size), dtype='f4')
 
@@ -75,7 +75,6 @@ class Projection():
         '''
         if self.do_bg_fitting:
             fdensity = fft.fftn(in_arr[0], **self.fft_kwargs)
-            #if CUDA: np.get_default_memory_pool().free_all_blocks()
             self.symmetrize_incoherent(fdensity, self.exp_mag, in_arr[1])
             self.match_bragg(fdensity, 0.)
             if self.do_blurring:
@@ -95,7 +94,6 @@ class Projection():
             out_arr[1][sel] = 0
         else:
             fdensity = fft.fftn(in_arr[0], **self.fft_kwargs)
-            #if CUDA: np.get_default_memory_pool().free_all_blocks()
             self.symmetrize_incoherent(fdensity, self.exp_mag)
             self.match_bragg(fdensity, 0.)
             if self.do_blurring:
@@ -104,11 +102,10 @@ class Projection():
             sel = (self.obs_mag > 0)
             fdensity[sel] *= self.obs_mag[sel] / self.exp_mag[sel]
             fdensity[self.obs_mag == 0.] = 0
-            fdensity[self.obs_mag < 0] /= fdensity.size
+            #fdensity[self.obs_mag < 0] /= fdensity.size
 
         #out_arr[0] = np.real(fft.ifftn(fdensity, **self.fft_kwargs)) / self.vol
         out_arr[0] = np.real(fft.ifftn(fdensity, **self.fft_kwargs))
-        #if CUDA: np.get_default_memory_pool().free_all_blocks()
 
     def direct(self, in_arr, out_arr):
         '''Direct-space projection
@@ -124,7 +121,7 @@ class Projection():
            Can be applied in-place (out = in)
         '''
         if self.do_local_variation:
-            self.update_support(in_arr, 3, num_vox=self.num_supp)
+            self.update_support(in_arr, 4, num_vox=self.num_supp)
 
         if self.do_histogram:
             self.match_histogram(in_arr, out_arr)
