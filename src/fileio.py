@@ -208,8 +208,8 @@ class IO():
 
     def save_prtf(self, phas, p1_phasor, p2_phasor):
         vsizes = np.array([-1., -1., -1.], dtype='f4')
-        p1 = p1_phasor
-        p2 = p2_phasor
+        p1 = numpy.abs(p1_phasor)
+        p2 = numpy.abs(p2_phasor)
         if phas.num_avg_iter > 0:
             p1 /= phas.num_avg_iter
             p2 /= phas.num_avg_iter
