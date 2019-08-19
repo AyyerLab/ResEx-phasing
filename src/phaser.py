@@ -72,16 +72,12 @@ class Phaser():
         self.allocate_memory()
         #self.io.parse_intens(self.proj, intens_fname, scale_factor, self.proj.do_bg_fitting)
         self.io.parse_intens(self.proj, intens_fname, scale_factor)
-        if CUDA: np.get_default_memory_pool().free_all_blocks()
         if os.path.basename(bragg_fname) != '':
             self.io.parse_bragg(self.proj, bragg_fname, bragg_qmax)
-            if CUDA: np.get_default_memory_pool().free_all_blocks()
         else:
             print('No Bragg model')
         self.io.parse_support(self.proj, support_fname)
-        if CUDA: np.get_default_memory_pool().free_all_blocks()
         self.io.init_iterate(self.proj, self.iterate, input_fname, inputbg_fname, self.proj.do_bg_fitting, fixed_seed)
-        if CUDA: np.get_default_memory_pool().free_all_blocks()
         if self.proj.do_bg_fitting:
             self.proj.init_radavg()
         if self.proj.do_histogram:
@@ -110,7 +106,6 @@ class Phaser():
             f.write("-------------------------\n")
             f.write("iter  time (s)  error\n")
             f.write("-------------------------\n")
-        if CUDA: np.get_default_memory_pool().free_all_blocks()
 
     def DM_algorithm(self): # pylint: disable=invalid-name
         r'''Difference Map algorithm
@@ -236,7 +231,6 @@ class Phaser():
 
         if PYFFTW and i == self.num_iter + self.num_avg_iter:
             self.proj.export_wisdom()
-        #if CUDA: np.get_default_memory_pool().free_all_blocks()
         return error
 
     def parse_algorithm_strings(self, alg_string, avg_string):
