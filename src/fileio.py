@@ -195,7 +195,7 @@ class IO():
             p1 /= phas.num_loops
             p2 /= phas.num_loops
 
-        self.save_as_map("%s-last.ccp4" % self.output_prefix, phas.iterate, rvsizes, "ResEx-recon Last iteration\n")
+        #self.save_as_map("%s-last.ccp4" % self.output_prefix, phas.iterate, rvsizes, "ResEx-recon Last iteration\n")
         self.save_as_map("%s-pf.ccp4" % self.output_prefix, p1[0], rvsizes, "ResEx-recon average_p1\n")
         self.save_as_map("%s-pd.ccp4" % self.output_prefix, p2[0], rvsizes, "ResEx-recon average_p2\n")
 
@@ -203,8 +203,8 @@ class IO():
             self.save_as_map("%s-bg.ccp4" % self.output_prefix, phas.p2[1], fvsizes, "ResEx-recon average_p2\n")
             proj.radavg[:self.size//2].tofile("%s-radavg.raw" % self.output_prefix)
 
-        if proj.do_local_variation:
-            self.save_as_map("%s-supp.supp" % self.output_prefix, proj.support, rvsizes, "ResEx-recon Refined support\n")
+        #if proj.do_local_variation:
+        #    self.save_as_map("%s-supp.supp" % self.output_prefix, proj.support, rvsizes, "ResEx-recon Refined support\n")
 
     def save_prtf(self, phas, p1_phasor, p2_phasor):
         vsizes = np.array([-1., -1., -1.], dtype='f4')
