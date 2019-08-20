@@ -24,7 +24,7 @@ import projection
 import fileio
 
 class Phaser():
-    def __init__(self, config_fname, fixed_seed=False):
+    def __init__(self, config_fname, fixed_seed=False, no_parse=False):
         self._alg_list = ['ER', 'DM', 'HIO', 'mod-DM', 'RAAR']
         self.iterate = None
         self.p1 = self.p2 = None
@@ -67,8 +67,11 @@ class Phaser():
         self.proj.sigma = config.getfloat('algorithm', 'sigma_deg', fallback=0.) * np.pi / 180.
 
         self.size = size
-
         self.parse_algorithm_strings(algorithm_string, avg_algorithm_string)
+
+        if no_parse:
+            return
+
         self.allocate_memory()
         #self.io.parse_intens(self.proj, intens_fname, scale_factor, self.proj.do_bg_fitting)
         self.io.parse_intens(self.proj, intens_fname, scale_factor)
