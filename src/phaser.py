@@ -64,7 +64,7 @@ class Phaser():
         self.proj.do_positivity = config.getboolean('algorithm', 'positivity', fallback=False)
         self.proj.do_normalize_prtf = config.getboolean('algorithm', 'normalize_prtf', fallback=False)
         hist_fname = config.get('algorithm', 'hist_fname', fallback='')
-        self.proj.sigma = config.getfloat('algorithm', 'sigma_deg', fallback=0.) * np.pi / 180.
+        self.proj.sigma = config.getfloat('algorithm', 'sigma_deg', fallback=0.) * numpy.pi / 180.
 
         self.size = size
         self.parse_algorithm_strings(algorithm_string, avg_algorithm_string)
