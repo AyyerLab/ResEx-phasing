@@ -11,9 +11,13 @@ except ImportError:
     CUDA = False
 import phaser
 
-def reconstruct_loop(l, phas):
+def reconstruct_loop(l, args, recon_p1, recon_p2, devno=None):
+    if CUDA and devno is not None:
+        np.cuda.Device(devno).use()
+    phas = phaser.Phaser(args.config_fname, args.testing)
     avg_p1 = avg_p2 = None
     avg_p1_phasor = avg_p2_phasor = None
+
     for i in range(phas.num_iter + phas.num_avg_iter):
         time1 = time.time()
 
@@ -44,7 +48,9 @@ def reconstruct_loop(l, phas):
     avg_p1 /= phas.num_avg_iter + 1
     avg_p2 /= phas.num_avg_iter + 1
 
-    return avg_p1, avg_p2
+    #return avg_p1, avg_p2
+    recon_p1.put(avg_p1)
+    recon_p2.put(avg_p2)
 
 def main():
     parser = argparse.ArgumentParser(description='Resolution extension phasing')
@@ -59,21 +65,37 @@ def main():
                         type=int, nargs='+', default=[0])
     args = parser.parse_args()
 
-    if CUDA:
-        np.cuda.Device(args.device[0]).use()
-    phas = phaser.Phaser(args.config_fname, args.testing)
+    mp.set_start_method('spawn')
+    phas = phaser.Phaser(args.config_fname, args.testing, no_parse=True)
     avg_p1 = avg_p2 = None
     avg_p1_phasor = avg_p2_phasor = None
 
-    for l in range(phas.num_loops):
-        if l > 0:
-            # Reallocate for new loop after first
-            phas.allocate_memory()
-            phas.io.init_iterate(phas.proj, phas.iterate, do_bg_fitting=phas.proj.do_bg_fitting, quiet=True)
+    recon_p1 = mp.Queue()
+    recon_p2 = mp.Queue()
 
-        recon_p1, recon_p2 = reconstruct_loop(l, phas)
-        avg_p1, avg_p1_phasor = phas.accumulate(np.array(recon_p1), avg_p1, avg_p1_phasor)
-        avg_p2, avg_p2_phasor = phas.accumulate(np.array(recon_p2), avg_p2, avg_p2_phasor)
+    num_devices = len(args.device)
+    if num_devices > 1:
+        num_cycles = int(np.ceil(phas.num_loops / num_devices))
+        for cycle in range(num_cycles):
+            l_min = cycle * num_devices
+            l_max = min((cycle+1)*num_devices, phas.num_loops)
+            print('%d: %d - %d'%(cycle, l_min, l_max))
+            jobs = []
+            for l in range(l_min, l_max):
+                j = mp.Process(target=reconstruct_loop, args=(l, args, recon_p1, recon_p2, l%num_devices))
+                jobs.append(j)
+                
+            [j.start() for j in jobs]
+            for j in jobs:
+                avg_p1, avg_p1_phasor = phas.accumulate(np.array(recon_p1.get()), avg_p1, avg_p1_phasor)
+                avg_p2, avg_p2_phasor = phas.accumulate(np.array(recon_p2.get()), avg_p2, avg_p2_phasor)
+            [j.join() for j in jobs]
+    else:
+        np.cuda.Device(args.device[0]).use()
+        for l in range(phas.num_loops):
+            reconstruct_loop(l, args, recon_p1, recon_p2)
+            avg_p1, avg_p1_phasor = phas.accumulate(np.array(recon_p1.get()), avg_p1, avg_p1_phasor)
+            avg_p2, avg_p2_phasor = phas.accumulate(np.array(recon_p2.get()), avg_p2, avg_p2_phasor)
 
     sys.stderr.write("Calculating prtf and writing to file.\n")
 
